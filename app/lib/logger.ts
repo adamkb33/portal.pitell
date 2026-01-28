@@ -2,31 +2,12 @@
 
 import { ENV } from '~/api/config/env';
 
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-
 interface LogContext {
   [key: string]: unknown;
 }
 
 class Logger {
   private isDevelopment = ENV.NODE_ENV === 'development';
-
-  private serializeError(error: unknown): string {
-    if (error instanceof Response) {
-      return `Response(status=${error.status}, statusText=${error.statusText})`;
-    }
-    if (error instanceof Error) {
-      return `${error.name}: ${error.message}${error.stack ? `\n${error.stack}` : ''}`;
-    }
-    if (typeof error === 'object' && error !== null) {
-      try {
-        return JSON.stringify(error, null, 2);
-      } catch {
-        return String(error);
-      }
-    }
-    return String(error);
-  }
 
   error(message: string, context?: LogContext): void {
     const serialized = context ? this.serializeContext(context) : '';

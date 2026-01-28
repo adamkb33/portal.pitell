@@ -1,12 +1,11 @@
-import axios from 'axios';
-import { data, redirect, type LoaderFunctionArgs } from 'react-router';
+import { data, redirect } from 'react-router';
 import type { BrregEnhetResponse } from '~/api/brreg/types';
 
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { ROUTES_MAP } from '~/lib/route-tree';
-import { CompanyUserController, PublicCompanyController, type AddressDto } from '~/api/generated/identity';
+import { CompanyUserController, type AddressDto } from '~/api/generated/identity';
 import type { Route } from './+types/company.route';
-import { Building2, MapPin, Mail } from 'lucide-react';
+import { Building2, Mail } from 'lucide-react';
 
 export type CompanyIndexLoaderResponse = {
   brregResponse?: BrregEnhetResponse;

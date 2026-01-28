@@ -2,10 +2,10 @@ import { data } from 'react-router';
 import type { Route } from './+types/auth.verification-status.api-route';
 import { AuthController } from '~/api/generated/identity';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { getVerificationTokenFromRequest } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const verificationSessionToken = String(url.searchParams.get('verificationSessionToken') || '');
+  const verificationSessionToken = await getVerificationTokenFromRequest(request);
 
   if (!verificationSessionToken) {
     return data({ error: 'Mangler verifiseringsinformasjon. Prøv igjen.' }, { status: 400 });

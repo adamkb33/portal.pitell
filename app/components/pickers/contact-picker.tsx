@@ -1,4 +1,4 @@
-import { useLoaderData, useSubmit, useRevalidator } from 'react-router';
+import { useSubmit, useRevalidator } from 'react-router';
 import { useState } from 'react';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '~/components/ui/select'; // your wrappers
 import { Button } from '~/components/ui/button';

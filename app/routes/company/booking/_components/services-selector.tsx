@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
-import { Check, Clock, DollarSign, Search, ChevronDown, ChevronUp, User2Icon } from 'lucide-react';
+import { Check, Clock, DollarSign, ChevronDown, ChevronUp, User2Icon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import type { GroupedServiceGroupDto } from '~/api/generated/booking';
 import { Label } from '~/components/ui/label';

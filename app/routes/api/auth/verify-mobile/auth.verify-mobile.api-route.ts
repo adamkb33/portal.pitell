@@ -1,42 +1,30 @@
 import { data } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.api-route';
-import { AuthController } from '~/api/generated/identity';
-import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { VerificationTokenService } from '~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server';
+import { ContactAuthService } from '~/routes/booking/public/appointment/session/contact/_services/contact-auth.service.server';
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const verificationSessionToken = String(formData.get('verificationSessionToken') || '');
   const code = String(formData.get('code') || '');
 
-  console.log('[api.auth.verify-mobile] payload', { verificationSessionToken, code });
+  const verificationSessionToken = await VerificationTokenService.readVerificationToken(request);
 
-  if (!verificationSessionToken || !code) {
-    return data({ error: 'Mangler verifiseringskode. Prøv igjen.' }, { status: 400 });
+  if (!verificationSessionToken) {
+    return data({ error: 'Mangler verifiseringsinformasjon. Prøv igjen.' }, { status: 400 });
   }
 
   try {
-    const response = await AuthController.verifyMobile({
-      body: {
-        verificationSessionToken,
-        code,
-      },
+    const result = await ContactAuthService.verifyMobile({
+      verificationSessionToken,
+      code,
     });
 
-    const nextStep = response.data?.data?.nextStep ?? 'SIGN_IN';
-    const authTokens = response.data?.data?.authTokens;
-
-    if (authTokens) {
-      const headers = await authService.setAuthCookies(
-        authTokens.accessToken,
-        authTokens.refreshToken,
-        authTokens.accessTokenExpiresAt,
-        authTokens.refreshTokenExpiresAt,
-      );
-      return data({ success: true, nextStep, signedIn: true }, { headers });
+    if (result.signedIn) {
+      return data({ success: true, nextStep: result.nextStep, signedIn: true }, { headers: result.headers });
     }
 
-    return data({ success: true, nextStep, signedIn: false });
+    return data({ success: true, nextStep: result.nextStep, signedIn: false });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke bekrefte mobilnummer. Prøv igjen.');
     return data({ error: message }, { status: status ?? 400 });

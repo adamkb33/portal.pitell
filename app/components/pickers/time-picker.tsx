@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Clock3 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
 
@@ -12,6 +12,8 @@ type TimePickerProps = {
   startHour?: number;
   minuteStep?: number;
   zIndex?: number;
+  disabled?: boolean;
+  className?: string;
 };
 
 const normalizeTimeValue = (value: string) => {
@@ -34,14 +36,15 @@ export function TimePicker({
   startHour = 8,
   minuteStep = 5,
   zIndex = 60,
+  disabled = false,
+  className,
 }: TimePickerProps) {
   const normalized = normalizeTimeValue(value);
   const [selectedHour, selectedMinute] = normalized ? normalized.split(':') : ['00', '00'];
+  const [pendingHour, setPendingHour] = useState<string>(selectedHour);
+  const [pendingMinute, setPendingMinute] = useState<string>(selectedMinute);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const hourListRef = useRef<HTMLDivElement | null>(null);
-  const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null);
-  const panelWidth = 240;
 
   const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0')), []);
 
@@ -50,49 +53,11 @@ export function TimePicker({
     return Array.from({ length: steps }, (_, index) => String(index * minuteStep).padStart(2, '0'));
   }, [minuteStep]);
 
-  const updatePanelPosition = () => {
-    if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const maxLeft = Math.max(8, window.innerWidth - panelWidth - 8);
-    const nextLeft = Math.min(rect.left, maxLeft);
-    const nextTop = rect.bottom + 8;
-    setPanelPosition((prev) => {
-      if (prev && prev.top === nextTop && prev.left === nextLeft) return prev;
-      return { top: nextTop, left: nextLeft };
-    });
-  };
-
   useEffect(() => {
     if (!isOpen) return;
-    updatePanelPosition();
-
-    const handleReposition = (event: Event) => {
-      const target = event.target as Node | null;
-      if (target && panelRef.current?.contains(target)) {
-        return;
-      }
-      updatePanelPosition();
-    };
-    window.addEventListener('resize', handleReposition);
-    window.addEventListener('scroll', handleReposition, true);
-    return () => {
-      window.removeEventListener('resize', handleReposition);
-      window.removeEventListener('scroll', handleReposition, true);
-    };
+    setPendingHour(selectedHour);
+    setPendingMinute(selectedMinute);
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClickAway = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (triggerRef.current?.contains(target)) return;
-      if (panelRef.current?.contains(target)) return;
-      onOpenChange(false);
-    };
-    document.addEventListener('mousedown', handleClickAway);
-    return () => document.removeEventListener('mousedown', handleClickAway);
-  }, [isOpen, onOpenChange]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -107,95 +72,113 @@ export function TimePicker({
     });
   }, [isOpen, selectedHour, startHour, value]);
 
-  const panel =
-    isOpen && panelPosition
-      ? createPortal(
+  const pendingValue = buildTimeValue(value || '00:00', pendingHour, pendingMinute);
+
+  const panel = isOpen ? (
+    <div
+      data-time-picker-panel
+      className="absolute top-full left-0 z-[60] mt-2 w-[240px] rounded-lg border border-card-border bg-card shadow-lg"
+      style={{ zIndex }}
+    >
+      <div className="border-b border-card-border px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-form-text-muted">Velg tid</p>
+        <div className="mt-1 text-lg font-semibold text-form-text">{pendingValue || '--:--'}</div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 px-3 py-2.5">
+        <div>
           <div
-            ref={panelRef}
-            data-time-picker-panel
-            className="fixed mt-2 w-[240px] rounded-md border border-card-border bg-card p-2 shadow-lg"
-            style={{ top: panelPosition.top, left: panelPosition.left, zIndex }}
+            ref={hourListRef}
+            className="h-32 overflow-y-scroll overscroll-contain rounded-md border border-form-border bg-form-bg p-1 touch-pan-y pointer-events-auto text-md"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+            onWheel={(event) => event.stopPropagation()}
+            onTouchMove={(event) => event.stopPropagation()}
           >
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <p className="text-xs text-form-text-muted">Timer</p>
-              <div
-                ref={hourListRef}
-                className="h-40 overflow-y-scroll overscroll-contain rounded-md border border-form-border bg-form-bg p-1 touch-pan-y pointer-events-auto"
-                style={{ WebkitOverflowScrolling: 'touch' }}
-                onWheel={(event) => event.stopPropagation()}
-                onTouchMove={(event) => event.stopPropagation()}
-              >
-                  {hourOptions.map((hour) => {
-                    const selected = selectedHour === hour;
-                    return (
-                      <button
-                        key={hour}
-                        type="button"
-                        data-hour={hour}
-                        className={cn(
-                          'w-full rounded px-2 py-1 text-left text-sm hover:bg-form-accent/10',
-                          selected && 'bg-form-accent/20 text-form-accent font-medium',
-                        )}
-                        onClick={() => onChange(buildTimeValue(value || '00:00', hour, undefined))}
-                      >
-                        {hour}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs text-form-text-muted">Minutter</p>
-              <div
-                className="h-40 overflow-y-scroll overscroll-contain rounded-md border border-form-border bg-form-bg p-1 touch-pan-y pointer-events-auto"
-                style={{ WebkitOverflowScrolling: 'touch' }}
-                onWheel={(event) => event.stopPropagation()}
-                onTouchMove={(event) => event.stopPropagation()}
-              >
-                  {minuteOptions.map((minute) => {
-                    const selected = selectedMinute === minute;
-                    return (
-                      <button
-                        key={minute}
-                        type="button"
-                        className={cn(
-                          'w-full rounded px-2 py-1 text-left text-sm hover:bg-form-accent/10',
-                          selected && 'bg-form-accent/20 text-form-accent font-medium',
-                        )}
-                        onClick={() => onChange(buildTimeValue(value || '00:00', undefined, minute))}
-                      >
-                        {minute}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 border-t border-card-border px-2 py-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                Ferdig
-              </Button>
-            </div>
-          </div>,
-          document.body,
-        )
-      : null;
+            {hourOptions.map((hour, index) => {
+              return (
+                <button
+                  key={hour}
+                  type="button"
+                  data-hour={hour}
+                  className={cn(
+                    'w-full px-2 py-1 text-left text-sm transition-colors hover:bg-primary/10 hover:text-primary',
+                    index % 2 === 0 ? 'bg-primary/10' : 'bg-transparent',
+                    'border-b border-form-border last:border-b-0',
+                    pendingHour === hour && 'bg-primary/20 text-primary font-semibold',
+                  )}
+                  onClick={() => setPendingHour(hour)}
+                >
+                  {hour}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div>
+          <div
+            className="h-32 overflow-y-scroll overscroll-contain rounded-md border border-form-border bg-form-bg p-1 touch-pan-y pointer-events-auto text-md"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+            onWheel={(event) => event.stopPropagation()}
+            onTouchMove={(event) => event.stopPropagation()}
+          >
+            {minuteOptions.map((minute, index) => {
+              return (
+                <button
+                  key={minute}
+                  type="button"
+                  className={cn(
+                    'w-full px-2 py-1 text-left text-sm transition-colors hover:bg-primary/10 hover:text-primary',
+                    index % 2 === 0 ? 'bg-primary/10' : 'bg-transparent',
+                    'border-b border-form-border last:border-b-0',
+                    pendingMinute === minute && 'bg-primary/20 text-primary font-semibold',
+                  )}
+                  onClick={() => setPendingMinute(minute)}
+                >
+                  {minute}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-end gap-2 border-t border-card-border px-4 py-3">
+        <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+          Avbryt
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          onClick={() => {
+            onChange(pendingValue);
+            onOpenChange(false);
+          }}
+        >
+          OK
+        </Button>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className="relative">
       <Button
         type="button"
         variant="outline"
-        onClick={() => onOpenChange(!isOpen)}
+        onClick={() => !disabled && onOpenChange(!isOpen)}
         ref={triggerRef}
+        disabled={disabled}
         className={cn(
-          'w-full h-11 justify-between bg-form-bg border-form-border text-form-text',
+          'h-11 w-full justify-between gap-2 rounded-md border border-form-border bg-form-bg px-3 text-form-text shadow-none',
+          'focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]',
+          isOpen && 'border-ring ring-2 ring-ring/40',
           !value && 'text-form-text-muted',
+          disabled && 'cursor-not-allowed opacity-60',
+          className,
         )}
       >
         <span className="text-sm">{normalized || placeholder}</span>
-        <span className="text-xs text-muted-foreground">24t</span>
+        <Clock3 className="size-4 text-form-text-muted" />
       </Button>
       {panel}
     </div>

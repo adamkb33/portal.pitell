@@ -18,7 +18,7 @@ export type ApiError = {
 };
 
 export type ApiMessage = {
-    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
+    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'MOBILE_ALREADY_IN_USE' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT_EMAIL' | 'VERIFICATION_RESENT_MOBILE' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
     value: string;
 };
 
@@ -91,16 +91,16 @@ export type InviteUserDto = {
     companyRoles: Array<'ADMIN' | 'EMPLOYEE'>;
 };
 
-export type ApiResponseInvitedUserTokenDto = {
+export type ApiResponseCompanyInvitedUserTokenDto = {
     success: boolean;
     message: ApiMessage;
-    data?: InvitedUserTokenDto;
+    data?: CompanyInvitedUserTokenDto;
     errors?: Array<ApiError>;
     meta?: ApiMeta;
     timestamp: string;
 };
 
-export type InvitedUserTokenDto = {
+export type CompanyInvitedUserTokenDto = {
     inviteToken: string;
 };
 
@@ -228,6 +228,46 @@ export type ApiResponseListLong = {
     timestamp: string;
 };
 
+export type ResolveOrCreatePendingUserRequestDto = {
+    email?: string;
+    mobileNumber?: string;
+    givenName?: string;
+    familyName?: string;
+};
+
+export type ApiResponseResolveOrCreatePendingUserResponseDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: ResolveOrCreatePendingUserResponseDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type ResolveOrCreatePendingUserResponseDto = {
+    userId: number;
+    created: boolean;
+};
+
+export type UserInviteRequestDto = {
+    email?: string;
+    mobileNumber?: string;
+    userId?: number;
+};
+
+export type ApiResponseUserInvitedTokenDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: UserInvitedTokenDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type UserInvitedTokenDto = {
+    inviteToken: string;
+};
+
 export type ApiResponseListUserDto = {
     success: boolean;
     message: ApiMessage;
@@ -239,8 +279,8 @@ export type ApiResponseListUserDto = {
 
 export type UserDto = {
     id: number;
-    givenName: string;
-    familyName: string;
+    givenName?: string;
+    familyName?: string;
     email?: string;
     emailVerified: boolean;
     mobileNumber?: string;
@@ -341,11 +381,17 @@ export type ApiResponseSignUpResponseDto = {
 };
 
 export type SignUpResponseDto = {
+    authTokens: AuthenticationTokenDto;
     userId: number;
-    verificationSessionToken: string;
+    verificationToken?: VerificationTokenDto;
     emailSent: boolean;
     mobileSent: boolean;
     nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
+};
+
+export type VerificationTokenDto = {
+    value: string;
+    expiresAt: string;
 };
 
 export type SignOutDto = {
@@ -353,7 +399,7 @@ export type SignOutDto = {
 };
 
 export type SignInDto = {
-    email?: string;
+    emailOrMobile?: string;
     password?: string;
     provider: 'LOCAL' | 'GOOGLE' | 'FACEBOOK';
     providerUserId?: string;
@@ -370,14 +416,32 @@ export type ApiResponseSignInResponseDto = {
 };
 
 export type SignInResponseDto = {
-    accessToken: string;
-    accessTokenExpiresAt: number;
-    refreshToken: string;
-    refreshTokenExpiresAt: number;
+    authTokens?: AuthenticationTokenDto;
     userId: number;
     email?: string;
     mobileNumber?: string;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    verificationTokenDto?: VerificationTokenDto;
+    emailSent?: boolean;
+    mobileSent?: boolean;
+};
+
+export type AcceptUserInviteDto = {
+    givenName: string;
+    familyName: string;
+    password: string;
+    password2: string;
+    email?: string;
+    mobileNumber?: string;
+};
+
+export type ApiResponseAuthenticationTokenDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: AuthenticationTokenDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
 };
 
 export type AcceptInviteDto = {
@@ -393,15 +457,6 @@ export type RespondToInviteDto = {
     accept?: AcceptInviteDto;
 };
 
-export type ApiResponseAuthenticationTokenDto = {
-    success: boolean;
-    message: ApiMessage;
-    data?: AuthenticationTokenDto;
-    errors?: Array<ApiError>;
-    meta?: ApiMeta;
-    timestamp: string;
-};
-
 export type ResetPasswordDto = {
     resetPasswordToken: string;
     password: string;
@@ -411,6 +466,8 @@ export type ResetPasswordDto = {
 export type ResendVerificationDto = {
     email?: string;
     verificationSessionToken?: string;
+    sendEmail: boolean;
+    sendMobile: boolean;
 };
 
 export type ApiResponseResendVerificationResponseDto = {
@@ -425,7 +482,7 @@ export type ApiResponseResendVerificationResponseDto = {
 export type ResendVerificationResponseDto = {
     emailSent: boolean;
     mobileSent: boolean;
-    verificationSessionToken: string;
+    verificationToken?: VerificationTokenDto;
 };
 
 export type RefreshTokenRequestDto = {
@@ -451,7 +508,8 @@ export type ProviderCompleteProfileResponseDto = {
     userId: number;
     email?: string;
     mobileNumber?: string;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    verificationTokenDto?: VerificationTokenDto;
 };
 
 export type ApiResponseJwtClaims = {
@@ -616,7 +674,7 @@ export type ApiResponseVerifyEmailResponseDto = {
 };
 
 export type VerifyEmailResponseDto = {
-    verificationSessionToken?: string;
+    verificationToken?: VerificationTokenDto;
     mobileRequired: boolean;
     mobileVerified: boolean;
     nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
@@ -639,6 +697,56 @@ export type VerificationStatusResponseDto = {
     emailSent: boolean;
     mobileSent: boolean;
     nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
+};
+
+export type ApiResponseUserAuthStatusDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: UserAuthStatusDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type UserAuthStatusDto = {
+    user: UserDto;
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    verificationToken?: VerificationTokenDto;
+};
+
+export type ApiResponseUserContextDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: UserContextDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type UserCompanyContextDto = {
+    company: CompanySummaryDto;
+    roles: Array<'ADMIN' | 'EMPLOYEE'>;
+    products: Array<'BOOKING' | 'EVENT' | 'TIMESHEET'>;
+};
+
+export type UserContextDto = {
+    user: UserDto;
+    companies: Array<UserCompanyContextDto>;
+};
+
+export type ApiResponseUserInviteTokenDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: UserInviteTokenDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type UserInviteTokenDto = {
+    userId?: number;
+    email?: string;
+    mobileNumber?: string;
 };
 
 export type ApiResponseInviteTokenDto = {
@@ -842,7 +950,7 @@ export type InviteUserResponses = {
     /**
      * OK
      */
-    200: ApiResponseInvitedUserTokenDto;
+    200: ApiResponseCompanyInvitedUserTokenDto;
 };
 
 export type InviteUserResponse = InviteUserResponses[keyof InviteUserResponses];
@@ -967,7 +1075,7 @@ export type SearchUsersData = {
     body: UserSearchRequestDto;
     path?: never;
     query?: never;
-    url: '/internal/internal/users/search';
+    url: '/internal/users/search';
 };
 
 export type SearchUsersResponses = {
@@ -979,11 +1087,43 @@ export type SearchUsersResponses = {
 
 export type SearchUsersResponse = SearchUsersResponses[keyof SearchUsersResponses];
 
+export type ResolveOrCreatePendingUserData = {
+    body: ResolveOrCreatePendingUserRequestDto;
+    path?: never;
+    query?: never;
+    url: '/internal/users/resolve-or-create-pending';
+};
+
+export type ResolveOrCreatePendingUserResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseResolveOrCreatePendingUserResponseDto;
+};
+
+export type ResolveOrCreatePendingUserResponse = ResolveOrCreatePendingUserResponses[keyof ResolveOrCreatePendingUserResponses];
+
+export type CreateUserInviteData = {
+    body: UserInviteRequestDto;
+    path?: never;
+    query?: never;
+    url: '/internal/users/invite';
+};
+
+export type CreateUserInviteResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseUserInvitedTokenDto;
+};
+
+export type CreateUserInviteResponse = CreateUserInviteResponses[keyof CreateUserInviteResponses];
+
 export type FindByIdsData = {
     body: Array<number>;
     path?: never;
     query?: never;
-    url: '/internal/internal/users/batch';
+    url: '/internal/users/batch';
 };
 
 export type FindByIdsResponses = {
@@ -1151,7 +1291,9 @@ export type VerifyMobileResponse = VerifyMobileResponses[keyof VerifyMobileRespo
 export type SignUpData = {
     body: SignUpDto;
     path?: never;
-    query?: never;
+    query?: {
+        redirectUrl?: string;
+    };
     url: '/auth/sign-up';
 };
 
@@ -1183,7 +1325,9 @@ export type SignOutResponse = SignOutResponses[keyof SignOutResponses];
 export type SignInData = {
     body: SignInDto;
     path?: never;
-    query?: never;
+    query?: {
+        redirectUrl?: string;
+    };
     url: '/auth/sign-in';
 };
 
@@ -1195,6 +1339,24 @@ export type SignInResponses = {
 };
 
 export type SignInResponse = SignInResponses[keyof SignInResponses];
+
+export type RespondToUserInviteData = {
+    body: AcceptUserInviteDto;
+    path: {
+        inviteToken: string;
+    };
+    query?: never;
+    url: '/auth/respond-user-invite/{inviteToken}';
+};
+
+export type RespondToUserInviteResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseAuthenticationTokenDto;
+};
+
+export type RespondToUserInviteResponse = RespondToUserInviteResponses[keyof RespondToUserInviteResponses];
 
 export type RespondToInviteData = {
     body: RespondToInviteDto;
@@ -1233,7 +1395,9 @@ export type ResetPasswordResponse = ResetPasswordResponses[keyof ResetPasswordRe
 export type ResendVerificationData = {
     body: ResendVerificationDto;
     path?: never;
-    query?: never;
+    query?: {
+        redirectUrl?: string;
+    };
     url: '/auth/resend-verification';
 };
 
@@ -1245,6 +1409,42 @@ export type ResendVerificationResponses = {
 };
 
 export type ResendVerificationResponse = ResendVerificationResponses[keyof ResendVerificationResponses];
+
+export type ResendVerificationMobileOnlyData = {
+    body: ResendVerificationDto;
+    path?: never;
+    query?: {
+        redirectUrl?: string;
+    };
+    url: '/auth/resend-verification/mobile';
+};
+
+export type ResendVerificationMobileOnlyResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseResendVerificationResponseDto;
+};
+
+export type ResendVerificationMobileOnlyResponse = ResendVerificationMobileOnlyResponses[keyof ResendVerificationMobileOnlyResponses];
+
+export type ResendVerificationEmailOnlyData = {
+    body: ResendVerificationDto;
+    path?: never;
+    query?: {
+        redirectUrl?: string;
+    };
+    url: '/auth/resend-verification/email';
+};
+
+export type ResendVerificationEmailOnlyResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseResendVerificationResponseDto;
+};
+
+export type ResendVerificationEmailOnlyResponse = ResendVerificationEmailOnlyResponses[keyof ResendVerificationEmailOnlyResponses];
 
 export type RefreshData = {
     body: RefreshTokenRequestDto;
@@ -1373,7 +1573,7 @@ export type InviteCompanyUserResponses = {
     /**
      * OK
      */
-    200: ApiResponseInvitedUserTokenDto;
+    200: ApiResponseCompanyInvitedUserTokenDto;
 };
 
 export type InviteCompanyUserResponse = InviteCompanyUserResponses[keyof InviteCompanyUserResponses];
@@ -1467,6 +1667,24 @@ export type GetContactResponses = {
 
 export type GetContactResponse = GetContactResponses[keyof GetContactResponses];
 
+export type FindByIdData = {
+    body?: never;
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/internal/users/{userId}';
+};
+
+export type FindByIdResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseUserDto;
+};
+
+export type FindByIdResponse = FindByIdResponses[keyof FindByIdResponses];
+
 export type ValidateCompanyData = {
     body?: never;
     path: {
@@ -1522,24 +1740,6 @@ export type GetCompanyRoleResponses = {
 };
 
 export type GetCompanyRoleResponse = GetCompanyRoleResponses[keyof GetCompanyRoleResponses];
-
-export type FindByIdData = {
-    body?: never;
-    path: {
-        userId: number;
-    };
-    query?: never;
-    url: '/internal/internal/users/{userId}';
-};
-
-export type FindByIdResponses = {
-    /**
-     * OK
-     */
-    200: ApiResponseUserDto;
-};
-
-export type FindByIdResponse = FindByIdResponses[keyof FindByIdResponses];
 
 export type FindById1Data = {
     body?: never;
@@ -1717,6 +1917,56 @@ export type VerificationStatusResponses = {
 };
 
 export type VerificationStatusResponse = VerificationStatusResponses[keyof VerificationStatusResponses];
+
+export type UserStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/user-status';
+};
+
+export type UserStatusResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseUserAuthStatusDto;
+};
+
+export type UserStatusResponse = UserStatusResponses[keyof UserStatusResponses];
+
+export type GetUserContextData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/user-context';
+};
+
+export type GetUserContextResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseUserContextDto;
+};
+
+export type GetUserContextResponse = GetUserContextResponses[keyof GetUserContextResponses];
+
+export type DecodeUserInviteData = {
+    body?: never;
+    path?: never;
+    query: {
+        token: string;
+    };
+    url: '/auth/decode-user-invite';
+};
+
+export type DecodeUserInviteResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseUserInviteTokenDto;
+};
+
+export type DecodeUserInviteResponse = DecodeUserInviteResponses[keyof DecodeUserInviteResponses];
 
 export type DecodeInviteData = {
     body?: never;

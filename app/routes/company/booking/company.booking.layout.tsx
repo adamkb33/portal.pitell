@@ -5,7 +5,7 @@ import { ROUTES_MAP } from '~/lib/route-tree';
 import { CompanyUserBookingController } from '~/api/generated/booking';
 import { resolveErrorPayload } from '~/lib/api-error';
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request: _request }: Route.LoaderArgs) {
   try {
     const bookingInfoResponse =
       await CompanyUserBookingController.getCompanyBookingInfo();

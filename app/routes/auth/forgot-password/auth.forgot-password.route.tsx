@@ -64,7 +64,7 @@ export default function AuthForgotPassword({ actionData }: Route.ComponentProps)
           label="E-post adresse"
           type="email"
           autoComplete="email"
-          placeholder="din@e-post.no"
+          placeholder="e-post"
           defaultValue={actionValues?.email}
           required
           disabled={isSubmitting}

@@ -29,10 +29,6 @@ type EnumEntry = { name: string; values: string[]; source: string };
 export function synthesizeTypesAndZod(specs: SpecPack, gens: GenPack, migration: MigrationMap) {
   mkdirSync(TYPES_DIR, { recursive: true });
 
-  for (const [name, tsType] of Object.entries(PRIMITIVES)) {
-    // primitives handled later when assembling final output
-  }
-
   const enumRegistry = collectEnumsFromSpecs(specs);
 
   const genModels: Array<{ api: ApiName; file: string; name: string; src: string; normHash: string }> = [];
@@ -90,7 +86,7 @@ export function synthesizeTypesAndZod(specs: SpecPack, gens: GenPack, migration:
     code = code.replace(/^import[^;]+;\s*/gm, '');
 
     const nsBlocks = extractNamespaces(code);
-    for (const { inner, block } of nsBlocks) {
+    for (const { inner } of nsBlocks) {
       const enumMatch = inner.match(/export\s+enum\s+(\w+)\s*\{([\s\S]*?)\}/);
       if (!enumMatch) continue;
       const ename = enumMatch[1];
@@ -184,13 +180,13 @@ function collectEnumsFromSpecs(specs: SpecPack) {
   return out;
 }
 
-function enumNameFromProp(parent: string, prop: string, api: ApiName) {
+function enumNameFromProp(parent: string, prop: string, _api: ApiName) {
   if (/^userRoles?$/i.test(prop)) return 'UserRole';
   if (/^role$/i.test(prop) && /CompanyRoleAssignmentDto$/.test(parent)) return 'CompanyRole';
   return pascal(prop);
 }
 
-function enumNameFromTop(name: string, api: ApiName) {
+function enumNameFromTop(name: string, _api: ApiName) {
   // Map Roles schema to CompanyRole
   if (name === 'Roles') return 'CompanyRole';
   return pascal(name);
@@ -237,7 +233,7 @@ function extractNamespaces(code: string) {
   return out;
 }
 
-function convertTypeAliasToInterface(code: string, name: string) {
+function convertTypeAliasToInterface(code: string, _name: string) {
   let result = code.trim();
   result = result.replace(/^export\s+type\s+(\w+)\s*=\s*{/, 'export interface $1 {');
   result = result.replace(/};?\s*$/s, '}');

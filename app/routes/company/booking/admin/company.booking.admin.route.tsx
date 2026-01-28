@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Settings, FolderKanban, Briefcase } from 'lucide-react';
+import { FolderKanban, Briefcase } from 'lucide-react';
 import { PageHeader } from '../../_components/page-header';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';

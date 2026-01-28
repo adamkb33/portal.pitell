@@ -1,58 +1,135 @@
-import { data, redirect, useLoaderData } from 'react-router';
+import { data, useFetcher, redirect } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.contact.verify-mobile.route';
-import { VerifyMobileFlow } from '../_flows/verify-mobile.flow';
-import { getSession } from '~/lib/appointments.server';
-import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import { Button } from '@/components/ui/button';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
+import { BookingErrorBanner, BookingSection, BookingStepHeader } from '../../../_components/booking-layout';
+import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { ROUTES_MAP } from '~/lib/route-tree';
-import { ACTION_INTENT } from '../_utils/action-intents';
-import { getContactLoaderResult, resolveContactFlowHref } from '../_utils/contact-flow.server';
+import type { action as resendVerificationMobileAction } from '~/routes/api/auth/resend-verification/mobile/auth.resend-verification.mobile.api-route';
+import type { action as verifyMobileAction } from '~/routes/api/auth/verify-mobile/auth.verify-mobile.api-route';
+import { redirectAuthStatusNextStepHref } from '../_utils/auth.utils';
+import React from 'react';
+import { redirectWithError } from '~/routes/company/_lib/flash-message.server';
 
-export const handle = {
-  contactFlow: true,
-} as const;
+const CODE_LENGTH = 6;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { data: loaderData, status, redirectResponse } = await getContactLoaderResult(request);
-  if (redirectResponse) {
-    return redirectResponse;
-  }
-  const targetHref = resolveContactFlowHref(loaderData);
-  const currentPath = new URL(request.url).pathname;
-  if (currentPath !== targetHref) {
-    return redirect(targetHref);
-  }
-  return data(loaderData, status ? { status } : undefined);
-}
+  try {
+    const { AppointmentSessionService } = await import('../../_services/appointment-session.service.server');
+    const { ContactAuthService } = await import('../_services/contact-auth.service.server');
+    const { VerificationTokenService } = await import('../_services/verification-token.service.server');
+    const session = await AppointmentSessionService.get(request);
 
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const intent = String(formData.get('intent') || '');
-
-  if (intent === ACTION_INTENT.CLEAR_SESSION) {
-    try {
-      const session = await getSession(request);
-      if (!session) {
-        return redirect(ROUTES_MAP['booking.public.appointment'].href);
-      }
-      if (session?.sessionId) {
-        await PublicAppointmentSessionController.clearAppointmentSessionUser({
-          path: { sessionId: session.sessionId },
-        });
-      }
-      return data({ cleared: true });
-    } catch (error) {
-      const { message, status } = resolveErrorPayload(error, 'Kunne ikke slette brukerdata.');
-      return data({ error: message }, { status: status ?? 400 });
+    if (!session || !session.userId) {
+      console.info('[verify-mobile] redirect: missing session or userId', {
+        hasSession: Boolean(session),
+        userId: session?.userId ?? null,
+      });
+      return redirect(ROUTES_MAP['booking.public.appointment.session'].href);
     }
-  }
 
-  return data({ error: 'Ukjent handling' }, { status: 400 });
+    const authStatus = await ContactAuthService.getUserStatus(request);
+    if (!authStatus) {
+      console.info('[verify-mobile] redirect: missing auth status data', {
+        userId: session.userId,
+      });
+      return redirect(ROUTES_MAP['booking.public.appointment.session'].href);
+    }
+
+    const verificationSessionToken = await VerificationTokenService.readVerificationToken(request);
+    if (!verificationSessionToken) {
+      console.info('[verify-mobile] redirect: missing verification token cookie', {
+        userId: session.userId,
+      });
+      return redirect(ROUTES_MAP['booking.public.appointment.session.contact'].href);
+    }
+
+    if (authStatus.nextStep !== 'VERIFY_MOBILE') {
+      console.info('[verify-mobile] redirect: nextStep is not VERIFY_MOBILE', {
+        userId: session.userId,
+        nextStep: authStatus.nextStep,
+      });
+      return redirectAuthStatusNextStepHref(authStatus);
+    }
+
+    return data({
+      session,
+      authStatus,
+      verificationSessionToken,
+    });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke hente brukerdata');
+    console.error('[verify-mobile] redirect: loader error', { message });
+    return redirectWithError(request, ROUTES_MAP['booking.public.appointment.session'].href, message);
+  }
 }
 
-export default function BookingPublicAppointmentSessionContactVerifyMobileRoute() {
-  const loaderData = useLoaderData<typeof loader>();
-  const email = loaderData.sessionUser?.userDto?.email ?? '';
+export default function BookingPublicAppointmentSessionContactAuthVerifyMobileRoute({
+  loaderData,
+}: Route.ComponentProps) {
+  const fetcher = useFetcher<typeof verifyMobileAction>();
+  const resendFetcher = useFetcher<typeof resendVerificationMobileAction>();
+  const [code, setCode] = React.useState('');
+  const verificationSessionToken = loaderData.verificationSessionToken;
+  const errorMessage =
+    typeof fetcher.data === 'object' && fetcher.data && 'error' in fetcher.data ? fetcher.data.error : null;
+  const resendMessage =
+    typeof resendFetcher.data === 'object' && resendFetcher.data && 'message' in resendFetcher.data
+      ? String(resendFetcher.data.message)
+      : null;
+  const resendError =
+    typeof resendFetcher.data === 'object' && resendFetcher.data && 'error' in resendFetcher.data
+      ? String(resendFetcher.data.error)
+      : null;
 
-  return <VerifyMobileFlow email={email} />;
+  return (
+    <>
+      <BookingStepHeader
+        label="Kontakt"
+        title="Bekreft mobil"
+        description="Skriv inn koden vi har sendt på SMS for å bekrefte mobilnummeret."
+      />
+      <BookingSection title="Bekreft kode" variant="elevated">
+        {errorMessage ? <BookingErrorBanner title={String(errorMessage)} /> : null}
+        {resendError ? <BookingErrorBanner title={String(resendError)} /> : null}
+        {resendMessage ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            {resendMessage}
+          </div>
+        ) : null}
+        <fetcher.Form method="post" action={API_ROUTES_MAP['auth.verify-mobile'].url} className="space-y-4">
+          <div className="space-y-2">
+            <input type="hidden" name="verificationSessionToken" value={verificationSessionToken} />
+            <VerificationCodeInput
+              name="code"
+              value={code}
+              onChange={setCode}
+              length={CODE_LENGTH}
+              aria-invalid={Boolean(errorMessage)}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={code.length !== CODE_LENGTH}>
+            Bekreft kode
+          </Button>
+        </fetcher.Form>
+        <div className="space-y-2 pt-3">
+          <resendFetcher.Form
+            method="post"
+            action={API_ROUTES_MAP['auth.resend-verification.mobile'].url}
+            className="space-y-2"
+          >
+            <input type="hidden" name="verificationSessionToken" value={verificationSessionToken} />
+            <Button
+              type="submit"
+              className="w-full"
+              variant="secondary"
+              disabled={!verificationSessionToken || resendFetcher.state !== 'idle'}
+            >
+              Send SMS på nytt
+            </Button>
+          </resendFetcher.Form>
+        </div>
+      </BookingSection>
+    </>
+  );
 }

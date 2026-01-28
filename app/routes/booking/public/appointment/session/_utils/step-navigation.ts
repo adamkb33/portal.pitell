@@ -134,7 +134,7 @@ export function getEnhancedStepStatus(session: AppointmentSessionDto, currentPat
   const completedStepNumbers = sessionSteps.filter((s) => s.isComplete).map((s) => s.order);
   const maxCompletedStep = completedStepNumbers.length > 0 ? Math.max(...completedStepNumbers) : 0;
 
-  return BOOKING_STEPS.map((step, stepIndex) => {
+  return BOOKING_STEPS.map((step) => {
     const sessionStep = sessionSteps.find((s) => s.order === step.order);
     const isComplete = sessionStep?.isComplete || false;
     const isCurrent = currentRouteSegment === step.routePath;

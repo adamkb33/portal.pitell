@@ -5,7 +5,7 @@ import { Calendar } from '~/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { TimePicker } from '~/components/pickers/time-picker';
 import { cn } from '~/lib/utils';
-import { format, startOfDay } from 'date-fns';
+import { format, isSameDay, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 
@@ -101,6 +101,10 @@ export function ScheduleUnavailabilityFormDialog({
               <div className="space-y-4">
                 {ranges.map((range, index) => {
                   const rangeErrors = formErrors[range.id] || {};
+                  const isSingleDayRange =
+                    !!range.dateRange?.from &&
+                    !!range.dateRange?.to &&
+                    isSameDay(range.dateRange.from, range.dateRange.to);
                   const label = range.dateRange?.from
                     ? range.dateRange.to
                       ? `${format(range.dateRange.from, 'dd.MM.yyyy')} – ${format(range.dateRange.to, 'dd.MM.yyyy')}`
@@ -149,8 +153,7 @@ export function ScheduleUnavailabilityFormDialog({
                             mode="range"
                             selected={range.dateRange}
                             onSelect={(nextRange) => onFieldChange(range.id, 'dateRange', nextRange)}
-                            fromDate={today}
-                            disabled={{ before: today }}
+                            hidden={{ before: today }}
                             numberOfMonths={1}
                             className="rounded-md border"
                           />
@@ -160,64 +163,53 @@ export function ScheduleUnavailabilityFormDialog({
                         )}
                       </Popover>
 
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-form-text">Starttid</label>
-                          <TimePicker
-                            value={range.startTime}
-                            placeholder="Velg starttid"
-                            isOpen={
-                              isTimePickerOpen &&
-                              activeTimePicker?.rangeId === range.id &&
-                              activeTimePicker.field === 'startTime'
-                            }
-                            onOpenChange={(open) => {
-                              setIsTimePickerOpen(open);
-                              setActiveTimePicker(open ? { rangeId: range.id, field: 'startTime' } : null);
-                            }}
-                            onChange={(nextValue) => onFieldChange(range.id, 'startTime', nextValue)}
-                            zIndex={60}
-                          />
-                          {rangeErrors.startTime && (
-                            <p className="text-xs text-form-invalid">{rangeErrors.startTime}</p>
-                          )}
-                        </div>
+                      {isSingleDayRange ? (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-form-text">Starttid</label>
+                            <TimePicker
+                              value={range.startTime || '00:00'}
+                              placeholder="Velg starttid"
+                              isOpen={
+                                isTimePickerOpen &&
+                                activeTimePicker?.rangeId === range.id &&
+                                activeTimePicker.field === 'startTime'
+                              }
+                              onOpenChange={(open) => {
+                                setIsTimePickerOpen(open);
+                                setActiveTimePicker(open ? { rangeId: range.id, field: 'startTime' } : null);
+                              }}
+                              onChange={(nextValue) => onFieldChange(range.id, 'startTime', nextValue)}
+                              zIndex={60}
+                            />
+                            {rangeErrors.startTime && (
+                              <p className="text-xs text-form-invalid">{rangeErrors.startTime}</p>
+                            )}
+                          </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-form-text">Sluttid</label>
-                          <TimePicker
-                            value={range.endTime}
-                            placeholder="Velg sluttid"
-                            isOpen={
-                              isTimePickerOpen &&
-                              activeTimePicker?.rangeId === range.id &&
-                              activeTimePicker.field === 'endTime'
-                            }
-                            onOpenChange={(open) => {
-                              setIsTimePickerOpen(open);
-                              setActiveTimePicker(open ? { rangeId: range.id, field: 'endTime' } : null);
-                            }}
-                            onChange={(nextValue) => onFieldChange(range.id, 'endTime', nextValue)}
-                            zIndex={60}
-                          />
-                          {(rangeErrors.endTime || formError) && (
-                            <p className="text-xs text-form-invalid">{rangeErrors.endTime || formError}</p>
-                          )}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-form-text">Sluttid</label>
+                            <TimePicker
+                              value={range.endTime || '23:59'}
+                              placeholder="Velg sluttid"
+                              isOpen={
+                                isTimePickerOpen &&
+                                activeTimePicker?.rangeId === range.id &&
+                                activeTimePicker.field === 'endTime'
+                              }
+                              onOpenChange={(open) => {
+                                setIsTimePickerOpen(open);
+                                setActiveTimePicker(open ? { rangeId: range.id, field: 'endTime' } : null);
+                              }}
+                              onChange={(nextValue) => onFieldChange(range.id, 'endTime', nextValue)}
+                              zIndex={60}
+                            />
+                            {(rangeErrors.endTime || formError) && (
+                              <p className="text-xs text-form-invalid">{rangeErrors.endTime || formError}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            onFieldChange(range.id, 'startTime', '00:00');
-                            onFieldChange(range.id, 'endTime', '23:59');
-                          }}
-                        >
-                          Hele dagen
-                        </Button>
-                      </div>
+                      ) : null}
                     </div>
                   );
                 })}

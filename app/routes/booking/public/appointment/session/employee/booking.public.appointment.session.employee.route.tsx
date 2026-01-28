@@ -23,12 +23,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       return redirect(ROUTES_MAP['booking.public.appointment'].href);
     }
 
-    if (
-      !session.steps?.some((step) => step.appointmentSessionStepId === 'SELECT_PROFILE') &&
-      session.selectedProfileId
-    ) {
-      return redirect(ROUTES_MAP['booking.public.appointment.session.select-services'].href);
-    }
+    // Allow users to return and change their profile selection
+    // Don't auto-forward redirect - users should be able to edit previous steps
 
     const profilesResponse = await PublicAppointmentSessionController.getAppointmentSessionProfiles({
       query: {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Outlet, useLoaderData, useLocation, useRouteError, isRouteErrorResponse } from 'react-router';
+import { Outlet, useRouteError, isRouteErrorResponse } from 'react-router';
 import { Menu } from 'lucide-react';
 
 import { Navbar } from '~/components/layout/navbar';
@@ -14,7 +14,6 @@ import { getFlashMessage } from './company/_lib/flash-message.server';
 import { FlashMessageBanner } from './_components/flash-message-banner';
 import { Button } from '~/components/ui/button';
 import { Footer } from './_components/footer';
-import { DashWaveBackground } from './_components/backgrounds/dash-wave-background';
 import type { CompanySummaryDto } from '~/api/generated/identity';
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -97,7 +96,11 @@ export default function RootLayout({ loaderData }: Route.ComponentProps) {
               )}
 
               <div className="flex-1 flex items-center h-full">
-                <Navbar navRoutes={userNav} companyContext={companyContext} />
+                <Navbar
+                  navRoutes={userNav}
+                  companyContext={companyContext}
+                  notifications={loaderData.navbarNotifications}
+                />
               </div>
             </div>
           </nav>

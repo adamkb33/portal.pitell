@@ -41,7 +41,7 @@ export type ApiError = {
 };
 
 export type ApiMessage = {
-    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
+    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'MOBILE_ALREADY_IN_USE' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT_EMAIL' | 'VERIFICATION_RESENT_MOBILE' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
     value: string;
 };
 
@@ -136,13 +136,13 @@ export type ApiResponsePublicPendingUserResponseDto = {
 export type PublicPendingUserResponseDto = {
     sessionId: string;
     userDto?: UserDto;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
 };
 
 export type UserDto = {
     id: number;
-    givenName: string;
-    familyName: string;
+    givenName?: string;
+    familyName?: string;
     email?: string;
     emailVerified: boolean;
     mobileNumber?: string;
@@ -319,7 +319,14 @@ export type ApiResponseListDailyScheduleDto = {
     timestamp: string;
 };
 
-export type CompanyUserCreateAppointmentDto = {
+export type CompanyUserCreateAppointmentForNewUserDto = {
+    email?: string;
+    mobileNumber?: string;
+    serviceIds: Array<number>;
+    startTime: string;
+};
+
+export type CompanyUserCreateAppointmentForExistingUserDto = {
     userId: number;
     serviceIds: Array<number>;
     startTime: string;
@@ -338,7 +345,7 @@ export type PublicSessionUserStatusDto = {
     sessionId: string;
     userId?: number;
     attached: boolean;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
     provider?: 'LOCAL' | 'GOOGLE' | 'FACEBOOK';
 };
 
@@ -355,7 +362,7 @@ export type PublicSessionRequirementsDto = {
     needsUser: boolean;
     needsEmail: boolean;
     needsMobile: boolean;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
 };
 
 export type ApiResponseListBookingProfileDto = {
@@ -599,6 +606,25 @@ export type PaginatedResponseAppointmentDto = {
     hasPrevious: boolean;
 };
 
+export type ApiResponsePaginatedResponseUserDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: PaginatedResponseUserDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type PaginatedResponseUserDto = {
+    content: Array<UserDto>;
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+};
+
 export type ApiResponseBoolean = {
     success: boolean;
     message: ApiMessage;
@@ -618,10 +644,10 @@ export type AddressDto = {
     city?: string;
 };
 
-export type ApiResponseListCompanySummaryDto = {
+export type ApiResponsePaginatedResponseMyAppointmentDto = {
     success: boolean;
     message: ApiMessage;
-    data?: Array<CompanySummaryDto>;
+    data?: PaginatedResponseMyAppointmentDto;
     errors?: Array<ApiError>;
     meta?: ApiMeta;
     timestamp: string;
@@ -636,10 +662,47 @@ export type CompanySummaryDto = {
     businessAddress?: AddressDto;
 };
 
+export type MyAppointmentDto = {
+    id: number;
+    company: CompanySummaryDto;
+    profileId: number;
+    startTime: string;
+    endTime: string;
+    groupedServiceGroups: Array<GroupedServiceGroupDto>;
+};
+
 export type OrganizationTypeDto = {
     code?: string;
     description?: string;
     retiredAt?: string;
+};
+
+export type PaginatedResponseMyAppointmentDto = {
+    content: Array<MyAppointmentDto>;
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+};
+
+export type ApiResponseMyAppointmentDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: MyAppointmentDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type ApiResponseListCompanySummaryDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: Array<CompanySummaryDto>;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
 };
 
 export type Link = {
@@ -659,7 +722,7 @@ export type ApiResponsePublicPendingUserClearedResponseDto = {
 export type PublicPendingUserClearedResponseDto = {
     sessionId: string;
     pendingUserId?: number;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'ATTACH_SESSION' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
 };
 
 export type ApiResponseUnit = {
@@ -1046,45 +1109,37 @@ export type CreateOrUpdateDailySchedulesResponses = {
 
 export type CreateOrUpdateDailySchedulesResponse = CreateOrUpdateDailySchedulesResponses[keyof CreateOrUpdateDailySchedulesResponses];
 
-export type GetAppointmentsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        page?: number;
-        size?: number;
-        sort?: string;
-        fromDateTime?: string;
-        toDateTime?: string;
-        direction?: 'ASC' | 'DESC';
-        search?: string;
-    };
-    url: '/company-user/appointments';
-};
-
-export type GetAppointmentsResponses = {
-    /**
-     * OK
-     */
-    200: ApiResponsePaginatedResponseAppointmentDto;
-};
-
-export type GetAppointmentsResponse = GetAppointmentsResponses[keyof GetAppointmentsResponses];
-
-export type CompanyUserCreateAppointmentData = {
-    body: CompanyUserCreateAppointmentDto;
+export type CompanyUserCreateAppointmentForNewUserData = {
+    body: CompanyUserCreateAppointmentForNewUserDto;
     path?: never;
     query?: never;
-    url: '/company-user/appointments';
+    url: '/company-user/appointments/new-user';
 };
 
-export type CompanyUserCreateAppointmentResponses = {
+export type CompanyUserCreateAppointmentForNewUserResponses = {
     /**
      * OK
      */
     200: ApiResponseAppointmentDto;
 };
 
-export type CompanyUserCreateAppointmentResponse = CompanyUserCreateAppointmentResponses[keyof CompanyUserCreateAppointmentResponses];
+export type CompanyUserCreateAppointmentForNewUserResponse = CompanyUserCreateAppointmentForNewUserResponses[keyof CompanyUserCreateAppointmentForNewUserResponses];
+
+export type CompanyUserCreateAppointmentForExistingUserData = {
+    body: CompanyUserCreateAppointmentForExistingUserDto;
+    path?: never;
+    query?: never;
+    url: '/company-user/appointments/existing-user';
+};
+
+export type CompanyUserCreateAppointmentForExistingUserResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseAppointmentDto;
+};
+
+export type CompanyUserCreateAppointmentForExistingUserResponse = CompanyUserCreateAppointmentForExistingUserResponses[keyof CompanyUserCreateAppointmentForExistingUserResponses];
 
 export type GetAppointmentSessionUserStatusData = {
     body?: never;
@@ -1121,24 +1176,6 @@ export type GetAppointmentSessionRequirementsResponses = {
 };
 
 export type GetAppointmentSessionRequirementsResponse = GetAppointmentSessionRequirementsResponses[keyof GetAppointmentSessionRequirementsResponses];
-
-export type GetPendingAppointmentSessionUserData = {
-    body?: never;
-    path: {
-        sessionId: string;
-    };
-    query?: never;
-    url: '/public/appointment-session/{sessionId}/pending-user';
-};
-
-export type GetPendingAppointmentSessionUserResponses = {
-    /**
-     * OK
-     */
-    200: ApiResponsePublicPendingUserResponseDto;
-};
-
-export type GetPendingAppointmentSessionUserResponse = GetPendingAppointmentSessionUserResponses[keyof GetPendingAppointmentSessionUserResponses];
 
 export type GetAppointmentSessionData = {
     body?: never;
@@ -1312,6 +1349,52 @@ export type GetCompanyBookingInfoResponses = {
 
 export type GetCompanyBookingInfoResponse = GetCompanyBookingInfoResponses[keyof GetCompanyBookingInfoResponses];
 
+export type GetAppointmentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        size?: number;
+        sort?: string;
+        fromDateTime?: string;
+        toDateTime?: string;
+        direction?: 'ASC' | 'DESC';
+        search?: string;
+    };
+    url: '/company-user/appointments';
+};
+
+export type GetAppointmentsResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponsePaginatedResponseAppointmentDto;
+};
+
+export type GetAppointmentsResponse = GetAppointmentsResponses[keyof GetAppointmentsResponses];
+
+export type GetAppointmentCustomersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        size?: number;
+        sort?: string;
+        direction?: 'ASC' | 'DESC';
+        search?: string;
+    };
+    url: '/company-user/appointments/customers';
+};
+
+export type GetAppointmentCustomersResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponsePaginatedResponseUserDto;
+};
+
+export type GetAppointmentCustomersResponse = GetAppointmentCustomersResponses[keyof GetAppointmentCustomersResponses];
+
 export type ValidateCompanyBookingData = {
     body?: never;
     path: {
@@ -1329,6 +1412,60 @@ export type ValidateCompanyBookingResponses = {
 };
 
 export type ValidateCompanyBookingResponse = ValidateCompanyBookingResponses[keyof ValidateCompanyBookingResponses];
+
+export type GetMyUpcomingAppointmentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        size?: number;
+    };
+    url: '/appointments/my-upcoming-appointments';
+};
+
+export type GetMyUpcomingAppointmentsResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponsePaginatedResponseMyAppointmentDto;
+};
+
+export type GetMyUpcomingAppointmentsResponse = GetMyUpcomingAppointmentsResponses[keyof GetMyUpcomingAppointmentsResponses];
+
+export type GetMyNearestAppointmentData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/appointments/my-nearest-appointment';
+};
+
+export type GetMyNearestAppointmentResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseMyAppointmentDto;
+};
+
+export type GetMyNearestAppointmentResponse = GetMyNearestAppointmentResponses[keyof GetMyNearestAppointmentResponses];
+
+export type GetMyCompletedAppointmentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        size?: number;
+    };
+    url: '/appointments/my-completed-appointments';
+};
+
+export type GetMyCompletedAppointmentsResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponsePaginatedResponseMyAppointmentDto;
+};
+
+export type GetMyCompletedAppointmentsResponse = GetMyCompletedAppointmentsResponses[keyof GetMyCompletedAppointmentsResponses];
 
 export type GetBookingReadyCompaniesData = {
     body?: never;

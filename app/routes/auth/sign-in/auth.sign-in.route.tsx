@@ -1,67 +1,71 @@
 // auth.sign-in.route.tsx
-import * as React from 'react';
-import { Link, useFetcher, useLocation, useNavigate } from 'react-router';
-import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
+import { Link, Form, useNavigation, redirect } from 'react-router';
+import { data } from 'react-router';
+import { ROUTES_MAP } from '~/lib/route-tree';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
-import { GoogleSignInButton } from './_components/google-sign-in-button';
-import { ENV } from '~/api/config/env';
+import { ProviderButtons } from '../_components/provider-buttons';
+import { AuthController } from '~/api/generated/identity';
+import { resolveErrorPayload } from '~/lib/api-error';
+import { verificationSessionToken } from '~/lib/auth.server';
+import type { Route } from './+types/auth.sign-in.route';
+import { authService } from '~/lib/auth-service';
+import { redirectWithWarning } from '~/routes/company/_lib/flash-message.server';
 
-const googleClientId = ENV.GOOGLE_CLIENT_ID;
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const provider = String(formData.get('provider') || 'LOCAL');
+  const idToken = String(formData.get('idToken') || '');
+  const email = String(formData.get('email') || '');
+  const password = String(formData.get('password') || '');
+  const redirectUrl = String(formData.get('redirectUrl') || '');
+  const isGoogleLogin = provider === 'GOOGLE';
 
-function getReturnToFromSearch(search: string) {
-  const returnToParam = new URLSearchParams(search).get('returnTo');
-  return returnToParam && returnToParam.startsWith('/') && !returnToParam.startsWith('//') ? returnToParam : '/';
-}
-
-function getErrorMessage(rawError: unknown) {
-  if (typeof rawError === 'string') {
-    return rawError;
+  if (isGoogleLogin && !idToken) {
+    return data({ error: 'Kunne ikke logge inn med Google. Prøv igjen.' }, { status: 400 });
   }
-  if (!rawError || typeof rawError !== 'object') {
-    return undefined;
-  }
-  const error = rawError as { value?: string; id?: string };
-  if (typeof error.value === 'string') {
-    return error.value;
-  }
-  if (typeof error.id === 'string') {
-    return error.id;
-  }
-  return undefined;
-}
 
-export default function AuthSignIn() {
-  const fetcher = useFetcher();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isSubmitting = fetcher.state === 'submitting';
-  const rawError =
-    typeof fetcher.data === 'object' && fetcher.data && 'error' in fetcher.data ? fetcher.data.error : null;
-  const errorMessage = getErrorMessage(rawError);
-  const returnTo = React.useMemo(() => getReturnToFromSearch(location.search), [location.search]);
-  const action = API_ROUTES_MAP['auth.sign-in'].url;
+  try {
+    const response = await AuthController.signIn({
+      query: {
+        redirectUrl: redirectUrl || undefined,
+      },
+      body: isGoogleLogin ? { provider: 'GOOGLE', idToken } : { provider: 'LOCAL', emailOrMobile: email, password },
+    });
 
-  React.useEffect(() => {
-    if (typeof fetcher.data !== 'object' || !fetcher.data) return;
-    const data = fetcher.data as { success?: boolean };
-    if (data.success) {
-      navigate(returnTo, { replace: true });
-    }
-  }, [fetcher.data, navigate, returnTo]);
-  const submitGoogleToken = React.useCallback(
-    (token: string) => {
-      const formData = new FormData();
-      formData.append('provider', 'GOOGLE');
-      formData.append('idToken', token);
-      fetcher.submit(formData, {
-        method: 'post',
-        action,
+    if (response.data?.data?.verificationTokenDto) {
+      const cookie = await verificationSessionToken.serialize(response.data?.data?.verificationTokenDto.value, {
+        expires: new Date(response.data?.data?.verificationTokenDto.expiresAt),
       });
-    },
-    [action, fetcher],
-  );
+      const headers = new Headers();
+      headers.append('Set-Cookie', cookie);
+      return data(response.data?.data, { headers });
+    }
+
+    if (response.data?.data?.authTokens) {
+      const headers = await authService.setAuthCookies(
+        response.data?.data?.authTokens.accessToken,
+        response.data?.data?.authTokens.refreshToken,
+        response.data?.data?.authTokens.accessTokenExpiresAt,
+        response.data?.data?.authTokens.refreshTokenExpiresAt,
+      );
+      return redirect('/', { headers });
+    }
+
+    return redirectWithWarning(request, ROUTES_MAP['auth.sign-in'].href, 'Kunne ikke logge inn. Prøv igjen.');
+  } catch (error) {
+    const { message, status } = resolveErrorPayload(error, 'Kunne ikke logge inn. Prøv igjen.');
+    return data({ error: message }, { status: status ?? 400 });
+  }
+}
+
+export default function AuthSignIn({ actionData }: Route.ComponentProps) {
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === 'submitting';
+
+  const errorMessage =
+    actionData && typeof actionData === 'object' && 'error' in actionData ? String(actionData.error) : undefined;
 
   return (
     <AuthFormContainer
@@ -89,25 +93,16 @@ export default function AuthSignIn() {
         </div>
       }
     >
-      {googleClientId ? (
-        <>
-          <GoogleSignInButton onCredential={submitGoogleToken} disabled={isSubmitting} />
-          <div className="flex items-center gap-3 py-2">
-            <span className="h-px flex-1 bg-form-border" />
-            <span className="text-xs font-medium uppercase tracking-wide text-form-text-muted">Eller</span>
-            <span className="h-px flex-1 bg-form-border" />
-          </div>
-        </>
-      ) : null}
-      <fetcher.Form method="post" action={action} className="space-y-4 md:space-y-6" aria-busy={isSubmitting}>
+      <Form method="post" className="space-y-4 md:space-y-6" aria-busy={isSubmitting}>
+        <ProviderButtons disabled={isSubmitting} />
+
         <AuthFormField
           id="email"
           name="email"
           label="E-post"
           type="email"
           autoComplete="email"
-          placeholder="din@e-post.no"
-          required
+          placeholder="e-post"
           disabled={isSubmitting}
         />
 
@@ -117,7 +112,6 @@ export default function AuthSignIn() {
           label="Passord"
           type="password"
           autoComplete="current-password"
-          required
           disabled={isSubmitting}
         />
 
@@ -126,7 +120,7 @@ export default function AuthSignIn() {
             Logg inn
           </AuthFormButton>
         </div>
-      </fetcher.Form>
+      </Form>
     </AuthFormContainer>
   );
 }

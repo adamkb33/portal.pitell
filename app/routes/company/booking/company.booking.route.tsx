@@ -1,6 +1,6 @@
 import type { Route } from './+types/company.booking.route';
 import { CompanyUserBookingController } from '~/api/generated/booking';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
 import {
   DollarSign,
@@ -15,7 +15,6 @@ import {
   UserCheck,
   MousePointer,
   BarChart3,
-  ShoppingBag,
   Target,
   Image,
   AlertCircle,

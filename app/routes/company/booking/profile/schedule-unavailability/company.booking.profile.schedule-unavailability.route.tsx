@@ -1,15 +1,17 @@
 import type { Route } from './+types/company.booking.profile.schedule-unavailability.route';
-import {
-  CompanyUserScheduleUnavailabilityController,
-  type ScheduleUnavailabilityDto,
-} from '~/api/generated/booking';
+import { CompanyUserScheduleUnavailabilityController, type ScheduleUnavailabilityDto } from '~/api/generated/booking';
 import { data, useFetcher, useNavigate, useSearchParams } from 'react-router';
-import { CalendarOff, Clock, Plus, Sparkles } from 'lucide-react';
+import { CalendarOff, Plus, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { withAuth } from '~/api/utils/with-auth';
-import { addDays, addMonths, endOfDay, format, isSameDay, startOfDay } from 'date-fns';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { addDays, addMonths, format, isSameDay, startOfDay } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { resolveErrorPayload } from '~/lib/api-error';
+import {
+  formatDateBoundaryInTimeZone,
+  formatDateInputInTimeZone,
+  formatLocalDateTimeInTimeZone,
+} from '~/lib/query';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import {
@@ -37,8 +39,8 @@ export async function loader({ request }: Route.LoaderArgs) {
           : range === '12m'
             ? addMonths(today, 12)
             : addMonths(today, 6);
-    const fromDateTime = formatInTimeZone(rangeStartDate, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
-    const toDateTime = formatInTimeZone(endOfDay(rangeEndDate), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const fromDateTime = formatDateBoundaryInTimeZone(formatDateInputInTimeZone(rangeStartDate, timezone), 'start', timezone);
+    const toDateTime = formatDateBoundaryInTimeZone(formatDateInputInTimeZone(rangeEndDate, timezone), 'end', timezone);
 
     const getResponse = await withAuth(request, async () => {
       return await CompanyUserScheduleUnavailabilityController.companyUserGetUnavailabilityRanges({
@@ -75,21 +77,30 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const normalizeTime = (value: string) => (value.split(':').length === 2 ? `${value}:00` : value);
-    const timezone = 'Europe/Oslo';
-    const toNorwayIso = (date: string, time: string) => {
-      const normalizedTime = normalizeTime(time);
-      const localDateTime = `${date}T${normalizedTime}`;
-      const utcDate = fromZonedTime(localDateTime, timezone);
-      return formatInTimeZone(utcDate, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const toTimeParts = (value: string) => {
+      const [hours, minutes] = value.split(':').map((part) => Number(part));
+      return { hours: Number.isFinite(hours) ? hours : 0, minutes: Number.isFinite(minutes) ? minutes : 0 };
     };
+    const isTimeBeforeOrEqual = (candidate: string, baseline: string) => {
+      const a = toTimeParts(candidate);
+      const b = toTimeParts(baseline);
+      if (a.hours !== b.hours) return a.hours < b.hours;
+      return a.minutes <= b.minutes;
+    };
+    const timezone = 'Europe/Oslo';
     const payload = ranges.map((range) => {
       const startDate = range.fromDate;
       const endDate = range.toDate;
-      const startTime = range.startTime;
-      const endTime = range.endTime;
+      const isTodayStartDate = startDate === format(new Date(), 'yyyy-MM-dd');
+      const nextMinute = format(new Date(Date.now() + 60_000), 'HH:mm');
+      const currentTime = format(new Date(), 'HH:mm');
+      const requestedStartTime = range.startTime || (isTodayStartDate ? nextMinute : '00:00');
+      const startTime =
+        isTodayStartDate && isTimeBeforeOrEqual(requestedStartTime, currentTime) ? nextMinute : requestedStartTime;
+      const endTime = range.endTime || '23:59';
 
-      if (!startDate || !endDate || !startTime || !endTime) {
-        throw new Error('Alle feltene må fylles ut');
+      if (!startDate || !endDate) {
+        throw new Error('Velg periode');
       }
 
       const fromDate = fromZonedTime(`${startDate}T${normalizeTime(startTime)}`, timezone);
@@ -102,20 +113,18 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       return {
-        from: toNorwayIso(startDate, startTime),
-        to: toNorwayIso(endDate, endTime),
+        from: formatLocalDateTimeInTimeZone(startDate, startTime, timezone),
+        to: formatLocalDateTimeInTimeZone(endDate, endTime, timezone),
       };
     });
 
     await withAuth(request, async () => {
-      const response = await CompanyUserScheduleUnavailabilityController.companyUserCreateUnavailabilityRanges({
+      await CompanyUserScheduleUnavailabilityController.companyUserCreateUnavailabilityRanges({
         body: payload,
       });
-
     });
 
     return data({ success: true });
-
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke lagre fravær');
     return data({ error: message }, { status: status ?? 400 });
@@ -164,12 +173,6 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
     }).format(date);
   };
   const formatTime = (dateString: string) => format(new Date(dateString), 'HH:mm');
-  const formatDateRange = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (isSameDay(startDate, endDate)) return formatDate(start);
-    return `${formatDate(start)} – ${formatDate(end)}`;
-  };
   const formatDateTimeRange = (start: string, end: string) => {
     if (isSameDay(new Date(start), new Date(end))) {
       return `${formatDate(start)} ${formatTime(start)}–${formatTime(end)}`;
@@ -180,9 +183,7 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
     const startDate = new Date(start);
     const endDate = new Date(end);
     return (
-      isSameDay(startDate, endDate) &&
-      format(startDate, 'HH:mm') === '00:00' &&
-      format(endDate, 'HH:mm') === '23:59'
+      isSameDay(startDate, endDate) && format(startDate, 'HH:mm') === '00:00' && format(endDate, 'HH:mm') === '23:59'
     );
   };
 
@@ -221,10 +222,26 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
     setFormError(null);
   };
 
+  const isSingleDayRange = (range: UnavailabilityRangeFormData) =>
+    !!range.dateRange?.from && !!range.dateRange?.to && isSameDay(range.dateRange.from, range.dateRange.to);
+
+  const getEffectiveTimes = (range: UnavailabilityRangeFormData) => {
+    const isTodayRange = !!range.dateRange?.from && isSameDay(range.dateRange.from, new Date());
+    const nextMinute = format(new Date(Date.now() + 60_000), 'HH:mm');
+    const currentTime = format(new Date(), 'HH:mm');
+    const normalizeStartTime = (value: string) => (isTodayRange && value <= currentTime ? nextMinute : value);
+
+    if (!isSingleDayRange(range)) {
+      const rangeStartTime = isTodayRange ? nextMinute : '00:00';
+      return { startTime: normalizeStartTime(rangeStartTime), endTime: '23:59' };
+    }
+
+    const requestedStartTime = range.startTime || (isTodayRange ? nextMinute : '00:00');
+    return { startTime: normalizeStartTime(requestedStartTime), endTime: range.endTime || '23:59' };
+  };
+
   const validateRange = (range: UnavailabilityRangeFormData) => {
     const nextErrors: Partial<Record<'dateRange' | 'startTime' | 'endTime', string>> = {};
-    if (!range.startTime) nextErrors.startTime = 'Velg starttid';
-    if (!range.endTime) nextErrors.endTime = 'Velg sluttid';
     if (!range.dateRange?.from || !range.dateRange?.to) {
       nextErrors.dateRange = 'Velg periode';
     }
@@ -233,10 +250,15 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
       return { fieldErrors: nextErrors };
     }
 
-    const fromDate = new Date(`${format(range.dateRange!.from!, 'yyyy-MM-dd')}T${range.startTime}`);
-    const toDate = new Date(`${format(range.dateRange!.to!, 'yyyy-MM-dd')}T${range.endTime}`);
+    const { startTime, endTime } = getEffectiveTimes(range);
+    const fromDate = new Date(`${format(range.dateRange!.from!, 'yyyy-MM-dd')}T${startTime}`);
+    const toDate = new Date(`${format(range.dateRange!.to!, 'yyyy-MM-dd')}T${endTime}`);
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
       return { fieldErrors: nextErrors, formError: 'Ugyldig dato eller tid' };
+    }
+
+    if (isSingleDayRange(range) && fromDate <= new Date()) {
+      return { fieldErrors: nextErrors, formError: 'Starttid må være i fremtiden' };
     }
     if (fromDate >= toDate) {
       return { fieldErrors: nextErrors, formError: 'Sluttid må være etter starttid' };
@@ -248,31 +270,32 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
   const handleCreateSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors: Record<string, Partial<Record<'dateRange' | 'startTime' | 'endTime', string>>> = {};
-    let validationError: string | null = null;
+    let nextFormError: string | null = null;
 
     createFormData.ranges.forEach((range) => {
       const { fieldErrors, formError: rangeError } = validateRange(range);
       if (Object.keys(fieldErrors).length > 0) {
         nextErrors[range.id] = fieldErrors;
       }
-      if (rangeError) {
-        validationError = rangeError;
-      }
+      if (rangeError && !nextFormError) nextFormError = rangeError;
     });
 
-    if (Object.keys(nextErrors).length > 0 || validationError) {
+    if (Object.keys(nextErrors).length > 0 || nextFormError) {
       setFormErrors(nextErrors);
-      setFormError(validationError ?? null);
+      setFormError(nextFormError);
       return;
     }
 
     const formData = new FormData();
-    const rangesPayload = createFormData.ranges.map((range) => ({
-      fromDate: format(range.dateRange!.from!, 'yyyy-MM-dd'),
-      toDate: format(range.dateRange!.to!, 'yyyy-MM-dd'),
-      startTime: range.startTime,
-      endTime: range.endTime,
-    }));
+    const rangesPayload = createFormData.ranges.map((range) => {
+      const { startTime, endTime } = getEffectiveTimes(range);
+      return {
+        fromDate: format(range.dateRange!.from!, 'yyyy-MM-dd'),
+        toDate: format(range.dateRange!.to!, 'yyyy-MM-dd'),
+        startTime,
+        endTime,
+      };
+    });
     formData.append('ranges', JSON.stringify(rangesPayload));
 
     fetcher.submit(formData, { method: 'post' });
@@ -280,163 +303,157 @@ export default function CompanyBookingProfileScheduleUnavailabilityRoute({ loade
 
   return (
     <>
-        <div className="grid grid-cols-1 xl:grid-cols-[360px,1fr] gap-4">
- 
-
-          <Card variant="elevated">
-            <CardHeader className="border-b">
-              <CardTitle>Registrert fravær</CardTitle>
-              <CardDescription>De neste fraværsperiodene dine.</CardDescription>
-              <div className="space-y-3 pt-2">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>Periode</span>
-                  <span>
-                    {formatDate(rangeStartDate)} – {formatDate(rangeEndDate)}
-                  </span>
+      <div className="grid grid-cols-1 xl:grid-cols-[360px,1fr] gap-4">
+        <Card variant="elevated">
+          <CardHeader className="border-b">
+            <CardTitle>Registrert fravær</CardTitle>
+            <CardDescription>De neste fraværsperiodene dine.</CardDescription>
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>Periode</span>
+                <span>
+                  {formatDate(rangeStartDate)} – {formatDate(rangeEndDate)}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">Totalt</p>
+                  <p className="text-sm font-medium text-foreground">{totalRanges}</p>
                 </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
-                    <p className="text-[11px] text-muted-foreground">Totalt</p>
-                    <p className="text-sm font-medium text-foreground">{totalRanges}</p>
-                  </div>
-                  <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
-                    <p className="text-[11px] text-muted-foreground">Heldag</p>
-                    <p className="text-sm font-medium text-foreground">{wholeDayRanges}</p>
-                  </div>
-                  <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
-                    <p className="text-[11px] text-muted-foreground">Med klokkeslett</p>
-                    <p className="text-sm font-medium text-foreground">{partialRanges}</p>
-                  </div>
+                <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">Heldag</p>
+                  <p className="text-sm font-medium text-foreground">{wholeDayRanges}</p>
                 </div>
-                <div className="space-y-2 rounded-md border border-card-border bg-muted/20 p-3">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Fremover
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {futureOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        size="sm"
-                        variant={selectedRange === option.value ? 'default' : 'outline'}
-                        onClick={() => {
-                          setSelectedRange(option.value);
-                          const nextParams = new URLSearchParams(searchParams);
-                          nextParams.set('range', option.value);
-                          navigate({ search: `?${nextParams.toString()}` });
-                        }}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Tidligere
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {pastOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        size="sm"
-                        variant={selectedRange === option.value ? 'secondary' : 'outline'}
-                        className={
-                          selectedRange === option.value
-                            ? 'bg-muted text-foreground'
-                            : 'border-muted-foreground/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
-                        }
-                        onClick={() => {
-                          setSelectedRange(option.value);
-                          const nextParams = new URLSearchParams(searchParams);
-                          nextParams.set('range', option.value);
-                          navigate({ search: `?${nextParams.toString()}` });
-                        }}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-muted-foreground">
-                    Viser {visibleSchedules.length} av {totalRanges}
-                  </div>
-                  <Button type="button" variant="default" size="sm" onClick={() => setIsCreateDialogOpen(true)}>
-                    <Plus className="h-4 w-4" />
-                    Legg til fravær
-                  </Button>
+                <div className="rounded-md border border-card-border bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">Med klokkeslett</p>
+                  <p className="text-sm font-medium text-foreground">{partialRanges}</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {visibleSchedules.length > 0 ? (
-                visibleSchedules.map((schedule: ScheduleUnavailabilityDto, index: number) => {
-                  const wholeDay = isWholeDay(schedule.startTime, schedule.endTime);
-                  return (
-                    <div key={index} className="flex items-center gap-3 rounded-lg border border-card-border bg-muted/30 p-3">
-                      <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <CalendarOff className="h-5 w-5 text-accent-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-card-text truncate">
-                          {formatDateTimeRange(schedule.startTime, schedule.endTime)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-10">
-                  <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
-                    <CalendarOff className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {error || 'Ingen fraværsperioder registrert'}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                    onClick={() => setIsCreateDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Legg til fravær
-                  </Button>
+              <div className="space-y-2 rounded-md border border-card-border bg-muted/20 p-3">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Fremover</div>
+                <div className="flex flex-wrap gap-2">
+                  {futureOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      size="sm"
+                      variant={selectedRange === option.value ? 'default' : 'outline'}
+                      onClick={() => {
+                        setSelectedRange(option.value);
+                        const nextParams = new URLSearchParams(searchParams);
+                        nextParams.set('range', option.value);
+                        navigate({ search: `?${nextParams.toString()}` });
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
                 </div>
-              )}
-              {schedules && schedules.length > 5 && (
-                <Button variant="ghost" size="sm" className="w-full">
-                  Vis alle ({schedules.length})
+                <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Tidligere</div>
+                <div className="flex flex-wrap gap-2">
+                  {pastOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      size="sm"
+                      variant={selectedRange === option.value ? 'secondary' : 'outline'}
+                      className={
+                        selectedRange === option.value
+                          ? 'bg-muted text-foreground'
+                          : 'border-muted-foreground/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                      }
+                      onClick={() => {
+                        setSelectedRange(option.value);
+                        const nextParams = new URLSearchParams(searchParams);
+                        nextParams.set('range', option.value);
+                        navigate({ search: `?${nextParams.toString()}` });
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  Viser {visibleSchedules.length} av {totalRanges}
+                </div>
+                <Button type="button" variant="default" size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Legg til fravær
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {visibleSchedules.length > 0 ? (
+              visibleSchedules.map((schedule: ScheduleUnavailabilityDto, index: number) => {
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 rounded-lg border border-card-border bg-muted/30 p-3"
+                  >
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                      <CalendarOff className="h-5 w-5 text-accent-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-card-text truncate">
+                        {formatDateTimeRange(schedule.startTime, schedule.endTime)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-10">
+                <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                  <CalendarOff className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">{error || 'Ingen fraværsperioder registrert'}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Legg til fravær
+                </Button>
+              </div>
+            )}
+            {schedules && schedules.length > 5 && (
+              <Button variant="ghost" size="sm" className="w-full">
+                Vis alle ({schedules.length})
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card variant="bordered" className="h-full">
-            <CardHeader className="border-b">
-              <CardTitle>Tips</CardTitle>
-              <CardDescription>Husk å legge inn fravær i god tid.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-start gap-3 rounded-lg border border-card-border bg-muted/30 p-3">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-foreground font-medium">Hold kalenderen oppdatert</p>
-                  <p className="text-xs text-muted-foreground">
-                    Nye tider blir ikke booket når du er fraværende.
-                  </p>
-                </div>
+        <Card variant="bordered" className="h-full">
+          <CardHeader className="border-b">
+            <CardTitle>Tips</CardTitle>
+            <CardDescription>Husk å legge inn fravær i god tid.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-start gap-3 rounded-lg border border-card-border bg-muted/30 p-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-primary" />
               </div>
-              <div className="rounded-lg border border-card-border bg-muted/30 p-3">
-                <p className="text-xs text-muted-foreground">Vises her: {visibleSchedules.length} av {totalRanges}</p>
-                <p className="text-sm text-foreground font-medium mt-1">Planlegg ferie og pauser tidlig</p>
+              <div>
+                <p className="text-foreground font-medium">Hold kalenderen oppdatert</p>
+                <p className="text-xs text-muted-foreground">Nye tider blir ikke booket når du er fraværende.</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="rounded-lg border border-card-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">
+                Vises her: {visibleSchedules.length} av {totalRanges}
+              </p>
+              <p className="text-sm text-foreground font-medium mt-1">Planlegg ferie og pauser tidlig</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <ScheduleUnavailabilityFormDialog
         open={isCreateDialogOpen}

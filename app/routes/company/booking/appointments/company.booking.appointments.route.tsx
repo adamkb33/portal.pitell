@@ -11,6 +11,7 @@ import { AppointmentTableHeaderSlot } from './_components/appointment.table-head
 import { AppointmentTableRow } from './_components/appointment.table-row';
 import { AppointmentPaginationService } from './_services/appointment.pagination-service';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { formatCurrentDateTimeInTimeZone } from '~/lib/query';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -24,7 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const direction = url.searchParams.get('direction') as 'ASC' | 'DESC' | null;
 
     const hasDateFilters = fromDateTime !== null || toDateTime !== null;
-    const now = new Date().toISOString();
+    const now = formatCurrentDateTimeInTimeZone();
     const effectiveFromDateTime = hasDateFilters ? fromDateTime : now;
     const effectiveToDateTime = hasDateFilters ? toDateTime : null;
 
@@ -42,8 +43,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       });
     });
 
+    console.log(appointmentsResponse.data?.data?.content);
+
     const apiResponse = appointmentsResponse.data;
-    console.log(JSON.stringify(apiResponse?.data, null, 2));
     const pageData = apiResponse?.data;
 
     return {

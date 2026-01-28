@@ -82,9 +82,7 @@ export default function CompanyContextPage({ loaderData }: Route.ComponentProps)
       {companies.length === 0 ? (
         <div className="rounded-lg border border-card-border bg-card-muted-bg p-6 text-center shadow-sm">
           <p className="text-base font-semibold text-card-text">Ingen selskaper funnet</p>
-          <p className="mt-2 text-sm text-card-text-muted">
-            Du har ikke tilgang til noen selskapskontekster enda.
-          </p>
+          <p className="mt-2 text-sm text-card-text-muted">Du har ikke tilgang til noen selskapskontekster enda.</p>
         </div>
       ) : (
         <>

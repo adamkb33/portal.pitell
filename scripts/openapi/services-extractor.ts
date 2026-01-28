@@ -4,7 +4,7 @@ import { dirname, join, relative } from 'node:path';
 import { cleanDir, listFiles } from './fs-utils';
 import type { ApiName } from './types';
 
-export function extractServicesAndRewrite(api: ApiName, genRoot: string, outRoot: string) {
+export function extractServicesAndRewrite(_api: ApiName, genRoot: string, outRoot: string) {
   cleanDir(outRoot);
   const srcServices = join(genRoot, 'services');
   const dstServices = join(outRoot, 'services');

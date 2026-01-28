@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs } from 'react-router';
-import { CompanyUserBookingProfileController, type CreateOrUpdateCompanyUserProfile } from '~/api/generated/booking';
+import { CompanyUserBookingProfileController } from '~/api/generated/booking';
 import { redirectWithSuccess, redirectWithError } from '~/routes/company/_lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { withAuth } from '~/api/utils/with-auth';

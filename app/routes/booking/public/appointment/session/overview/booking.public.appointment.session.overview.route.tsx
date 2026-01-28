@@ -1,17 +1,8 @@
 import { redirect, Form, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.overview.route';
-import {
-  Calendar,
-  Clock,
-  User,
-  Mail,
-  Scissors,
-  DollarSign,
-  CheckCircle2,
-  Sparkles,
-} from 'lucide-react';
+import { Calendar, Clock, User, Mail, Scissors, DollarSign, CheckCircle2, Sparkles } from 'lucide-react';
 import { getSession } from '~/lib/appointments.server';
-import { PublicAppointmentSessionController, type AppointmentSessionOverviewDto } from '~/api/generated/booking';
+import { PublicAppointmentSessionController } from '~/api/generated/booking';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError } from '~/routes/company/_lib/flash-message.server';
 import {
@@ -29,11 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const session = await getSession(request);
     if (!session) {
-      return redirectWithError(
-        request,
-        ROUTES_MAP['booking.public.appointment'].href,
-        'Kunne ikke hente oversikt',
-      );
+      return redirectWithError(request, ROUTES_MAP['booking.public.appointment'].href, 'Kunne ikke hente oversikt');
     }
 
     const response = await PublicAppointmentSessionController.getAppointmentSessionOverview({
@@ -43,13 +30,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
 
     if (!response.data?.data) {
-      console.log("responseOVERSIKT", JSON.stringify(response, null, 2));
       const message = response.data?.message || 'Kunne ikke hente oversikt';
-      return redirectWithError(
-        request,
-        ROUTES_MAP['booking.public.appointment.session.select-time'].href,
-        message,
-      );
+      return redirectWithError(request, ROUTES_MAP['booking.public.appointment.session.select-time'].href, message);
     }
 
     return {
@@ -149,7 +131,10 @@ export default function BookingPublicAppointmentSessionOverviewRoute({ loaderDat
   if (loaderData.error || !loaderData.sessionOverview) {
     return (
       <BookingContainer>
-        <BookingStepHeader title="Bekreft timebestilling" description={loaderData.error ?? 'Kunne ikke hente oversikt'} />
+        <BookingStepHeader
+          title="Bekreft timebestilling"
+          description={loaderData.error ?? 'Kunne ikke hente oversikt'}
+        />
       </BookingContainer>
     );
   }
@@ -320,6 +305,8 @@ export default function BookingPublicAppointmentSessionOverviewRoute({ loaderDat
         </CollapsibleCard>
       </BookingContainer>
 
+      <div className="hidden md:block h-12" />
+
       <BookingSummary
         mobile={{
           title: 'Oppsummering',
@@ -328,6 +315,7 @@ export default function BookingPublicAppointmentSessionOverviewRoute({ loaderDat
             { label: 'Varighet', value: `${totalDuration} min` },
             { label: 'Pris', value: `${totalPrice} kr` },
           ],
+          className: 'md:hidden',
           primaryAction: (
             <Form method="post">
               <BookingButton
@@ -381,7 +369,6 @@ export default function BookingPublicAppointmentSessionOverviewRoute({ loaderDat
           </div>
         }
       />
-
     </>
   );
 }

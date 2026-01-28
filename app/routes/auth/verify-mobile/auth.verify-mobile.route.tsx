@@ -1,13 +1,17 @@
 // auth.verify-mobile.route.tsx
-import { Form, Link, data, redirect, useNavigation } from 'react-router';
+import * as React from 'react';
+import { Link, data, useFetcher } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.route';
 
 import { AuthController } from '~/api/generated/identity';
-import { ROUTES_MAP } from '~/lib/route-tree';
+import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthFormContainer } from '../_components/auth.form-container';
-import { AuthFormField } from '../_components/auth.form-field';
+import { Label } from '@/components/ui/label';
+import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { AuthFormButton } from '../_components/auth.form-button';
+import type { action as verifyMobileAction } from '~/routes/api/auth/verify-mobile/auth.verify-mobile.api-route';
+import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils';
 
 type VerifyMobileLoaderData = {
   verificationSessionToken: string;
@@ -23,10 +27,9 @@ type VerifyMobileLoaderData = {
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const verificationSessionToken = url.searchParams.get('verificationSessionToken');
-  if (!verificationSessionToken) {
-    return redirect(ROUTES_MAP['auth.sign-in'].href);
+  const verificationSessionToken = await requireVerificationToken(request);
+  if (verificationSessionToken instanceof Response) {
+    return verificationSessionToken;
   }
 
   try {
@@ -61,49 +64,30 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const verificationSessionToken = String(formData.get('verificationSessionToken') || '');
-  const code = String(formData.get('code') || '');
-
-  if (!verificationSessionToken || !code) {
-    return data(
-      {
-        error: 'Mangler verifiseringskode. Prøv igjen.',
-      },
-      { status: 400 },
-    );
-  }
-
-  try {
-    const response = await AuthController.verifyMobile({
-      body: {
-        verificationSessionToken,
-        code,
-      },
-    });
-
-    return data({ success: true, nextStep: response.data?.data?.nextStep ?? 'SIGN_IN' });
-  } catch (error) {
-    const { message, status } = resolveErrorPayload(error, 'Kunne ikke bekrefte mobilnummer. Prøv igjen.');
-    return data(
-      {
-        error: message,
-      },
-      { status: status ?? 400 },
-    );
-  }
-}
-
-export default function AuthVerifyMobile({ loaderData, actionData }: Route.ComponentProps) {
+export default function AuthVerifyMobile({ loaderData }: Route.ComponentProps) {
   const dataValues = loaderData as VerifyMobileLoaderData;
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === 'submitting';
-  const errorMessage = actionData?.error ?? dataValues.error;
-  const isMobileVerified = actionData?.success === true;
+  const fetcher = useFetcher<typeof verifyMobileAction>();
+  const [code, setCode] = React.useState('');
+
+  const isSubmitting = fetcher.state === 'submitting';
+  const fetcherError =
+    typeof fetcher.data === 'object' && fetcher.data && 'error' in fetcher.data ? fetcher.data.error : null;
+  const errorMessage = fetcherError ?? dataValues.error;
+  const isMobileVerified =
+    typeof fetcher.data === 'object' && fetcher.data && 'success' in fetcher.data
+      ? fetcher.data.success === true
+      : false;
+  const signedIn =
+    typeof fetcher.data === 'object' && fetcher.data && 'signedIn' in fetcher.data ? fetcher.data.signedIn : false;
   const status = dataValues.status;
   const canVerifyMobile =
     status?.emailVerified && status?.mobileRequired && !status.mobileVerified && !isMobileVerified;
+
+  React.useEffect(() => {
+    if (signedIn) {
+      window.location.href = '/';
+    }
+  }, [signedIn]);
   const description = !status?.emailVerified
     ? 'Bekreft e-posten din før du verifiserer mobilnummer.'
     : status?.mobileRequired
@@ -149,23 +133,28 @@ export default function AuthVerifyMobile({ loaderData, actionData }: Route.Compo
         ) : null}
 
         {canVerifyMobile ? (
-          <Form method="post" className="space-y-4">
+          <fetcher.Form method="post" action={API_ROUTES_MAP['auth.verify-mobile'].url} className="space-y-4">
             <input type="hidden" name="verificationSessionToken" value={dataValues.verificationSessionToken ?? ''} />
 
-            <AuthFormField
-              id="code"
-              name="code"
-              label="Engangskode"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              required
-              disabled={isSubmitting}
-            />
+            <div className="space-y-3">
+              <Label htmlFor="code" className="text-xs font-medium uppercase tracking-[0.12em] text-form-text">
+                Engangskode
+              </Label>
+              <VerificationCodeInput
+                id="code"
+                name="code"
+                value={code}
+                onChange={setCode}
+                required
+                disabled={isSubmitting}
+                aria-invalid={Boolean(errorMessage)}
+              />
+            </div>
 
             <AuthFormButton isLoading={isSubmitting} loadingText="Bekrefter…">
               Bekreft mobilnummer
             </AuthFormButton>
-          </Form>
+          </fetcher.Form>
         ) : null}
 
         {(status?.mobileVerified || isMobileVerified || !status?.mobileRequired) && (

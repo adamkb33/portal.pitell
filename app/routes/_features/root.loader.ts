@@ -3,8 +3,16 @@ import { createNavigation } from '~/lib/route-tree';
 import { authService } from '~/lib/auth-service';
 import { logger } from '~/lib/logger';
 import type { FlashMessage } from '~/routes/company/_lib/flash-message.server';
-import { AuthController, CompanyUserController } from '~/api/generated/identity';
-import { client } from '~/api/generated/identity/client.gen';
+import { AuthController } from '~/api/generated/identity';
+import type { UserContextDto } from '~/api/generated/identity';
+import { withAuth } from '~/api/utils/with-auth';
+import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated/notification';
+import { serializeQueryParams } from '~/lib/query';
+
+export type NavbarNotificationsData = {
+  items: InAppNotificationDto[];
+  hasUnread: boolean;
+};
 
 export const refreshAndBuildResponse = async (
   request: Request,
@@ -38,56 +46,93 @@ export const refreshAndBuildResponse = async (
 
 export const buildResponseData = async (request: Request, accessToken: string, flashMessage: FlashMessage | null) => {
   const authPayload = authService.verifyAndDecodeToken(accessToken);
-
-  let userCompany = undefined;
+  let userContext: UserContextDto | undefined = undefined;
   let companySummary = undefined;
-  let company = undefined;
+  let navbarNotifications: NavbarNotificationsData | null = null;
 
   if (authPayload) {
-    try {
-      const userCompanyResponse = await CompanyUserController.getUser1({
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      userCompany = userCompanyResponse.data?.data;
-    } catch (err) {
-      logger.info('User has no associated company', {
-        userId: authPayload.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      userCompany = undefined;
-    }
+    await withAuth(
+      request,
+      async () => {
+        try {
+          const userContextResponse = await AuthController.getUserContext();
+          userContext = userContextResponse.data?.data ?? undefined;
+        } catch (err) {
+          logger.info('Failed to fetch user context', {
+            userId: authPayload.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          userContext = undefined;
+        }
+      },
+      accessToken,
+    );
   }
 
   if (authPayload?.companyId) {
-    client.setConfig({
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    navbarNotifications = {
+      items: [],
+      hasUnread: false,
+    };
+
+    await withAuth(
+      request,
+      async () => {
+        try {
+          const [latestResponse, unreadResponse] = await Promise.all([
+            CompanyUserInAppNotificationController.getInAppNotifications({
+              query: {
+                request: {
+                  page: 0,
+                  size: 5,
+                  sortBy: 'createdAt',
+                  sortDirection: 'DESC',
+                },
+              },
+              paramsSerializer: (params) => serializeQueryParams(params.request),
+            }),
+            CompanyUserInAppNotificationController.getInAppNotifications({
+              query: {
+                request: {
+                  page: 0,
+                  size: 1,
+                  sortBy: 'createdAt',
+                  sortDirection: 'DESC',
+                  read: false,
+                },
+              },
+              paramsSerializer: (params) => serializeQueryParams(params.request),
+            }),
+          ]);
+
+          navbarNotifications = {
+            items: latestResponse.data?.data?.content ?? [],
+            hasUnread: (unreadResponse.data?.data?.totalElements ?? 0) > 0,
+          };
+        } catch (err) {
+          logger.info('Failed to fetch navbar notifications', {
+            userId: authPayload.id,
+            companyId: authPayload.companyId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       },
-    });
-
-    try {
-      const companySummaryResponse = await CompanyUserController.getCompanySummary();
-      companySummary = companySummaryResponse.data?.data;
-
-      const companyResponse = await CompanyUserController.getCompany();
-      company = companyResponse.data?.data;
-    } catch (err) {
-      logger.error('Failed to fetch company summary', {
-        companyId: authPayload.companyId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      accessToken,
+    );
   }
 
-  const navigation = createNavigation(authPayload, userCompany, company);
+  const companyContexts = (userContext as UserContextDto | undefined)?.companies ?? [];
+  if (authPayload?.companyId && companyContexts.length > 0) {
+    companySummary = companyContexts.find((entry) => entry.company.id === authPayload.companyId)?.company;
+  }
+
+  const navigation = createNavigation(userContext);
 
   return {
     user: authPayload,
     userNavigation: navigation,
     companyContext: companySummary,
+    navbarNotifications,
     flashMessage,
   };
 };
@@ -98,7 +143,8 @@ export const defaultResponse = async (flashMessage: FlashMessage | null = null) 
     {
       user: null,
       companyContext: null,
-      userNavigation: createNavigation(),
+      userNavigation: createNavigation(undefined),
+      navbarNotifications: null,
       flashMessage,
     },
     { status: 200, headers },

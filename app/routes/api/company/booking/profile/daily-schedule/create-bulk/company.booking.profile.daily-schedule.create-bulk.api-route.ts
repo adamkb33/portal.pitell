@@ -1,5 +1,4 @@
 // app/routes/api/company/booking/profile/daily-schedule/create-bulk.api-route.ts
-import { type ActionFunctionArgs } from 'react-router';
 import { DailyScheduleController } from '~/api/generated/booking';
 import { redirectWithSuccess, redirectWithError } from '~/routes/company/_lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/route-tree';

@@ -29,7 +29,7 @@ export enum CompanyRole {
   EMPLOYEE = 'EMPLOYEE',
 }
 
-import type { AuthenticatedUserPayload, CompanyDto, CompanyUserDto } from '~/api/generated/identity';
+import type { UserContextDto } from '~/api/generated/identity';
 import type { IconName } from './route-icon-map';
 
 export type RouteBranch = {
@@ -119,6 +119,14 @@ export const ROUTE_TREE: RouteBranch[] = [
         id: 'auth.respond-invite',
         href: '/auth/respond-invite',
         label: 'Aksepter invitasjon',
+        category: BrachCategory.NONE,
+        accessType: Access.NOT_AUTHENTICATED,
+        iconName: 'UserPlus',
+      },
+      {
+        id: 'auth.respond-user-invite',
+        href: '/auth/respond-user-invite',
+        label: 'Aksepter brukerinvitasjon',
         category: BrachCategory.NONE,
         accessType: Access.NOT_AUTHENTICATED,
         iconName: 'UserPlus',
@@ -308,8 +316,109 @@ export const ROUTE_TREE: RouteBranch[] = [
                 accessType: Access.PRODUCT,
                 companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
                 iconName: 'Calendar',
+                children: [
+                  {
+                    id: 'company.booking.appointments.create.existing-user',
+                    href: '/company/booking/appointments/create/existing-user',
+                    category: BrachCategory.NONE,
+                    accessType: Access.PRODUCT,
+                    companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+                    hidden: true,
+                  },
+                  {
+                    id: 'company.booking.appointments.create.new-user',
+                    href: '/company/booking/appointments/create/new-user',
+                    category: BrachCategory.NONE,
+                    accessType: Access.PRODUCT,
+                    companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+                    hidden: true,
+                  },
+                ],
               },
             ],
+          },
+        ],
+      },
+      {
+        id: 'company.notifications',
+        href: '/company/notifications',
+        label: 'Varsler',
+        category: BrachCategory.COMPANY,
+        placement: RoutePlaceMent.SIDEBAR,
+        accessType: Access.ROLE,
+        companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+        iconName: 'Bell',
+        children: [
+          {
+            id: 'company.notifications.view',
+            href: '/company/notifications/:id',
+            label: 'Vis varsel',
+            category: BrachCategory.COMPANY,
+            accessType: Access.ROLE,
+            placement: RoutePlaceMent.SIDEBAR,
+            companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+            hidden: true,
+          },
+        ],
+      },
+      {
+        id: 'company.timesheet',
+        href: '/company/timesheets',
+        label: 'Timelister',
+        category: BrachCategory.COMPANY,
+        placement: RoutePlaceMent.SIDEBAR,
+        accessType: Access.PRODUCT,
+        companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+        iconName: 'Clock',
+        children: [
+          {
+            id: 'company.timesheet.admin',
+            href: '/company/timesheets/admin',
+            label: 'Administrasjon',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            placement: RoutePlaceMent.SIDEBAR,
+            companyRoles: [CompanyRole.ADMIN],
+            children: [
+              {
+                id: 'company.timesheet.admin.submissions',
+                href: '/company/timesheets/admin/submissions',
+                label: 'Innsendinger',
+                category: BrachCategory.COMPANY,
+                accessType: Access.PRODUCT,
+                placement: RoutePlaceMent.SIDEBAR,
+                companyRoles: [CompanyRole.ADMIN],
+              },
+            ],
+          },
+          {
+            id: 'company.timesheet.register',
+            href: '/company/timesheets/register',
+            label: 'Registrer timer',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            placement: RoutePlaceMent.SIDEBAR,
+            companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+          },
+          {
+            id: 'company.timesheet.edit-range',
+            href: '/company/timesheets/range/:id',
+            label: 'Rediger tidsintervall',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            placement: RoutePlaceMent.SIDEBAR,
+            companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+            hidden: true,
+          },
+          {
+            id: 'company.timesheet.edit-hours',
+            href: '/company/timesheets/hours/:id',
+            label: 'Rediger timerregistrering',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            placement: RoutePlaceMent.SIDEBAR,
+            companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
+            hidden: true,
           },
         ],
       },
@@ -353,20 +462,18 @@ export const ROUTE_TREE: RouteBranch[] = [
                     iconName: 'Users',
                     children: [
                       {
-                        id: 'booking.public.appointment.session.contact.no-user-session-no-auth-user',
-                        href: '/booking/public/appointment/session/contact/no-user-session-no-auth-user',
+                        id: 'booking.public.appointment.session.contact.sign-in',
+                        href: '/booking/public/appointment/session/contact/sign-in',
                         category: BrachCategory.NONE,
                         accessType: Access.PUBLIC,
                         excludeLayout: true,
-                        hidden: true,
                       },
                       {
-                        id: 'booking.public.appointment.session.contact.session-user-no-auth',
-                        href: '/booking/public/appointment/session/contact/session-user-no-auth',
+                        id: 'booking.public.appointment.session.contact.sign-up',
+                        href: '/booking/public/appointment/session/contact/sign-up',
                         category: BrachCategory.NONE,
                         accessType: Access.PUBLIC,
                         excludeLayout: true,
-                        hidden: true,
                       },
                       {
                         id: 'booking.public.appointment.session.contact.verify-email',
@@ -374,7 +481,6 @@ export const ROUTE_TREE: RouteBranch[] = [
                         category: BrachCategory.NONE,
                         accessType: Access.PUBLIC,
                         excludeLayout: true,
-                        hidden: true,
                       },
                       {
                         id: 'booking.public.appointment.session.contact.verify-mobile',
@@ -382,15 +488,20 @@ export const ROUTE_TREE: RouteBranch[] = [
                         category: BrachCategory.NONE,
                         accessType: Access.PUBLIC,
                         excludeLayout: true,
-                        hidden: true,
                       },
                       {
-                        id: 'booking.public.appointment.session.contact.debug',
-                        href: '/booking/public/appointment/session/contact/debug',
+                        id: 'booking.public.appointment.session.contact.collect-email',
+                        href: '/booking/public/appointment/session/contact/collect-email',
                         category: BrachCategory.NONE,
                         accessType: Access.PUBLIC,
                         excludeLayout: true,
-                        hidden: true,
+                      },
+                      {
+                        id: 'booking.public.appointment.session.contact.collect-mobile',
+                        href: '/booking/public/appointment/session/contact/collect-mobile',
+                        category: BrachCategory.NONE,
+                        accessType: Access.PUBLIC,
+                        excludeLayout: true,
                       },
                     ],
                   },
@@ -448,6 +559,14 @@ export const ROUTE_TREE: RouteBranch[] = [
               },
             ],
           },
+          {
+            id: 'booking.public.my-appointments',
+            href: '/booking/public/my-appointments',
+            label: 'Mine bookinger',
+            category: BrachCategory.USER,
+            placement: RoutePlaceMent.NAVIGATION,
+            accessType: Access.AUTHENTICATED,
+          },
         ],
       },
     ],
@@ -462,6 +581,28 @@ export type ApiRoute = {
 
 export const API_ROUTES_TREE = [
   {
+    id: 'public',
+    url: '/api/public',
+    children: [
+      {
+        id: 'public.booking',
+        url: '/api/public/booking',
+        children: [
+          {
+            id: 'public.booking.session',
+            url: '/api/public/booking/session',
+            children: [
+              {
+                id: 'public.booking.session.attach-user',
+                url: '/api/public/booking/session/attach-user',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'auth',
     url: '/api/auth',
     children: [
@@ -470,8 +611,8 @@ export const API_ROUTES_TREE = [
         url: '/api/auth/verify-mobile',
       },
       {
-        id: 'auth.sign-in',
-        url: '/api/auth/sign-in',
+        id: 'auth.sign-up',
+        url: '/api/auth/sign-up',
       },
       {
         id: 'auth.verification-status',
@@ -480,6 +621,20 @@ export const API_ROUTES_TREE = [
       {
         id: 'auth.resend-verification',
         url: '/api/auth/resend-verification',
+        children: [
+          {
+            id: 'auth.resend-verification.email',
+            url: '/api/auth/resend-verification/email',
+          },
+          {
+            id: 'auth.resend-verification.mobile',
+            url: '/api/auth/resend-verification/mobile',
+          },
+        ],
+      },
+      {
+        id: 'auth.user-status',
+        url: '/api/auth/user-status',
       },
     ],
   },
@@ -631,7 +786,6 @@ export const ROUTES_MAP: Record<string, { id: string; href: string }> = (() => {
 })();
 
 export type UserNavigation = Record<RoutePlaceMent, RouteBranch[]>;
-
 const extractProductFromRoute = (routeId: string): 'BOOKING' | 'EVENT' | 'TIMESHEET' | null => {
   const routeParts = routeId.split('.');
   if (routeParts.includes('booking')) return 'BOOKING';
@@ -640,19 +794,41 @@ const extractProductFromRoute = (routeId: string): 'BOOKING' | 'EVENT' | 'TIMESH
   return null;
 };
 
-const hasUserRole = (user: CompanyUserDto, requiredRoles: UserRole[]): boolean => {
-  return requiredRoles.some((role) => user.userRoles.includes(role));
+const hasCompanyRole = (roles: Array<'ADMIN' | 'EMPLOYEE'>, requiredRoles: CompanyRole[]): boolean => {
+  return requiredRoles.some((role) => roles.includes(role));
 };
 
-const hasCompanyRole = (user: CompanyUserDto, requiredRoles: CompanyRole[]): boolean => {
-  return requiredRoles.some((role) => user.companyRoles.includes(role));
+const hasRoleAccessAcrossCompanies = (userContext: UserContextDto, requiredRoles?: CompanyRole[]): boolean => {
+  if (!requiredRoles?.length) {
+    return true;
+  }
+
+  return userContext.companies.some((entry) => hasCompanyRole(entry.roles, requiredRoles));
 };
 
-export const createNavigation = (
-  authPayload?: AuthenticatedUserPayload | null,
-  user?: CompanyUserDto | null,
-  company?: CompanyDto | null,
-): UserNavigation => {
+const hasProductAccessAcrossCompanies = (
+  userContext: UserContextDto,
+  product: 'BOOKING' | 'EVENT' | 'TIMESHEET',
+  requiredRoles?: CompanyRole[],
+): boolean => {
+  return userContext.companies.some((entry) => {
+    const hasProduct = entry.products.includes(product);
+    if (!hasProduct) {
+      return false;
+    }
+
+    if (!requiredRoles?.length) {
+      return true;
+    }
+
+    return hasCompanyRole(entry.roles, requiredRoles);
+  });
+};
+
+export const createNavigation = (userContext?: UserContextDto | null): UserNavigation => {
+  const isAuthenticated = !!userContext?.user;
+  const hasCompanyMembership = (userContext?.companies?.length ?? 0) > 0;
+
   const hasAccess = (branch: RouteBranch): boolean => {
     // Level 0: PUBLIC - always allow
     if (branch.accessType === Access.PUBLIC) {
@@ -661,11 +837,15 @@ export const createNavigation = (
 
     // Level 1: NOT_AUTHENTICATED - only if no auth
     if (branch.accessType === Access.NOT_AUTHENTICATED) {
-      return !authPayload;
+      return !isAuthenticated;
     }
 
     // Level 2: AUTHENTICATED - requires valid JWT
-    if (!authPayload) {
+    if (!isAuthenticated) {
+      return false;
+    }
+
+    if (branch.id === 'user.company-context' && !hasCompanyMembership) {
       return false;
     }
 
@@ -673,18 +853,18 @@ export const createNavigation = (
       return true;
     }
 
-    // Level 3: ROLE - requires company membership + role checks
-    if (!user || !company) {
+    // Level 3/4: ROLE/PRODUCT - require company membership + role checks
+    if (!userContext || !hasCompanyMembership) {
       return false;
     }
 
-    // Check user roles (system-level)
-    if (branch.userRoles?.length && !hasUserRole(user, branch.userRoles)) {
+    // UserContextDto does not currently include system-level roles.
+    if (branch.userRoles?.length) {
       return false;
     }
 
     // Check company roles
-    if (branch.companyRoles?.length && !hasCompanyRole(user, branch.companyRoles)) {
+    if (branch.accessType === Access.ROLE && !hasRoleAccessAcrossCompanies(userContext, branch.companyRoles)) {
       return false;
     }
 
@@ -692,19 +872,13 @@ export const createNavigation = (
       return true;
     }
 
-    // Level 4: PRODUCT - requires company + product + role checks
     if (branch.accessType === Access.PRODUCT) {
       const product = extractProductFromRoute(branch.id);
-      if (!product || !company.products.includes(product)) {
+      if (!product) {
         return false;
       }
 
-      // Product routes may also have role requirements
-      if (branch.companyRoles?.length && !hasCompanyRole(user, branch.companyRoles)) {
-        return false;
-      }
-
-      return true;
+      return hasProductAccessAcrossCompanies(userContext, product, branch.companyRoles);
     }
 
     // Default allow if no specific access type

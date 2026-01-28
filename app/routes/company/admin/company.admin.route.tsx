@@ -23,7 +23,7 @@ import {
   MailCheck,
 } from 'lucide-react';
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request: _request }: Route.LoaderArgs) {
   try {
     const metrics = await AdminCompanyController.getDashboardMetrics();
     if (!metrics.data) {
@@ -434,7 +434,6 @@ export default function CompanyAdminRoute({ loaderData }: Route.ComponentProps) 
         <CardContent className="pt-6">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Konto opprettet: {new Date(metrics.overview.accountCreatedAt).toLocaleDateString('nb-NO')}</span>
-            <span>Selskaps-ID: {metrics.companyId}</span>
           </div>
         </CardContent>
       </Card>

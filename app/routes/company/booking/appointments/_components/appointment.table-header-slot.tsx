@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
-import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Badge } from '~/components/ui/badge';
-import { Calendar as CalendarIcon, X, Search, Check, ChevronUp } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Search, Check } from 'lucide-react';
 import { Calendar } from '~/components/ui/calendar';
-import { cn } from '~/lib/utils';
 import { useNavigate, useSearchParams } from 'react-router';
-import { Chevron, type DateRange } from 'react-day-picker';
+import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { toDateInputFromOffsetDateTime } from '~/lib/query';
 import {
   AppointmentPaginationQuickFilter,
   AppointmentPaginationService,
@@ -26,8 +25,8 @@ export function AppointmentTableHeaderSlot() {
   const toDateTime = searchParams.get('toDateTime') || '';
   const searchFilter = searchParams.get('search') || '';
 
-  const fromDate = fromDateTime ? new Date(fromDateTime).toISOString().split('T')[0] : '';
-  const toDate = toDateTime ? new Date(toDateTime).toISOString().split('T')[0] : '';
+  const fromDate = toDateInputFromOffsetDateTime(fromDateTime);
+  const toDate = toDateInputFromOffsetDateTime(toDateTime);
 
   const [localFromDate, setLocalFromDate] = useState(fromDate);
   const [localToDate, setLocalToDate] = useState(toDate);

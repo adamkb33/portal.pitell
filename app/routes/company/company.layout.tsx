@@ -10,7 +10,6 @@ import type { ApiMessage } from '~/api/generated/identity';
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const auth = await getAuthPayloadFromRequest(request);
-    console.log(auth);
 
     if (!auth) {
       return redirect('/');

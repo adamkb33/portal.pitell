@@ -56,7 +56,7 @@ export function FlashMessageBanner({ message }: FlashMessageProps) {
   const { icon: Icon, bg, text } = config[safeMessage.type] ?? config.info;
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50 p-4 pointer-events-none">
+    <div className="fixed inset-x-0 top-0 z-[9999] p-4 pointer-events-none">
       <div className={`mx-auto flex max-w-md items-center gap-3 ${bg} ${text} p-4 pointer-events-auto`}>
         <Icon className="h-5 w-5 shrink-0" />
         <p className="flex-1 text-sm font-medium">{safeMessage.text}</p>

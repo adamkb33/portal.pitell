@@ -6,15 +6,20 @@ import type { CompanySummaryDto } from '~/api/generated/identity';
 
 type CompanyHeaderProps = {
   company?: CompanySummaryDto | null;
+  canAccessCompanyContext?: boolean;
   className?: string;
 };
 
-export default function CompanyHeader({ company, className }: CompanyHeaderProps) {
+export default function CompanyHeader({ company, canAccessCompanyContext = true, className }: CompanyHeaderProps) {
   if (company === null) {
     return null;
   }
 
   if (company === undefined) {
+    if (!canAccessCompanyContext) {
+      return null;
+    }
+
     return (
       <Link
         to={ROUTES_MAP['user.company-context'].href}

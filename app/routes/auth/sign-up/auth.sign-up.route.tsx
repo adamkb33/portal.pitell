@@ -1,56 +1,18 @@
 // auth.sign-up.route.tsx
-import { Form, Link, data, redirect, useNavigation } from 'react-router';
-import type { Route } from './+types/auth.sign-up.route';
-
-import { handleSignUp, type SignUpActionValues } from '../_features/sign-up.handler';
-import { ROUTES_MAP } from '~/lib/route-tree';
-import { resolveErrorPayload } from '~/lib/api-error';
+import { Link, useFetcher } from 'react-router';
+import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
 
-function getReturnTo(url: URL) {
-  const returnToParam = url.searchParams.get('returnTo');
-  return returnToParam && returnToParam.startsWith('/') && !returnToParam.startsWith('//') ? returnToParam : null;
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  const url = new URL(request.url);
-  const returnTo = getReturnTo(url);
-  const formData = await request.formData();
-  const result = await handleSignUp(formData);
-
-  if (!result.ok) {
-    return data(
-      {
-        error: result.error,
-        values: result.values,
-      },
-      { status: result.status },
-    );
-  }
-
-  const signUpPayload = result.signUp as { emailSent?: boolean; mobileSent?: boolean };
-  const params = new URLSearchParams({
-    emailSent: signUpPayload.emailSent ? 'true' : 'false',
-    mobileSent: signUpPayload.mobileSent ? 'true' : 'false',
-  });
-
-  if (returnTo) {
-    const returnUrl = new URL(returnTo, url.origin);
-    params.forEach((value, key) => returnUrl.searchParams.set(key, value));
-    return redirect(`${returnUrl.pathname}${returnUrl.search}`);
-  }
-
-  return redirect(`${ROUTES_MAP['auth.check-email'].href}?${params.toString()}`);
-}
-
-export default function AuthSignUp({ actionData }: Route.ComponentProps) {
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === 'submitting';
-  const actionState = actionData as { error?: string; values?: SignUpActionValues } | undefined;
-  const errorMessage = actionState?.error;
-  const actionValues = actionState?.values;
+export default function AuthSignUp() {
+  const fetcher = useFetcher();
+  const isSubmitting = fetcher.state === 'submitting';
+  const errorMessage =
+    typeof fetcher.data === 'object' && fetcher.data && 'error' in fetcher.data
+      ? String(fetcher.data.error)
+      : undefined;
+  const action = API_ROUTES_MAP['auth.sign-up'].url;
 
   return (
     <AuthFormContainer
@@ -69,7 +31,7 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
         </div>
       }
     >
-      <Form method="post" className="space-y-6">
+      <fetcher.Form method="post" action={action} className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <AuthFormField
             id="givenName"
@@ -77,7 +39,6 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
             label="Fornavn"
             autoComplete="given-name"
             placeholder="Ola"
-            defaultValue={actionValues?.givenName}
             required
             disabled={isSubmitting}
           />
@@ -88,7 +49,6 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
             label="Etternavn"
             autoComplete="family-name"
             placeholder="Nordmann"
-            defaultValue={actionValues?.familyName}
             required
             disabled={isSubmitting}
           />
@@ -100,8 +60,7 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
           label="E-post"
           type="email"
           autoComplete="email"
-          placeholder="din@e-post.no"
-          defaultValue={actionValues?.email}
+          placeholder="e-post"
           required
           disabled={isSubmitting}
         />
@@ -111,8 +70,7 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
           name="mobileNumber"
           label="Mobilnummer (valgfritt)"
           autoComplete="tel"
-          placeholder="47 123 45 678"
-          defaultValue={actionValues?.mobileNumber}
+          placeholder="mobilnummer"
           disabled={isSubmitting}
         />
 
@@ -143,7 +101,7 @@ export default function AuthSignUp({ actionData }: Route.ComponentProps) {
         <AuthFormButton isLoading={isSubmitting} loadingText="Oppretter konto…">
           Opprett konto
         </AuthFormButton>
-      </Form>
+      </fetcher.Form>
     </AuthFormContainer>
   );
 }

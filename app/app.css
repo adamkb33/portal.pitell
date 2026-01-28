@@ -555,6 +555,12 @@
   --chart-4: oklch(0.6 0.13 300);
   --chart-5: oklch(0.58 0.1 200);
   --chart-6: oklch(0.62 0.14 25);
+
+  /* Timesheet draft/notat accent */
+  --timesheet-draft-bg: oklch(0.94 0.045 75);
+  --timesheet-draft-border: oklch(0.79 0.09 72);
+  --timesheet-draft-text: oklch(0.47 0.11 62);
+  --timesheet-draft-hover-bg: oklch(0.9 0.055 74);
 }
 
 @layer base {
@@ -622,6 +628,16 @@
   .app-footer {
     @apply flex-shrink-0;
     height: var(--layout-footer-height);
+  }
+
+  .timesheet-draft-accent {
+    background-color: var(--timesheet-draft-bg) !important;
+    border-color: var(--timesheet-draft-border) !important;
+    color: var(--timesheet-draft-text) !important;
+  }
+
+  .timesheet-draft-accent:hover {
+    background-color: var(--timesheet-draft-hover-bg) !important;
   }
 }
 

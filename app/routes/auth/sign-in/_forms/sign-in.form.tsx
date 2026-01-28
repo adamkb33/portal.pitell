@@ -42,7 +42,7 @@ export function SignInForm({ onSubmit, isSubmitting = false, initialValues }: Si
             <FormItem>
               <FormLabel>E-post</FormLabel>
               <FormControl>
-                <Input {...field} type="email" autoComplete="email" placeholder="din@e-post.no" data-testid="email" />
+                <Input {...field} type="email" autoComplete="email" placeholder="e-post" data-testid="email" />
               </FormControl>
               <FormMessage />
             </FormItem>

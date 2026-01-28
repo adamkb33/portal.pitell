@@ -1,86 +1,87 @@
 import { redirect } from 'react-router';
 import { Loader2 } from 'lucide-react';
-import { appointmentSessionCookie, createAppointmentSession, getSession } from '~/lib/appointments.server';
-import { AppointmentsController, type AppointmentSessionDto } from '~/api/generated/booking';
+import { AppointmentsController } from '~/api/generated/booking';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError } from '~/routes/company/_lib/flash-message.server';
-import { resolveErrorPayload } from '~/lib/api-error';
 import type { Route } from './+types/booking.public.appointment.session.route';
-import { decodeFromRequest, ensureEncodedCompanyIdRedirect } from '~/lib/company-id-url.server';
 
 export async function loader(args: Route.LoaderArgs) {
   try {
+    const { AppointmentSessionService } = await import('./_services/appointment-session.service.server');
+    const session = await AppointmentSessionService.get(args.request);
     const url = new URL(args.request.url);
+
+    const parseCompanyId = (value: string): number | null => {
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        return null;
+      }
+      return parsed;
+    };
+
+    if (session) {
+      const companyIdParam = url.searchParams.get('companyId');
+      if (companyIdParam) {
+        const companyIdNumber = parseCompanyId(companyIdParam);
+        if (companyIdNumber === null) {
+          return redirectWithError(
+            args.request,
+            ROUTES_MAP['booking.public.appointment'].href,
+            'Selskaps-ID er ugyldig.',
+          );
+        }
+
+        if (session.companyId == companyIdNumber) {
+          return redirect(`${ROUTES_MAP['booking.public.appointment.session.contact'].href}`);
+        }
+
+        if (session.companyId !== companyIdNumber) {
+          await AppointmentSessionService.delete(args.request);
+          const created = await AppointmentSessionService.create(companyIdNumber);
+
+          return redirect(`${ROUTES_MAP['booking.public.appointment.session.contact'].href}`, {
+            headers: {
+              'Set-Cookie': created.setCookieHeader,
+            },
+          });
+        }
+      }
+
+      return redirect(`${ROUTES_MAP['booking.public.appointment.session.contact'].href}`);
+    }
     const companyIdParam = url.searchParams.get('companyId');
+
     if (!companyIdParam) {
       return redirectWithError(args.request, ROUTES_MAP['booking.public.appointment'].href, 'Selskaps-ID mangler.');
     }
 
-    const companyIdNumber = decodeFromRequest(args.request);
+    const companyIdNumber = parseCompanyId(companyIdParam);
     if (companyIdNumber === null) {
       return redirectWithError(args.request, ROUTES_MAP['booking.public.appointment'].href, 'Selskaps-ID er ugyldig.');
     }
 
-    const redirectResponse = ensureEncodedCompanyIdRedirect(args.request, companyIdNumber);
-    if (redirectResponse) {
-      return redirectResponse;
-    }
+    await AppointmentsController.validateCompanyBooking({
+      path: {
+        companyId: companyIdNumber,
+      },
+    });
 
-    try {
-      await AppointmentsController.validateCompanyBooking({
-        path: {
-          companyId: companyIdNumber,
-        },
-      });
-    } catch (error) {
-      return redirectWithError(
-        args.request,
-        ROUTES_MAP['booking.public.appointment'].href,
-        'Selskapet har ikke tilgjengelig booking.',
-      );
-    }
+    const created = await AppointmentSessionService.create(companyIdNumber);
 
-    let session: AppointmentSessionDto | null = null;
-    let setCookieHeader: string | undefined;
-    let clearCookieHeader: string | undefined;
-
-    session = await getSession(args.request);
-
-    if (session && session.companyId !== companyIdNumber) {
-      clearCookieHeader = await appointmentSessionCookie.serialize('', { maxAge: 0 });
-      session = null;
-    }
-
-    if (!session) {
-      try {
-        const created = await createAppointmentSession(companyIdNumber);
-        session = created.session;
-        setCookieHeader = created.setCookieHeader;
-      } catch (error) {
-        const { message } = resolveErrorPayload(error, 'Kunne ikke opprette bookingøkt.');
-        return redirectWithError(args.request, ROUTES_MAP['booking.public.appointment'].href, message);
-      }
-    }
-
-    const search = url.search;
-    const target = `${ROUTES_MAP['booking.public.appointment.session.contact'].href}${search}`;
-    if (setCookieHeader || clearCookieHeader) {
-      const headers = new Headers();
-      if (clearCookieHeader) {
-        headers.append('Set-Cookie', clearCookieHeader);
-      }
-      if (setCookieHeader) {
-        headers.append('Set-Cookie', setCookieHeader);
-      }
-      return redirect(target, { headers });
-    }
-
-    return redirect(target);
+    return redirect(`${ROUTES_MAP['booking.public.appointment.session.contact'].href}`, {
+      headers: {
+        'Set-Cookie': created.setCookieHeader,
+      },
+    });
   } catch (error: any) {
     if (error instanceof Response) {
       throw error;
     }
-    return redirect(ROUTES_MAP['booking.public.appointment'].href);
+    return redirectWithError(
+      args.request,
+      ROUTES_MAP['booking.public.appointment'].href,
+      'Noe gikk galt under oppstart av booking. Prøv igjen.',
+    );
   }
 }
 

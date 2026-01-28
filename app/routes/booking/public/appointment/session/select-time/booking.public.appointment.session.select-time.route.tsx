@@ -1,9 +1,9 @@
 import { useSearchParams, useSubmit, useNavigation, Link } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.select-time.route';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Zap, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Zap, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ScheduleDto, AppointmentSessionDto } from '~/api/generated/booking';
+import type { ScheduleDto } from '~/api/generated/booking';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { formatCompactDate, formatFullDate, formatTime } from '~/lib/date.utils';
 import { appointmentSessionSelectTimeAction } from './_features/appointment.session.select-time.loader';
@@ -419,12 +419,6 @@ export default function BookingPublicAppointmentSessionSelectTimeRoute({ loaderD
         action: ROUTES_MAP['booking.public.appointment.session.overview'].href,
       });
     }
-  };
-
-  const handleClearSelection = () => {
-    setSelectedTime(null);
-    setSelectedDate(null);
-    setIsDateListCollapsed(false);
   };
 
   const handlePrevWeek = () => {

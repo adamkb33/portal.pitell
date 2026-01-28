@@ -1,4 +1,4 @@
-import { Outlet, redirect, type LoaderFunctionArgs } from 'react-router';
+import { Outlet, redirect } from 'react-router';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import type { Route } from './+types/user.layout';
 // TODO: Check if user has company context

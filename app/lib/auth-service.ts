@@ -99,6 +99,16 @@ export class AuthService {
     return { user, accessToken };
   }
 
+  async getAuth(request: Request): Promise<AuthenticatedUserPayload | null> {
+    const cookieHeader = request.headers.get('Cookie');
+    const accessToken = await accessTokenCookie.parse(cookieHeader);
+    if (!accessToken) {
+      return null;
+    }
+    const user = this.verifyAndDecodeToken(accessToken);
+    return user;
+  }
+
   async requireAuth(request: Request, redirectTo: string = '/'): Promise<void> {
     try {
       await this.getUserSession(request);

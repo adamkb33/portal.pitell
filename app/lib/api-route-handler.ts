@@ -1,10 +1,10 @@
 import { data, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
-import type { ApiError } from '~/api/generated/identity/types.gen';
+import type { ApiError, ApiMessage } from '~/api/generated/identity/types.gen';
 import { withAuth } from '~/api/utils/with-auth';
 
 type ApiEnvelope<T = unknown> = {
   success: boolean;
-  message: string;
+  message: string | ApiMessage;
   data?: T;
   errors?: ApiError[];
   meta?: unknown;
@@ -61,9 +61,24 @@ const DEFAULT_MESSAGE = 'En feil oppstod';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+const apiMessageToText = (message: string | ApiMessage | undefined, fallback: string): string => {
+  if (!message) return fallback;
+  if (typeof message === 'string') return message || fallback;
+  return message.value || fallback;
+};
+
+const apiMessageToCode = (message: string | ApiMessage | undefined): string | undefined => {
+  if (!message || typeof message === 'string') return undefined;
+  return message.id;
+};
+
 const isApiEnvelope = (value: unknown): value is ApiEnvelope => {
   if (!isRecord(value)) return false;
-  if (typeof value.message !== 'string') return false;
+  const messageValue = value.message;
+  const hasValidMessage =
+    typeof messageValue === 'string' ||
+    (isRecord(messageValue) && typeof messageValue.id === 'string' && typeof messageValue.value === 'string');
+  if (!hasValidMessage) return false;
   return 'success' in value;
 };
 
@@ -73,19 +88,20 @@ const toFieldErrors = (errors?: ApiError[]) => {
   return errors.reduce<Record<string, string[]>>((acc, error) => {
     if (!error.field || !error.message) return acc;
     if (!acc[error.field]) acc[error.field] = [];
-    acc[error.field].push(error.message);
+    acc[error.field].push(apiMessageToText(error.message, DEFAULT_MESSAGE));
     return acc;
   }, {});
 };
 
-const resolveApiPayload = (dataValue: unknown, fallbackMessage: string) => {
+const resolveApiPayload = (dataValue: unknown, fallbackMessage: string): RouteErrorPayload => {
   if (isApiEnvelope(dataValue)) {
     const errors = Array.isArray(dataValue.errors) ? dataValue.errors : undefined;
     const firstError = errors?.[0];
+    const firstErrorMessage = apiMessageToText(firstError?.message, '');
 
     return {
-      message: dataValue.message || firstError?.message || fallbackMessage,
-      code: firstError?.code,
+      message: apiMessageToText(dataValue.message, '') || firstErrorMessage || fallbackMessage,
+      code: apiMessageToCode(firstError?.message) || apiMessageToCode(dataValue.message),
       details: firstError?.details,
       fieldErrors: toFieldErrors(errors),
     };
@@ -96,8 +112,8 @@ const resolveApiPayload = (dataValue: unknown, fallbackMessage: string) => {
     const firstError = errors[0];
 
     return {
-      message: firstError?.message || fallbackMessage,
-      code: firstError?.code,
+      message: apiMessageToText(firstError?.message, fallbackMessage),
+      code: apiMessageToCode(firstError?.message),
       details: firstError?.details,
       fieldErrors: toFieldErrors(errors),
     };
@@ -110,7 +126,7 @@ const resolveApiPayload = (dataValue: unknown, fallbackMessage: string) => {
   return { message: fallbackMessage };
 };
 
-const normalizeError = (error: unknown, fallbackMessage: string) => {
+const normalizeError = (error: unknown, fallbackMessage: string): { payload: RouteErrorPayload; status?: number } => {
   if (error instanceof Response) {
     return {
       payload: {

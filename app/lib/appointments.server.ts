@@ -1,6 +1,5 @@
 import { createCookie } from 'react-router';
 import { PublicAppointmentSessionController, type AppointmentSessionDto } from '~/api/generated/booking';
-import { ROUTES_MAP } from './route-tree';
 
 const BOOKING_BASE_URL = process.env.VITE_API_BOOKING_SERVICE_URL || 'http://localhost:8080/booking-service';
 const CREATE_SESSION_URL = `${BOOKING_BASE_URL}/public/appointment-session/create-session`;
@@ -49,10 +48,6 @@ export async function getSession(request: Request): Promise<AppointmentSessionDt
       return null;
     }
 
-    console.debug('[appointments.get-session] request', {
-      url: GET_SESSION_URL,
-      sessionId,
-    });
     const sessionResponse = await PublicAppointmentSessionController.getAppointmentSession({
       query: {
         sessionId,

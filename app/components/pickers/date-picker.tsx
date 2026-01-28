@@ -5,11 +5,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-function formatDate(date: Date | undefined) {
-  if (!date) return '';
-  return date.toLocaleDateString('no-NO', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
 // ISO (YYYY-MM-DD) for URL param/state
 function toIsoDate(date: Date) {
   // keep as calendar-date only
@@ -17,12 +12,24 @@ function toIsoDate(date: Date) {
 }
 
 export type DatePickerProps = {
+  id?: string;
+  buttonId?: string;
   selectedDate?: string; // ISO YYYY-MM-DD
   onChange?: (isoDate: string) => void; // ISO YYYY-MM-DD
   isDateAllowed?: (date: Date) => boolean;
+  minDate?: Date;
+  maxDate?: Date;
 };
 
-export function DatePicker({ selectedDate, onChange, isDateAllowed }: DatePickerProps) {
+export function DatePicker({
+  id = 'date',
+  buttonId = 'date-picker',
+  selectedDate,
+  onChange,
+  isDateAllowed,
+  minDate,
+  maxDate,
+}: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
   // local input text, seeded from selectedDate
@@ -48,7 +55,7 @@ export function DatePicker({ selectedDate, onChange, isDateAllowed }: DatePicker
     <div className="flex flex-col gap-3 w-max">
       <div className="relative flex gap-2">
         <Input
-          id="date"
+          id={id}
           value={value}
           placeholder="YYYY-MM-DD"
           className="bg-background pr-10"
@@ -71,7 +78,7 @@ export function DatePicker({ selectedDate, onChange, isDateAllowed }: DatePicker
         />
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button id="date-picker" variant="ghost" className="absolute top-1/2 right-2 size-6 -translate-y-1/2">
+            <Button id={buttonId} variant="ghost" className="absolute top-1/2 right-2 size-6 -translate-y-1/2">
               <CalendarIcon className="size-3.5" />
               <span className="sr-only">Select date</span>
             </Button>
@@ -92,6 +99,7 @@ export function DatePicker({ selectedDate, onChange, isDateAllowed }: DatePicker
                 }
                 setOpen(false);
               }}
+              hidden={minDate ? { before: minDate, after: maxDate } : undefined}
               disabled={(date) => (isDateAllowed ? !isDateAllowed(date) : false)}
             />
           </PopoverContent>

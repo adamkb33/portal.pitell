@@ -1,4 +1,4 @@
-import { redirect, type ActionFunctionArgs } from 'react-router';
+import { type ActionFunctionArgs } from 'react-router';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError, redirectWithSuccess } from '~/routes/company/_lib/flash-message.server';
 import { AdminCompanyUserController } from '~/api/generated/identity';

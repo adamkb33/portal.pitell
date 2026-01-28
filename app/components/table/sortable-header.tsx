@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 export type SortDirection = 'asc' | 'desc';

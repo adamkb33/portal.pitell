@@ -241,7 +241,27 @@ export function FormDialog<T>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-full flex-col gap-0 p-0 sm:max-w-2xl">
+      <DialogContent
+        className="flex max-h-[90vh] w-full flex-col gap-0 p-0 sm:max-w-2xl"
+        onInteractOutside={(event) => {
+          const target = event.target as HTMLElement | null;
+          if (target?.closest('[data-time-picker-panel]')) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          const target = event.target as HTMLElement | null;
+          if (target?.closest('[data-time-picker-panel]')) {
+            event.preventDefault();
+          }
+        }}
+        onFocusOutside={(event) => {
+          const target = event.target as HTMLElement | null;
+          if (target?.closest('[data-time-picker-panel]')) {
+            event.preventDefault();
+          }
+        }}
+      >
         {/* Fixed Header */}
         <DialogHeader className="flex-shrink-0 border-b border-card-border bg-card-bg px-4 py-3 sm:px-6 sm:py-4">
           <DialogTitle className="text-lg font-semibold text-card-text sm:text-xl">{title}</DialogTitle>

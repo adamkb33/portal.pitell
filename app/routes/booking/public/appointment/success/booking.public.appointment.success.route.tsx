@@ -8,7 +8,6 @@ import {
   Bell,
   Clock,
   ExternalLink,
-  Home,
   Share2,
   Sparkles,
   PartyPopper,
@@ -183,10 +182,7 @@ export default function BookingPublicAppointmentSessionSuccessRoute({ loaderData
   return (
     <>
       <BookingContainer>
-        <BookingStepHeader
-          title="Timen er bekreftet"
-          description="Vi gleder oss til å se deg."
-        />
+        <BookingStepHeader title="Timen er bekreftet" description="Vi gleder oss til å se deg." />
         <BookingCard className="relative overflow-hidden border-secondary bg-gradient-to-br from-secondary/20 via-secondary/10 to-transparent p-6 shadow-lg md:p-8">
           {/* Decorative elements - confetti feel */}
           <div className="absolute -right-8 -top-8 size-32 rounded-full bg-secondary/20 blur-3xl" />
@@ -457,12 +453,11 @@ export default function BookingPublicAppointmentSessionSuccessRoute({ loaderData
         mobile={{
           items: [],
           primaryAction: (
-            <a href="/">
-              <BookingButton variant="primary" size="lg" fullWidth>
-                <Home className="size-5" />
-                Tilbake til forsiden
+            <Link to={ROUTES_MAP['booking.public.my-appointments'].href}>
+              <BookingButton variant="primary" size="md" fullWidth>
+                Se mine bookinger
               </BookingButton>
-            </a>
+            </Link>
           ),
           secondaryAction: (
             <Link to={ROUTES_MAP['booking.public.appointment.session.contact'].href}>

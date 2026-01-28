@@ -1,6 +1,11 @@
 // ~/services/appointment-pagination.service.ts
-import { addDays, endOfDay, formatISO, isSameDay, startOfDay } from 'date-fns';
+import { addDays, endOfDay, isSameDay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import {
+  formatCurrentDateTimeInTimeZone,
+  formatDateBoundaryInTimeZone,
+  formatEndOfDayInTimeZone,
+} from '~/lib/query';
 
 export enum AppointmentPaginationQuickFilter {
   UPCOMING,
@@ -118,19 +123,16 @@ export class AppointmentPaginationService {
   };
 
   applyDateFilters = (fromDate: string, toDate: string) => {
-    const timezone = 'Europe/Oslo';
     const params = new URLSearchParams(this.searchParams);
 
     if (fromDate) {
-      const fromDateTime = formatISO(startOfDay(toZonedTime(new Date(fromDate), timezone)));
-      params.set('fromDateTime', fromDateTime);
+      params.set('fromDateTime', formatDateBoundaryInTimeZone(fromDate, 'start'));
     } else {
       params.delete('fromDateTime');
     }
 
     if (toDate) {
-      const toDateTime = formatISO(endOfDay(toZonedTime(new Date(toDate), timezone)));
-      params.set('toDateTime', toDateTime);
+      params.set('toDateTime', formatDateBoundaryInTimeZone(toDate, 'end'));
     } else {
       params.delete('toDateTime');
     }
@@ -159,19 +161,19 @@ export class AppointmentPaginationService {
   };
 
   handleUpcomingFilter = () => {
-    this.handleQuickFilter(formatISO(toZonedTime(new Date(), 'Europe/Oslo')), '');
+    this.handleQuickFilter(formatCurrentDateTimeInTimeZone(), '');
   };
 
   handlePastFilter = () => {
-    this.handleQuickFilter('', formatISO(toZonedTime(new Date(), 'Europe/Oslo')));
+    this.handleQuickFilter('', formatCurrentDateTimeInTimeZone());
   };
 
   handleTodayFilter = () => {
     const timezone = 'Europe/Oslo';
     const nowInNorway = toZonedTime(new Date(), timezone);
 
-    const startOfToday = formatISO(nowInNorway);
-    const endOfToday = formatISO(endOfDay(nowInNorway));
+    const startOfToday = formatCurrentDateTimeInTimeZone(timezone);
+    const endOfToday = formatEndOfDayInTimeZone(nowInNorway, timezone);
 
     this.handleQuickFilter(startOfToday, endOfToday);
   };
@@ -180,8 +182,8 @@ export class AppointmentPaginationService {
     const timezone = 'Europe/Oslo';
     const nowInNorway = toZonedTime(new Date(), timezone);
 
-    const startDate = formatISO(nowInNorway);
-    const endDate = formatISO(endOfDay(addDays(nowInNorway, 7)));
+    const startDate = formatCurrentDateTimeInTimeZone(timezone);
+    const endDate = formatEndOfDayInTimeZone(addDays(nowInNorway, 7), timezone);
 
     this.handleQuickFilter(startDate, endDate);
   };
@@ -190,8 +192,8 @@ export class AppointmentPaginationService {
     const timezone = 'Europe/Oslo';
     const nowInNorway = toZonedTime(new Date(), timezone);
 
-    const startDate = formatISO(nowInNorway);
-    const endDate = formatISO(endOfDay(addDays(nowInNorway, 30)));
+    const startDate = formatCurrentDateTimeInTimeZone(timezone);
+    const endDate = formatEndOfDayInTimeZone(addDays(nowInNorway, 30), timezone);
 
     this.handleQuickFilter(startDate, endDate);
   };

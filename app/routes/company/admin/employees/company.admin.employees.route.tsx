@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { EmployeesTable } from './tables/employees.table';
 import { InvitesTable } from './tables/invites.table';

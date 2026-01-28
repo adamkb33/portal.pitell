@@ -10,7 +10,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import {
   PublicAppointmentSessionController,
-  type AppointmentSessionDto,
   type GroupedServiceGroupDto,
   type GroupedServiceDto,
 } from '~/api/generated/booking';
@@ -21,7 +20,7 @@ import {
   BookingStepHeader,
   SelectableCard,
   BookingSummary,
-  BookingSection,
+  BookingErrorBanner,
 } from '../../_components/booking-layout';
 import { resolveErrorPayload } from '~/lib/api-error';
 
@@ -216,12 +215,7 @@ interface ServiceGroupProps {
   onViewImages: (service: GroupedServiceDto) => void;
 }
 
-function ServiceGroup({
-  group,
-  selectedServices,
-  onToggleService,
-  onViewImages,
-}: ServiceGroupProps) {
+function ServiceGroup({ group, selectedServices, onToggleService, onViewImages }: ServiceGroupProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedInGroup = group.services.filter((s) => selectedServices.has(s.id)).length;
 
@@ -244,34 +238,34 @@ function ServiceGroup({
         <AccordionItem value={String(group.id)} className="border-none">
           <div className="flex items-start gap-3 px-3 py-3 md:px-4 md:py-4">
             <AccordionTrigger className="flex-1 p-0 text-left hover:no-underline">
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h2 className="text-base font-bold text-card-text md:text-lg">{group.name}</h2>
-                {selectedInGroup > 0 && (
-                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-                    {selectedInGroup} valgt
-                  </span>
-                )}
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-bold text-card-text md:text-lg">{group.name}</h2>
+                  {selectedInGroup > 0 && (
+                    <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                      {selectedInGroup} valgt
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+                  {group.services.length} {group.services.length === 1 ? 'tjeneste' : 'tjenester'}
+                </p>
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
-                {group.services.length} {group.services.length === 1 ? 'tjeneste' : 'tjenester'}
-              </p>
-            </div>
-          </AccordionTrigger>
-        </div>
-        <AccordionContent className="border-t border-card-border p-3 md:p-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3 lg:gap-5">
-            {group.services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                isSelected={selectedServices.has(service.id)}
-                onToggle={() => onToggleService(service.id)}
-                onViewImages={() => onViewImages(service)}
-              />
-            ))}
+            </AccordionTrigger>
           </div>
-        </AccordionContent>
+          <AccordionContent className="border-t border-card-border p-3 md:p-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3 lg:gap-5">
+              {group.services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  isSelected={selectedServices.has(service.id)}
+                  onToggle={() => onToggleService(service.id)}
+                  onViewImages={() => onViewImages(service)}
+                />
+              ))}
+            </div>
+          </AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
@@ -282,7 +276,10 @@ function ServiceGroup({
    MAIN COMPONENT
    ======================================== */
 
-export default function BookingPublicAppointmentSessionSelectServicesRoute({ loaderData }: Route.ComponentProps) {
+export default function BookingPublicAppointmentSessionSelectServicesRoute({
+  loaderData,
+  actionData,
+}: Route.ComponentProps) {
   const serviceGroups = loaderData.serviceGroups ?? [];
   const session = loaderData.session;
   const navigation = useNavigation();
@@ -362,12 +359,15 @@ export default function BookingPublicAppointmentSessionSelectServicesRoute({ loa
             PAGE HEADER
             ======================================== */}
         <BookingStepHeader
-          label='Velg tjenester'
+          label="Velg tjenester"
           title="Hvilke tjenester ønsker du?"
           description={`Velg én eller flere tjenester fra ${totalServices} tilgjengelige tjenester.`}
         />
 
-        <BookingSection>
+        {loaderData.error && <BookingErrorBanner title={loaderData.error} />}
+        {actionData?.error && <BookingErrorBanner title={actionData.error} />}
+
+        <div>
           {/* ========================================
               SEARCH BAR - For many services
               ======================================== */}
@@ -428,7 +428,7 @@ export default function BookingPublicAppointmentSessionSelectServicesRoute({ loa
               </div>
             )}
           </div>
-        </BookingSection>
+        </div>
       </BookingContainer>
 
       <BookingSummary

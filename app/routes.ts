@@ -1,4 +1,4 @@
-import { type RouteConfig, index, layout, route } from '@react-router/dev/routes';
+import { type RouteConfig, index, layout } from '@react-router/dev/routes';
 import { API_ROUTES_TREE, ROUTE_TREE } from './lib/route-tree';
 import { buildApiRoutes, buildRoutesNested } from './lib/routes-builder';
 

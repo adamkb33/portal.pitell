@@ -41,14 +41,9 @@ export function AppointmentsView() {
       style={componentHeight ? { height: `${componentHeight}px` } : undefined}
     >
       <main ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="px-4 py-6 md:py-8">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
-      <BookingScrollHint
-        containerRef={scrollRef}
-        className="md:hidden"
-      />
+      <BookingScrollHint containerRef={scrollRef} className="md:hidden" />
       <div id="booking-mobile-footer" ref={footerRef} className="flex-shrink-0" />
     </div>
   );

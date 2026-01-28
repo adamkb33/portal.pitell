@@ -65,7 +65,7 @@ export function BookingStepHeader({ label, title, description, status, className
   ======================================== */
 
 interface BookingErrorBannerProps {
-  message: ApiMessage | string;
+  message?: ApiMessage | string;
   title?: string;
   sticky?: boolean;
   className?: string;
@@ -89,9 +89,11 @@ export function BookingErrorBanner({
         <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-destructive md:text-base">{title}</p>
-          <p className="mt-1 text-xs text-destructive/90 md:text-sm">
-            {typeof message === 'string' ? message : message.value}
-          </p>
+          {message && (
+            <p className="mt-1 text-xs text-destructive/90 md:text-sm">
+              {typeof message === 'string' ? message : message.value}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -690,10 +692,18 @@ export function BookingBottomNav({
         className,
       )}
     >
-      <div className="space-y-3 p-4">
-        {title && <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>}
-        <BookingMeta items={items} layout="compact" />
-        <div className="space-y-2">
+      <div className="space-y-2 p-3">
+        {title && <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>}
+        <dl className="space-y-1">
+          {items.map((item, index) => (
+            <div key={index} className="flex items-baseline gap-2">
+              {item.icon && <dt className="shrink-0 text-muted-foreground">{item.icon}</dt>}
+              <dt className="text-xs font-medium text-muted-foreground">{item.label}:</dt>
+              <dd className="text-base font-semibold text-card-text">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="space-y-1.5">
           <div
             className={cn(
               'w-full',

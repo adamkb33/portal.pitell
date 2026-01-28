@@ -1,7 +1,7 @@
 // routes/company/booking/profile/route.tsx
 import { useFetcher } from 'react-router';
 import { useState, useEffect, useMemo } from 'react';
-import { CheckCircle2, Circle, Sparkles, User, Briefcase, CalendarDays, Image as ImageIcon } from 'lucide-react';
+import { User, Briefcase, CalendarDays, Image as ImageIcon } from 'lucide-react';
 import { FormDialog } from '~/components/dialog/form-dialog';
 import { fileToBase64 } from '~/lib/file.utils';
 import { createImageUploadRenderer } from '~/components/dialog/create-image-upload-renderer';
@@ -174,32 +174,6 @@ export default function BookingCompanyUserProfile({ loaderData }: Route.Componen
   const totalServiceGroups = bookingProfile?.services?.length ?? 0;
   const scheduleSlots = bookingProfile?.dailySchedule?.length ?? 0;
   const availabilityDays = new Set(bookingProfile?.dailySchedule?.map((day) => day.dayOfWeek) ?? []).size;
-
-  const completionItems = [
-    {
-      label: 'Profilbilde',
-      helper: 'Gjør profilen mer personlig.',
-      done: hasProfileImage,
-    },
-    {
-      label: 'Beskrivelse',
-      helper: 'Kort om deg og hva du tilbyr.',
-      done: hasDescription,
-    },
-    {
-      label: 'Tjenester',
-      helper: 'Velg hvilke tjenester du tilbyr.',
-      done: hasServices,
-    },
-    {
-      label: 'Arbeidstider',
-      helper: 'Sett når du er tilgjengelig.',
-      done: hasDailySchedule,
-    },
-  ];
-
-  const completedCount = completionItems.filter((item) => item.done).length;
-  const completionPercent = Math.round((completedCount / completionItems.length) * 100);
 
   const sortedDailySchedule = useMemo(() => {
     if (!bookingProfile?.dailySchedule) return [];

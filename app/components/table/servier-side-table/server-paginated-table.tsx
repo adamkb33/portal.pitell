@@ -1,6 +1,5 @@
 // components/table/server-paginated-table.tsx
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { TableDesktopView } from './table-desktop-view';
 import { TableMobileView } from './table-mobile-view';
 
