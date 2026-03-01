@@ -1,7 +1,7 @@
 import { Form, Link, data, isRouteErrorResponse, redirect, useNavigation, useRouteError } from 'react-router';
 import type { Route } from './+types/auth.respond-user-invite.route';
 
-import { AuthController, type AcceptUserInviteDto, type UserInviteTokenDto } from '~/api/generated/identity';
+import { AuthController, type AcceptUserInviteDto, type UserInviteTokenDto } from '~/api/generated/base';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthFormButton } from '../_components/auth.form-button';
@@ -15,7 +15,9 @@ type ContactFieldVisibility = {
   showMobileNumber: boolean;
 };
 
-type FieldErrors = Partial<Record<'givenName' | 'familyName' | 'password' | 'password2' | 'email' | 'mobileNumber', string>>;
+type FieldErrors = Partial<
+  Record<'givenName' | 'familyName' | 'password' | 'password2' | 'email' | 'mobileNumber', string>
+>;
 
 type ActionData = {
   formError?: string;

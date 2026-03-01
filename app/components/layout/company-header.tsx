@@ -2,7 +2,7 @@ import { Building2, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { cn } from '@/lib/utils';
-import type { CompanySummaryDto } from '~/api/generated/identity';
+import type { CompanySummaryDto } from '~/api/generated/base';
 
 type CompanyHeaderProps = {
   company?: CompanySummaryDto | null;

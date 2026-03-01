@@ -5,7 +5,7 @@ import type { RootOutletContext } from '../root.layout';
 import type { Route } from './+types/company.route';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithInfo } from '~/routes/company/_lib/flash-message.server';
-import type { ApiMessage } from '~/api/generated/identity';
+import type { ApiMessage } from '~/api/generated/base';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {

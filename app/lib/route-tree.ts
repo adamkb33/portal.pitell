@@ -29,7 +29,7 @@ export enum CompanyRole {
   EMPLOYEE = 'EMPLOYEE',
 }
 
-import type { UserContextDto } from '~/api/generated/identity';
+import type { UserContextDto } from '~/api/generated/base';
 import type { IconName } from './route-icon-map';
 
 export type RouteBranch = {

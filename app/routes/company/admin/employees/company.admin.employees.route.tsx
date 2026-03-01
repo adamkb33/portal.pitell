@@ -3,7 +3,7 @@ import { EmployeesTable } from './tables/employees.table';
 import { InvitesTable } from './tables/invites.table';
 import type { Route } from './+types/company.admin.employees.route';
 import { getFlashMessage } from '../../_lib/flash-message.server';
-import { AdminCompanyUserController } from '~/api/generated/identity';
+import { AdminCompanyUserController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function loader({ request }: Route.LoaderArgs) {

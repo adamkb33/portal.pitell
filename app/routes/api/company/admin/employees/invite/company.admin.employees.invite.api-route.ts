@@ -2,7 +2,7 @@
 import { type ActionFunctionArgs } from 'react-router';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError, redirectWithSuccess } from '~/routes/company/_lib/flash-message.server';
-import { AdminCompanyController } from '~/api/generated/identity';
+import { AdminCompanyController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: ActionFunctionArgs) {

@@ -8,8 +8,8 @@ import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
 import { redirectWithSuccess } from '~/routes/company/_lib/flash-message.server';
-import type { CompanySummaryDto } from '~/api/generated/identity';
-import { AuthController, PublicCompanyController, PublicUserController } from '~/api/generated/identity';
+import type { CompanySummaryDto } from '~/api/generated/base';
+import { AuthController, PublicCompanyController, PublicUserController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 
 const USER_ROLE_LABELS: Record<'SYSTEM_ADMIN' | 'USER' | 'COMPANY_USER', string> = {
@@ -233,13 +233,9 @@ export default function AuthRespondInvite({ loaderData, actionData }: Route.Comp
           <p>Ingen selskapsinformasjon tilgjengelig.</p>
         )}
         {inviteEmail ? <p>Invitasjonen gjelder: {inviteEmail}</p> : null}
-        {inviteRoles.length > 0 ? (
-          <p>Roller: {inviteRoles.map((role) => USER_ROLE_LABELS[role]).join(', ')}</p>
-        ) : null}
+        {inviteRoles.length > 0 ? <p>Roller: {inviteRoles.map((role) => USER_ROLE_LABELS[role]).join(', ')}</p> : null}
         {inviteCompanyRoles.length > 0 ? (
-          <p>
-            Bedriftsroller: {inviteCompanyRoles.map((role) => COMPANY_ROLE_LABELS[role]).join(', ')}
-          </p>
+          <p>Bedriftsroller: {inviteCompanyRoles.map((role) => COMPANY_ROLE_LABELS[role]).join(', ')}</p>
         ) : null}
       </div>
 

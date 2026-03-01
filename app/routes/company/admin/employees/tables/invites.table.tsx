@@ -6,7 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { API_ROUTES_MAP } from '~/lib/route-tree';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
-import type { InviteTokenDto } from '~/api/generated/identity';
+import type { InviteTokenDto } from '~/api/generated/base';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 
 type InvitesTableProps = {

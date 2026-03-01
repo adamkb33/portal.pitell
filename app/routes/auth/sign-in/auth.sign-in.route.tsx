@@ -6,7 +6,7 @@ import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
 import { ProviderButtons } from '../_components/provider-buttons';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { verificationSessionToken } from '~/lib/auth.server';
 import type { Route } from './+types/auth.sign-in.route';

@@ -3,7 +3,7 @@ import { LogIn, UserPlus } from 'lucide-react';
 import { data, Form, redirect, useNavigate } from 'react-router';
 import { ProviderButtons } from '~/routes/auth/_components/provider-buttons';
 import { BookingButton, BookingGrid, BookingSection, BookingStepHeader } from '../../_components/booking-layout';
-import type { UserAuthStatusDto } from '~/api/generated/identity';
+import type { UserAuthStatusDto } from '~/api/generated/base';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError, redirectWithInfo } from '~/routes/company/_lib/flash-message.server';
 import { resolveErrorPayload } from '~/lib/api-error';

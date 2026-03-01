@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('~/api/generated/identity', () => ({
+vi.mock('~/api/generated/base', () => ({
   AuthController: {
     decodeUserInvite: mocks.decodeUserInvite,
     respondToUserInvite: mocks.respondToUserInvite,
@@ -39,9 +39,9 @@ describe('auth.respond-user-invite.route', () => {
   });
 
   it('loader throws route error when token is missing', async () => {
-    await expect(loader({ request: new Request('http://localhost/auth/respond-user-invite') } as never)).rejects.toMatchObject(
-      { status: 400 },
-    );
+    await expect(
+      loader({ request: new Request('http://localhost/auth/respond-user-invite') } as never),
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   it('loader returns decoded invite payload for valid token', async () => {

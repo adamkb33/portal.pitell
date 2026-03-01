@@ -1,8 +1,12 @@
 import { formatISO } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Form, useNavigate, useSearchParams } from 'react-router';
-import { CompanyUserAppointmentController, CompanyUserBookingProfileController, CompanyUserScheduleController } from '~/api/generated/booking';
-import type { ContactDto } from '~/api/generated/identity';
+import {
+  CompanyUserAppointmentController,
+  CompanyUserBookingProfileController,
+  CompanyUserScheduleController,
+} from '~/api/generated/booking';
+import type { ContactDto } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
 import { Button } from '~/components/ui/button';
@@ -214,7 +218,9 @@ export default function CompanyBookingAppointmentsCreateExistingUserPage({
           <p className="text-sm text-muted-foreground">Velg kunde, tjenester og tidspunkt.</p>
         </div>
         <Button variant="outline" asChild>
-          <Link to={`${ROUTES_MAP['company.booking.appointments.create.new-user'].href}${toSearchSuffix(switchToNewParams)}`}>
+          <Link
+            to={`${ROUTES_MAP['company.booking.appointments.create.new-user'].href}${toSearchSuffix(switchToNewParams)}`}
+          >
             Bytt til ny kunde
           </Link>
         </Button>
@@ -341,4 +347,3 @@ export default function CompanyBookingAppointmentsCreateExistingUserPage({
     </div>
   );
 }
-

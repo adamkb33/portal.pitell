@@ -1,4 +1,4 @@
-import type { AuthenticatedUserPayload } from '~/api/generated/identity/types.gen';
+import type { AuthenticatedUserPayload } from '~/api/generated/base/types.gen';
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
 import { toAuthPayload } from '~/routes/auth/_utils/token-payload';
 

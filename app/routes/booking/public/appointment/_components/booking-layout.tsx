@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Form, useLocation } from 'react-router';
 import { AlertCircle, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ApiMessage } from '~/api/generated/identity';
+import type { ApiMessage } from '~/api/generated/base';
 
 /* ========================================
    BOOKING PAGE HEADER

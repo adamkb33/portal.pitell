@@ -6,7 +6,7 @@ import { decodeResetPasswordToken } from './_utils/auth.reset-password.utils';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 

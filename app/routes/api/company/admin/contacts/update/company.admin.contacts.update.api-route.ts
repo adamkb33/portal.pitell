@@ -1,7 +1,7 @@
 import { redirectWithError, redirectWithSuccess } from '~/routes/company/_lib/flash-message.server';
 import type { Route } from './+types/company.admin.contacts.update.api-route';
 import { ROUTES_MAP } from '~/lib/route-tree';
-import { CompanyUserContactController } from '~/api/generated/identity';
+import { CompanyUserContactController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: Route.ActionArgs) {

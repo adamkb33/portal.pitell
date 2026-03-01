@@ -1,5 +1,5 @@
 import { redirect } from 'react-router';
-import type { SignInResponseDto, SignUpResponseDto, UserAuthStatusDto } from '~/api/generated/identity';
+import type { SignInResponseDto, SignUpResponseDto, UserAuthStatusDto } from '~/api/generated/base';
 import { verificationSessionToken } from '~/lib/auth.server';
 import { ROUTES_MAP } from '~/lib/route-tree';
 

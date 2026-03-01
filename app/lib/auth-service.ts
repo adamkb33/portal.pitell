@@ -2,7 +2,7 @@ import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/a
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ENV } from '~/api/config/env';
 import { redirect } from 'react-router';
-import type { AuthenticationTokenDto } from '~/api/generated/identity';
+import type { AuthenticationTokenDto } from '~/api/generated/base';
 
 export interface AuthenticatedUserPayload {
   id: number;

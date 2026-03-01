@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Link, data, useFetcher } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.route';
 
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthFormContainer } from '../_components/auth.form-container';

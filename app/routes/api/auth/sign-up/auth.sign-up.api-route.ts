@@ -1,6 +1,6 @@
 import { data } from 'react-router';
 import type { Route } from './+types/auth.sign-up.api-route';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { verificationSessionToken } from '~/lib/auth.server';
 

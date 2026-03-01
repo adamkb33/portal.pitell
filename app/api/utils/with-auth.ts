@@ -1,4 +1,4 @@
-import { client as identityClient } from '~/api/generated/identity/client.gen';
+import { client as baseClient } from '~/api/generated/base/client.gen';
 import { client as bookingClient } from '~/api/generated/booking/client.gen';
 import { client as timesheetClient } from '~/api/generated/timesheet/client.gen';
 import { client as notificationClient } from '~/api/generated/notification/client.gen';
@@ -9,7 +9,7 @@ export async function withAuth<T>(request: Request, callback: () => Promise<T> |
   const accessToken = token || (await accessTokenCookie.parse(cookieHeader));
 
   if (accessToken) {
-    identityClient.setConfig({
+    baseClient.setConfig({
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

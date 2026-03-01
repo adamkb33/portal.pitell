@@ -14,7 +14,7 @@ import { getFlashMessage } from './company/_lib/flash-message.server';
 import { FlashMessageBanner } from './_components/flash-message-banner';
 import { Button } from '~/components/ui/button';
 import { Footer } from './_components/footer';
-import type { CompanySummaryDto } from '~/api/generated/identity';
+import type { CompanySummaryDto } from '~/api/generated/base';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {

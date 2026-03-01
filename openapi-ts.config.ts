@@ -4,12 +4,12 @@ import { defineConfig } from '@hey-api/openapi-ts';
 export default defineConfig([
   {
     client: '@hey-api/client-axios',
-    input: process.env.VITE_API_IDENTITY_SERVICE_DOCS_URL || 'http://localhost:8080/identity-service/api-docs',
-    output: './app/api/generated/identity',
+    input: process.env.VITE_API_BASE_SERVICE_DOCS_URL || 'http://localhost:8080/base-service/api-docs',
+    output: './app/api/generated/base',
     plugins: [
       {
         name: '@hey-api/client-axios',
-        runtimeConfigPath: '~/api/config/identity-client',
+        runtimeConfigPath: '~/api/config/base-client',
       },
       {
         name: '@hey-api/sdk',

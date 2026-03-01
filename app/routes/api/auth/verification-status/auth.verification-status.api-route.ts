@@ -1,6 +1,6 @@
 import { data } from 'react-router';
 import type { Route } from './+types/auth.verification-status.api-route';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { getVerificationTokenFromRequest } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils';
 

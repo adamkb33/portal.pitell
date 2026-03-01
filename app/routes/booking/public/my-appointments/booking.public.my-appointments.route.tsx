@@ -69,7 +69,7 @@ const buildCalendarPayload = (appointment?: MyAppointmentDto) => {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Baser IT//Booking//NO',
+    'PRODID:-//Pitell//Booking//NO',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:${uid}`,

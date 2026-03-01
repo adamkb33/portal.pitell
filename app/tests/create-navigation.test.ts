@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createNavigation, RoutePlaceMent } from '~/lib/route-tree';
-import type { UserContextDto } from '~/api/generated/identity';
+import type { UserContextDto } from '~/api/generated/base';
 
 const createUserContext = (
   roles: Array<'ADMIN' | 'EMPLOYEE'>,

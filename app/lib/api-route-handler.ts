@@ -1,5 +1,5 @@
 import { data, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
-import type { ApiError, ApiMessage } from '~/api/generated/identity/types.gen';
+import type { ApiError, ApiMessage } from '~/api/generated/base/types.gen';
 import { withAuth } from '~/api/utils/with-auth';
 
 type ApiEnvelope<T = unknown> = {
@@ -58,8 +58,7 @@ type AxiosErrorLike = {
 
 const DEFAULT_MESSAGE = 'En feil oppstod';
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 const apiMessageToText = (message: string | ApiMessage | undefined, fallback: string): string => {
   if (!message) return fallback;
@@ -193,10 +192,7 @@ export type ApiRouteHelpers = {
 export class ApiRouteHandler {
   constructor(private readonly defaultOptions: ErrorHandlingOptions = {}) {}
 
-  loader<TSuccess extends object = EmptyObject>(
-    handler: LoaderHandler<TSuccess>,
-    options?: RouteHandlerOptions,
-  ) {
+  loader<TSuccess extends object = EmptyObject>(handler: LoaderHandler<TSuccess>, options?: RouteHandlerOptions) {
     return async (args: LoaderFunctionArgs) => {
       try {
         const result = await this.runWithAuth(args, handler, options);
@@ -211,10 +207,7 @@ export class ApiRouteHandler {
     };
   }
 
-  action<TSuccess extends object = EmptyObject>(
-    handler: ActionHandler<TSuccess>,
-    options?: RouteHandlerOptions,
-  ) {
+  action<TSuccess extends object = EmptyObject>(handler: ActionHandler<TSuccess>, options?: RouteHandlerOptions) {
     return async (args: ActionFunctionArgs) => {
       try {
         const result = await this.runWithAuth(args, handler, options);
@@ -240,7 +233,8 @@ export class ApiRouteHandler {
           const envelope = result.data as ApiEnvelope;
           if (!envelope.success || (envelope.errors && envelope.errors.length > 0)) {
             throw {
-              response: isRecord(result) && 'status' in result ? { status: (result as { status?: number }).status } : undefined,
+              response:
+                isRecord(result) && 'status' in result ? { status: (result as { status?: number }).status } : undefined,
               error: envelope,
             };
           }
@@ -261,7 +255,11 @@ export class ApiRouteHandler {
     }
 
     const token = typeof options.auth === 'object' ? options.auth.token : undefined;
-    return withAuth(args.request, () => handler(args as LoaderFunctionArgs & ActionFunctionArgs, this.buildHelpers()), token);
+    return withAuth(
+      args.request,
+      () => handler(args as LoaderFunctionArgs & ActionFunctionArgs, this.buildHelpers()),
+      token,
+    );
   }
 
   private handleError(error: unknown, args: RouteArgs, options?: ErrorHandlingOptions) {
@@ -269,7 +267,10 @@ export class ApiRouteHandler {
       throw error;
     }
 
-    const resolved = normalizeError(error, options?.fallbackMessage ?? this.defaultOptions.fallbackMessage ?? DEFAULT_MESSAGE);
+    const resolved = normalizeError(
+      error,
+      options?.fallbackMessage ?? this.defaultOptions.fallbackMessage ?? DEFAULT_MESSAGE,
+    );
     const payload = resolved.payload;
     const status = options?.status ?? this.defaultOptions.status ?? resolved.status ?? 400;
     const extra = options?.mapError ? options.mapError(payload, error) : {};

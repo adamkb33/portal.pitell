@@ -3,7 +3,7 @@ import type { BrregEnhetResponse } from '~/api/brreg/types';
 
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { ROUTES_MAP } from '~/lib/route-tree';
-import { CompanyUserController, type AddressDto } from '~/api/generated/identity';
+import { CompanyUserController, type AddressDto } from '~/api/generated/base';
 import type { Route } from './+types/company.route';
 import { Building2, Mail } from 'lucide-react';
 

@@ -1,5 +1,5 @@
 import type { Route } from './+types/company.admin.route';
-import { AdminCompanyController } from '~/api/generated/identity';
+import { AdminCompanyController } from '~/api/generated/base';
 import { Card, CardContent } from '~/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
 import {

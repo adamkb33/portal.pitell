@@ -4,7 +4,7 @@ import { useSubmit } from 'react-router';
 import { FormDialog } from '~/components/dialog/form-dialog';
 import { API_ROUTES_MAP } from '~/lib/route-tree';
 import { ContactFormSchema, type ContactFormData, type FieldErrors } from '../_schemas/contact.form.schema';
-import type { ContactDto } from '~/api/generated/identity';
+import type { ContactDto } from '~/api/generated/base';
 
 type ContactFormDialogProps = {
   trigger?: React.ReactNode;

@@ -4,7 +4,7 @@ import type { Route } from './+types/auth.sign-out.route';
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
 import { toAuthPayload } from '~/routes/auth/_utils/token-payload';
 import { useEffect, useRef } from 'react';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 
 export async function action({ request }: Route.ActionArgs) {
   const cookieHeader = request.headers.get('Cookie');

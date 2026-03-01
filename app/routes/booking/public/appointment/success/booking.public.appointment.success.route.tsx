@@ -1,18 +1,7 @@
 import { data, redirect, Link } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.success.route';
-import {
-  Check,
-  MapPin,
-  Calendar,
-  Mail,
-  Bell,
-  Clock,
-  ExternalLink,
-  Share2,
-  Sparkles,
-  PartyPopper,
-} from 'lucide-react';
-import { PublicCompanyController } from '~/api/generated/identity';
+import { Check, MapPin, Calendar, Mail, Bell, Clock, ExternalLink, Share2, Sparkles, PartyPopper } from 'lucide-react';
+import { PublicCompanyController } from '~/api/generated/base';
 import { AppointmentsController, PublicAppointmentSessionController } from '~/api/generated/booking';
 import {
   BookingContainer,
@@ -148,7 +137,7 @@ export default function BookingPublicAppointmentSessionSuccessRoute({ loaderData
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Baser IT//Booking//NO',
+      'PRODID:-//Pitell//Booking//NO',
       'CALSCALE:GREGORIAN',
       'BEGIN:VEVENT',
       `UID:${uid}`,

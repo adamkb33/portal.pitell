@@ -5,7 +5,7 @@ import { Check, Mail, Phone, User, User2Icon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { ContactFormDialog } from '../../admin/contacts/_components/contact.form-dialog';
 import { Label } from '~/components/ui/label';
-import type { ContactDto } from '~/api/generated/identity';
+import type { ContactDto } from '~/api/generated/base';
 
 type ContactSelectorProps = {
   contacts: ContactDto[];

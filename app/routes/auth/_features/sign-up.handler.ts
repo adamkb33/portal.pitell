@@ -1,4 +1,4 @@
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 
 export type SignUpActionValues = {

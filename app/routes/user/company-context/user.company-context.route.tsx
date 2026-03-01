@@ -1,7 +1,7 @@
 import { data, Form, redirect } from 'react-router';
 import { CompanyContextSummaryCard } from '~/routes/user/company-context/_components/company-context-summary-card';
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
-import { AuthController } from '~/api/generated/identity';
+import { AuthController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 import type { Route } from './+types/user.company-context.route';
 

@@ -101,7 +101,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
         headers: {
           'Accept-Language': 'no',
-          'User-Agent': 'baser-it-booking-map/1.0',
+          'User-Agent': 'pitell-booking-map/1.0',
         },
       });
 

@@ -1,5 +1,5 @@
 import { PublicAppointmentSessionController } from '~/api/generated/booking';
-import { AuthController, type SignInResponseDto, type SignUpResponseDto } from '~/api/generated/identity';
+import { AuthController, type SignInResponseDto, type SignUpResponseDto } from '~/api/generated/base';
 import { AppointmentSessionService } from '../../_services/appointment-session.service.server';
 import { authService } from '~/lib/auth-service';
 import { resolveAuthNextStepHref } from '../_utils/auth.utils';

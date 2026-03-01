@@ -8,7 +8,7 @@ import { API_ROUTES_MAP } from '~/lib/route-tree';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { EditEmployeeForm } from '../forms/edit-employee.form-dialog';
 import { ServerPaginatedTable } from '~/components/table/server-side-table';
-import type { CompanyUserDto } from '~/api/generated/identity';
+import type { CompanyUserDto } from '~/api/generated/base';
 import { InviteEmployeeForm } from '../forms/invite-employee.form-dialog';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 import { Input } from '~/components/ui/input';

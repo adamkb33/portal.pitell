@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pen } from 'lucide-react';
 import { Input } from '~/components/ui/input';
 import type { Route } from './+types/company.admin.contacts.route';
-import { CompanyUserContactController } from '~/api/generated/identity';
+import { CompanyUserContactController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
 import { Button } from '~/components/ui/button';
 import { TableCell, TableRow } from '~/components/ui/table';
@@ -12,7 +12,7 @@ import { API_ROUTES_MAP } from '~/lib/route-tree';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { ServerPaginatedTable } from '~/components/table/server-side-table';
 import { ContactFormDialog } from './_components/contact.form-dialog';
-import type { ContactDto } from '~/api/generated/identity';
+import type { ContactDto } from '~/api/generated/base';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {

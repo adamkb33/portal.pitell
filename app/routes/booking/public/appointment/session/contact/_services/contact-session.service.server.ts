@@ -1,4 +1,4 @@
-import { AuthController, type UserAuthStatusDto } from '~/api/generated/identity';
+import { AuthController, type UserAuthStatusDto } from '~/api/generated/base';
 import { AppointmentSessionService } from '../../_services/appointment-session.service.server';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
