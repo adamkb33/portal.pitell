@@ -96,11 +96,7 @@ export default function RootLayout({ loaderData }: Route.ComponentProps) {
               )}
 
               <div className="flex-1 flex items-center h-full">
-                <Navbar
-                  navRoutes={userNav}
-                  companyContext={companyContext}
-                  notifications={loaderData.navbarNotifications}
-                />
+                <Navbar navRoutes={userNav} companyContext={companyContext} />
               </div>
             </div>
           </nav>

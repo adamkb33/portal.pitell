@@ -1,20 +1,86 @@
+import * as React from 'react';
 import { Bell, BellRing, ChevronRight, Circle } from 'lucide-react';
 import { Link } from 'react-router';
-import type { InAppNotificationDto } from '~/api/generated/notification';
+import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated/notification';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { formatNotificationTimestamp } from '~/routes/company/notifications/_utils/format';
 import { getNotificationHeadline } from '~/routes/company/notifications/_utils/query';
+import { serializeQueryParams } from '~/lib/query';
 
-type NavbarNotificationBellProps = {
+const NAVBAR_NOTIFICATION_POLL_MS = 15_000;
+
+type NavbarNotificationsState = {
   items: InAppNotificationDto[];
   hasUnread: boolean;
 };
 
-export function NavbarNotificationBell({ items, hasUnread }: NavbarNotificationBellProps) {
+export function NavbarNotificationBell() {
   const notificationsHref = ROUTES_MAP['company.notifications'].href;
+  const [notifications, setNotifications] = React.useState<NavbarNotificationsState>({
+    items: [],
+    hasUnread: false,
+  });
+
+  const loadNotifications = React.useEffectEvent(async (signal: AbortSignal) => {
+    try {
+      const [latestResponse, unreadResponse] = await Promise.all([
+        CompanyUserInAppNotificationController.getInAppNotifications({
+          query: {
+            request: {
+              page: 0,
+              size: 5,
+              sortBy: 'createdAt',
+              sortDirection: 'DESC',
+            },
+          },
+          paramsSerializer: (params) => serializeQueryParams(params.request),
+          signal,
+        }),
+        CompanyUserInAppNotificationController.getInAppNotifications({
+          query: {
+            request: {
+              page: 0,
+              size: 1,
+              sortBy: 'createdAt',
+              sortDirection: 'DESC',
+              read: false,
+            },
+          },
+          paramsSerializer: (params) => serializeQueryParams(params.request),
+          signal,
+        }),
+      ]);
+
+      if (signal.aborted) {
+        return;
+      }
+
+      setNotifications({
+        items: latestResponse.data?.data?.content ?? [],
+        hasUnread: (unreadResponse.data?.data?.totalElements ?? 0) > 0,
+      });
+    } catch {}
+  });
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+
+    void loadNotifications(controller.signal);
+
+    const intervalId = window.setInterval(() => {
+      void loadNotifications(controller.signal);
+    }, NAVBAR_NOTIFICATION_POLL_MS);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
+  }, [loadNotifications]);
+
+  const { items, hasUnread } = notifications;
 
   return (
     <DropdownMenu modal={false}>

@@ -6,13 +6,6 @@ import type { FlashMessage } from '~/routes/company/_lib/flash-message.server';
 import { AuthController } from '~/api/generated/base';
 import type { UserContextDto } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
-import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated/notification';
-import { serializeQueryParams } from '~/lib/query';
-
-export type NavbarNotificationsData = {
-  items: InAppNotificationDto[];
-  hasUnread: boolean;
-};
 
 export const refreshAndBuildResponse = async (
   request: Request,
@@ -48,7 +41,6 @@ export const buildResponseData = async (request: Request, accessToken: string, f
   const authPayload = authService.verifyAndDecodeToken(accessToken);
   let userContext: UserContextDto | undefined = undefined;
   let companySummary = undefined;
-  let navbarNotifications: NavbarNotificationsData | null = null;
 
   if (authPayload) {
     await withAuth(
@@ -69,58 +61,6 @@ export const buildResponseData = async (request: Request, accessToken: string, f
     );
   }
 
-  if (authPayload?.companyId) {
-    navbarNotifications = {
-      items: [],
-      hasUnread: false,
-    };
-
-    await withAuth(
-      request,
-      async () => {
-        try {
-          const [latestResponse, unreadResponse] = await Promise.all([
-            CompanyUserInAppNotificationController.getInAppNotifications({
-              query: {
-                request: {
-                  page: 0,
-                  size: 5,
-                  sortBy: 'createdAt',
-                  sortDirection: 'DESC',
-                },
-              },
-              paramsSerializer: (params) => serializeQueryParams(params.request),
-            }),
-            CompanyUserInAppNotificationController.getInAppNotifications({
-              query: {
-                request: {
-                  page: 0,
-                  size: 1,
-                  sortBy: 'createdAt',
-                  sortDirection: 'DESC',
-                  read: false,
-                },
-              },
-              paramsSerializer: (params) => serializeQueryParams(params.request),
-            }),
-          ]);
-
-          navbarNotifications = {
-            items: latestResponse.data?.data?.content ?? [],
-            hasUnread: (unreadResponse.data?.data?.totalElements ?? 0) > 0,
-          };
-        } catch (err) {
-          logger.info('Failed to fetch navbar notifications', {
-            userId: authPayload.id,
-            companyId: authPayload.companyId,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      },
-      accessToken,
-    );
-  }
-
   const companyContexts = (userContext as UserContextDto | undefined)?.companies ?? [];
   if (authPayload?.companyId && companyContexts.length > 0) {
     companySummary = companyContexts.find((entry) => entry.company.id === authPayload.companyId)?.company;
@@ -132,7 +72,6 @@ export const buildResponseData = async (request: Request, accessToken: string, f
     user: authPayload,
     userNavigation: navigation,
     companyContext: companySummary,
-    navbarNotifications,
     flashMessage,
   };
 };
@@ -144,7 +83,6 @@ export const defaultResponse = async (flashMessage: FlashMessage | null = null) 
       user: null,
       companyContext: null,
       userNavigation: createNavigation(undefined),
-      navbarNotifications: null,
       flashMessage,
     },
     { status: 200, headers },

@@ -8,7 +8,7 @@
 
 .env.local
 
-.env
+.env*
 
 .env.*.local
 

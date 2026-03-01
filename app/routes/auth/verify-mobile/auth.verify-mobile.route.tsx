@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { AuthFormButton } from '../_components/auth.form-button';
 import type { action as verifyMobileAction } from '~/routes/api/auth/verify-mobile/auth.verify-mobile.api-route';
-import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils';
+import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils.server';
 
 type VerifyMobileLoaderData = {
   verificationSessionToken: string;

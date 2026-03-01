@@ -8,15 +8,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '../ui/button';
 import BiTLogo from '../logos/BiT.logo';
 import { NavbarNotificationBell } from './navbar-notification-bell';
-import type { NavbarNotificationsData } from '~/routes/_features/root.loader';
 
 export type NavbarProps = {
   navRoutes: UserNavigation | undefined;
   companyContext: CompanySummaryDto | null | undefined;
-  notifications: NavbarNotificationsData | null;
 };
 
-export function Navbar({ navRoutes, companyContext, notifications }: NavbarProps) {
+export function Navbar({ navRoutes, companyContext }: NavbarProps) {
   const navigationBranches = navRoutes?.[RoutePlaceMent.NAVIGATION] || [];
   const sidebarBranches = navRoutes?.[RoutePlaceMent.SIDEBAR] || [];
   const userBranches = navigationBranches.filter((branch) => branch.category === BrachCategory.USER);
@@ -57,9 +55,7 @@ export function Navbar({ navRoutes, companyContext, notifications }: NavbarProps
           </NavLink>
         )}
 
-        {canAccessNotifications && notifications && (
-          <NavbarNotificationBell items={notifications.items} hasUnread={notifications.hasUnread} />
-        )}
+        {canAccessNotifications && <NavbarNotificationBell />}
 
         {hasMobileMenuLinks && (
           <div className="md:hidden">

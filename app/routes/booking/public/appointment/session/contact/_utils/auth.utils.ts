@@ -1,6 +1,5 @@
 import { redirect } from 'react-router';
 import type { SignInResponseDto, SignUpResponseDto, UserAuthStatusDto } from '~/api/generated/base';
-import { verificationSessionToken } from '~/lib/auth.server';
 import { ROUTES_MAP } from '~/lib/route-tree';
 
 export function resolveAuthNextStepHref(
@@ -73,21 +72,3 @@ export function getFetcherError(
   }
   return null;
 }
-
-export async function requireVerificationToken(request: Request) {
-  const cookieHeader = request.headers.get('Cookie');
-  const token = await verificationSessionToken.parse(cookieHeader);
-  if (!token || typeof token !== 'string') {
-    return redirect(ROUTES_MAP['booking.public.appointment.session.contact'].href);
-  }
-  return token;
-}
-
-export const getVerificationTokenFromRequest = async (request: Request) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const token = await verificationSessionToken.parse(cookieHeader);
-  if (!token || typeof token !== 'string') {
-    return null;
-  }
-  return token;
-};
