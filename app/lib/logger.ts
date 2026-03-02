@@ -1,6 +1,5 @@
-// ~/lib/logger.ts
-
 import { ENV } from '~/api/config/env';
+import { sanitizeForLog } from '~/lib/http-log';
 
 interface LogContext {
   [key: string]: unknown;
@@ -8,47 +7,45 @@ interface LogContext {
 
 class Logger {
   private isDevelopment = ENV.NODE_ENV === 'development';
+  private shouldLogInfo = true;
+  private shouldLogWarn = true;
 
   error(message: string, context?: LogContext): void {
-    const serialized = context ? this.serializeContext(context) : '';
-    console.error(`[ERROR] ${message}`, serialized);
+    this.write('error', message, context);
   }
 
   warn(message: string, context?: LogContext): void {
-    if (this.isDevelopment) {
-      const serialized = context ? this.serializeContext(context) : '';
-      console.warn(`[WARN] ${message}`, serialized);
+    if (this.shouldLogWarn) {
+      this.write('warn', message, context);
     }
   }
 
   info(message: string, context?: LogContext): void {
-    if (this.isDevelopment) {
-      const serialized = context ? this.serializeContext(context) : '';
-      console.info(`[INFO] ${message}`, serialized);
+    if (this.shouldLogInfo) {
+      this.write('info', message, context);
     }
   }
 
   debug(message: string, context?: LogContext): void {
     if (this.isDevelopment) {
-      const serialized = context ? this.serializeContext(context) : '';
-      console.debug(`[DEBUG] ${message}`, serialized);
+      this.write('debug', message, context);
     }
   }
 
   private serializeContext(context: LogContext): string {
-    const serialized: Record<string, string> = {};
+    return JSON.stringify(sanitizeForLog(context), null, 2);
+  }
 
-    for (const [key, value] of Object.entries(context)) {
-      if (value instanceof Response) {
-        serialized[key] = `Response(status=${value.status}, statusText=${value.statusText})`;
-      } else if (value instanceof Error) {
-        serialized[key] = `${value.name}: ${value.message}`;
-      } else {
-        serialized[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      }
+  private write(level: 'error' | 'warn' | 'info' | 'debug', message: string, context?: LogContext): void {
+    const payload = context ? this.serializeContext(context) : '';
+    const logMessage = `[${level.toUpperCase()}] ${message}`;
+
+    if (payload) {
+      console[level](logMessage, payload);
+      return;
     }
 
-    return JSON.stringify(serialized, null, 2);
+    console[level](logMessage);
   }
 }
 

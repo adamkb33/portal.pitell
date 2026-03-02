@@ -1,3 +1,6 @@
+import { logger } from '~/lib/logger';
+import { describeAxiosError, sanitizeForLog } from '~/lib/http-log';
+
 export type RouteErrorPayload = {
   message: string;
   code?: string;
@@ -23,9 +26,16 @@ export const resolveErrorPayload = (error: unknown, fallbackMessage: string): Er
       : rawMessage && typeof rawMessage === 'object'
         ? (rawMessage as { value?: string; id?: string }).value || (rawMessage as { id?: string }).id
         : undefined;
-  if (message) {
-    console.error(message);
+
+  if (responseError?.response) {
+    logger.error('[api-error] Axios request failed', describeAxiosError(error));
+  } else {
+    logger.error('[api-error] Non-Axios error', {
+      fallbackMessage,
+      error: sanitizeForLog(error),
+    });
   }
+
   return {
     message: message || fallbackMessage,
     status: responseError?.response?.status,

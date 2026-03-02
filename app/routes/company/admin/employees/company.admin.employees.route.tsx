@@ -5,8 +5,12 @@ import type { Route } from './+types/company.admin.employees.route';
 import { getFlashMessage } from '../../_lib/flash-message.server';
 import { AdminCompanyUserController } from '~/api/generated/base';
 import { withAuth } from '~/api/utils/with-auth';
+import { logRouteError, logRouteStart, logRouteSuccess } from '~/lib/route-log';
+import { describeAxiosError } from '~/lib/http-log';
 
 export async function loader({ request }: Route.LoaderArgs) {
+  logRouteStart('loader', 'company.admin.employees', { request });
+
   try {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '0');
@@ -14,23 +18,46 @@ export async function loader({ request }: Route.LoaderArgs) {
     const search = url.searchParams.get('search')?.trim() || undefined;
 
     const [userResponse, inviteResponse, { message }] = await withAuth(request, async () => {
-      return Promise.all([
-        AdminCompanyUserController.getCompanyUsers({
-          query: {
-            page,
-            size,
-            includeDeleted: false,
-            search,
-          },
-        }),
-        AdminCompanyUserController.getInvitations(),
-        getFlashMessage(request),
-      ]);
+      const userResponsePromise = AdminCompanyUserController.getCompanyUsers({
+        query: {
+          page,
+          size,
+          includeDeleted: false,
+          search,
+        },
+      }).catch((error) => {
+        logRouteError('loader', 'company.admin.employees.users', { request }, error, {
+          page,
+          size,
+          search: search ?? null,
+        });
+        throw error;
+      });
+
+      const inviteResponsePromise = AdminCompanyUserController.getInvitations().catch((error) => {
+        logRouteError('loader', 'company.admin.employees.invitations', { request }, error);
+        throw error;
+      });
+
+      return Promise.all([userResponsePromise, inviteResponsePromise, getFlashMessage(request)]);
     });
 
     if (!userResponse.data?.data) {
+      logRouteError('loader', 'company.admin.employees', { request }, new Error('Missing users payload'), {
+        page,
+        size,
+        search: search ?? null,
+      });
       return { error: 'Kunne ikke hente brukere for selskapet' };
     }
+
+    logRouteSuccess('loader', 'company.admin.employees', { request }, {
+      page,
+      size,
+      search: search ?? null,
+      userCount: userResponse.data.data.content.length,
+      inviteCount: inviteResponse.data?.data?.length ?? 0,
+    });
 
     return {
       users: userResponse.data.data.content,
@@ -43,9 +70,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       invites: inviteResponse.data?.data || [],
       flashMessage: message,
     };
-  } catch (error: any) {
-    console.error(error);
-    return { error: error?.message || 'En feil oppstod' };
+  } catch (error: unknown) {
+    logRouteError('loader', 'company.admin.employees', { request }, error, {
+      errorType: error instanceof Error ? error.name : typeof error,
+      axios: describeAxiosError(error),
+    });
+    return { error: error instanceof Error ? error.message : 'En feil oppstod' };
   }
 }
 

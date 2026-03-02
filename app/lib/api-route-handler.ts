@@ -1,6 +1,8 @@
 import { data, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import type { ApiError, ApiMessage } from '~/api/generated/base/types.gen';
 import { withAuth } from '~/api/utils/with-auth';
+import { logger } from '~/lib/logger';
+import { describeAxiosError, sanitizeForLog } from '~/lib/http-log';
 
 type ApiEnvelope<T = unknown> = {
   success: boolean;
@@ -277,7 +279,10 @@ export class ApiRouteHandler {
     const logEnabled = options?.log ?? this.defaultOptions.log ?? true;
 
     if (logEnabled) {
-      console.error(`[route-error] ${buildRequestInfo(args)}`, error);
+      logger.error(`[route-error] ${buildRequestInfo(args)}`, {
+        error: describeAxiosError(error),
+        rawError: sanitizeForLog(error),
+      });
     }
 
     return data<RouteData<Record<string, never>, Record<string, unknown>>>(
