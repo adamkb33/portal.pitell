@@ -33,22 +33,32 @@ export async function action({ request }: Route.ActionArgs) {
       },
       body: isGoogleLogin ? { provider: 'GOOGLE', idToken } : { provider: 'LOCAL', emailOrMobile: email, password },
     });
+    const payload = response.data?.data;
 
-    if (response.data?.data?.verificationTokenDto) {
-      const cookie = await verificationSessionToken.serialize(response.data?.data?.verificationTokenDto.value, {
-        expires: new Date(response.data?.data?.verificationTokenDto.expiresAt),
+    if (payload?.verificationTokenDto) {
+      const cookie = await verificationSessionToken.serialize(payload.verificationTokenDto.value, {
+        expires: new Date(payload.verificationTokenDto.expiresAt),
       });
       const headers = new Headers();
       headers.append('Set-Cookie', cookie);
-      return data(response.data?.data, { headers });
+
+      if (payload.nextStep === 'VERIFY_EMAIL') {
+        const params = new URLSearchParams({
+          emailSent: String(payload.emailSent ?? false),
+          mobileSent: String(payload.mobileSent ?? false),
+        });
+        return redirect(`${ROUTES_MAP['auth.check-email'].href}?${params.toString()}`, { headers });
+      }
+
+      return data(payload, { headers });
     }
 
-    if (response.data?.data?.authTokens) {
+    if (payload?.authTokens) {
       const headers = await authService.setAuthCookies(
-        response.data?.data?.authTokens.accessToken,
-        response.data?.data?.authTokens.refreshToken,
-        response.data?.data?.authTokens.accessTokenExpiresAt,
-        response.data?.data?.authTokens.refreshTokenExpiresAt,
+        payload.authTokens.accessToken,
+        payload.authTokens.refreshToken,
+        payload.authTokens.accessTokenExpiresAt,
+        payload.authTokens.refreshTokenExpiresAt,
       );
       return redirect('/', { headers });
     }
