@@ -8,6 +8,7 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { verificationSessionToken } from '~/lib/auth.server';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormButton } from '../_components/auth.form-button';
+import { resolveAuthNextStepHref } from '../_utils/auth-flow';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -46,6 +47,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
 
       return redirect(`${ROUTES_MAP['auth.verify-mobile'].href}?${params.toString()}`, { headers });
+    }
+
+    if (payload?.nextStep) {
+      const nextStepHref = resolveAuthNextStepHref(payload.nextStep);
+      if (nextStepHref && payload.nextStep !== 'SIGN_IN') {
+        return redirect(nextStepHref);
+      }
     }
 
     return data({

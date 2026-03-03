@@ -84,6 +84,22 @@ export const ROUTE_TREE: RouteBranch[] = [
         hidden: true,
       },
       {
+        id: 'auth.collect-email',
+        href: '/auth/collect-email',
+        label: 'Legg til e-post',
+        category: BrachCategory.AUTH,
+        accessType: Access.NOT_AUTHENTICATED,
+        hidden: true,
+      },
+      {
+        id: 'auth.collect-mobile',
+        href: '/auth/collect-mobile',
+        label: 'Legg til mobil',
+        category: BrachCategory.AUTH,
+        accessType: Access.NOT_AUTHENTICATED,
+        hidden: true,
+      },
+      {
         id: 'auth.forgot-password',
         href: '/auth/forgot-password',
         label: 'Glemt passord',
@@ -609,14 +625,6 @@ export const API_ROUTES_TREE = [
       {
         id: 'auth.verify-mobile',
         url: '/api/auth/verify-mobile',
-      },
-      {
-        id: 'auth.sign-up',
-        url: '/api/auth/sign-up',
-      },
-      {
-        id: 'auth.verification-status',
-        url: '/api/auth/verification-status',
       },
       {
         id: 'auth.resend-verification',

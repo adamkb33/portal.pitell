@@ -8,12 +8,12 @@ import { AuthFormButton } from '../_components/auth.form-button';
 import { ProviderButtons } from '../_components/provider-buttons';
 import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { verificationSessionToken } from '~/lib/auth.server';
 import type { Route } from './+types/auth.sign-in.route';
 import { authService } from '~/lib/auth-service';
 import { redirectWithWarning } from '~/routes/company/_lib/flash-message.server';
 import { logger } from '~/lib/logger';
 import React from 'react';
+import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
 
 function redactEmail(value: string) {
   const normalized = value.trim();
@@ -71,36 +71,10 @@ export async function action({ request }: Route.ActionArgs) {
       mobileSent: payload?.mobileSent ?? null,
     });
 
-    if (payload?.verificationTokenDto) {
-      const cookie = await verificationSessionToken.serialize(payload.verificationTokenDto.value, {
-        expires: new Date(payload.verificationTokenDto.expiresAt),
-      });
-      const headers = new Headers();
-      headers.append('Set-Cookie', cookie);
-
-      if (payload.nextStep === 'VERIFY_EMAIL') {
-        logger.info('[auth.sign-in] Redirecting to check-email', {
-          email: redactEmail(email),
-          emailSent: payload.emailSent ?? false,
-          mobileSent: payload.mobileSent ?? false,
-        });
-        const params = new URLSearchParams({
-          emailSent: String(payload.emailSent ?? false),
-          mobileSent: String(payload.mobileSent ?? false),
-        });
-        return redirect(`${ROUTES_MAP['auth.check-email'].href}?${params.toString()}`, { headers });
-      }
-
-      logger.info('[auth.sign-in] Returning verification payload to client', {
-        email: redactEmail(email),
-        nextStep: payload.nextStep,
-      });
-      return data(payload, { headers });
-    }
-
     if (payload?.authTokens) {
       logger.info('[auth.sign-in] Auth tokens issued, redirecting to home', {
         email: redactEmail(email),
+        nextStep: payload.nextStep ?? null,
       });
       const headers = await authService.setAuthCookies(
         payload.authTokens.accessToken,
@@ -109,6 +83,35 @@ export async function action({ request }: Route.ActionArgs) {
         payload.authTokens.refreshTokenExpiresAt,
       );
       return redirect('/', { headers });
+    }
+
+    if (payload?.verificationTokenDto || payload?.nextStep) {
+      const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(payload);
+      const headers = new Headers();
+
+      if (verificationCookieHeader) {
+        headers.append('Set-Cookie', verificationCookieHeader);
+      }
+
+      logger.info('[auth.sign-in] Redirecting to auth next step', {
+        email: redactEmail(email),
+        nextStep: payload.nextStep ?? null,
+        nextStepHref,
+      });
+
+      if (nextStepHref) {
+        return redirect(nextStepHref, {
+          headers: headers.has('Set-Cookie') ? headers : undefined,
+        });
+      }
+
+      logger.info('[auth.sign-in] Returning verification payload to client', {
+        email: redactEmail(email),
+        nextStep: payload.nextStep ?? null,
+      });
+      return data(payload, {
+        headers: headers.has('Set-Cookie') ? headers : undefined,
+      });
     }
 
     logger.warn('[auth.sign-in] Missing expected sign-in payload branch', {

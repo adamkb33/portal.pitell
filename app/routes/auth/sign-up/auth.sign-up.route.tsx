@@ -1,18 +1,62 @@
 // auth.sign-up.route.tsx
-import { Link, useFetcher } from 'react-router';
-import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
+import { Link, Form, redirect, data, useActionData, useNavigation } from 'react-router';
+import type { Route } from './+types/auth.sign-up.route';
+import { ROUTES_MAP } from '~/lib/route-tree';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormField } from '../_components/auth.form-field';
 import { AuthFormButton } from '../_components/auth.form-button';
+import { AuthController } from '~/api/generated/base';
+import { resolveErrorPayload } from '~/lib/api-error';
+import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const givenName = String(formData.get('givenName') || '');
+  const familyName = String(formData.get('familyName') || '');
+  const email = String(formData.get('email') || '');
+  const password = String(formData.get('password') || '');
+  const password2 = String(formData.get('password2') || '');
+  const mobileNumber = String(formData.get('mobileNumber') || '');
+  const redirectUrl = String(formData.get('redirectUrl') || '');
+
+  try {
+    const response = await AuthController.signUp({
+      query: {
+        redirectUrl: redirectUrl || undefined,
+      },
+      body: {
+        givenName,
+        familyName,
+        email,
+        password,
+        password2,
+        mobileNumber,
+      },
+    });
+
+    const payload = response.data?.data ?? null;
+    const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(payload);
+    const headers = new Headers();
+
+    if (verificationCookieHeader) {
+      headers.append('Set-Cookie', verificationCookieHeader);
+    }
+
+    return redirect(nextStepHref ?? ROUTES_MAP['auth.sign-in'].href, {
+      headers: headers.has('Set-Cookie') ? headers : undefined,
+    });
+  } catch (error) {
+    const { message, status } = resolveErrorPayload(error, 'Kunne ikke opprette konto. Prøv igjen.');
+    return data({ error: message }, { status: status ?? 400 });
+  }
+}
 
 export default function AuthSignUp() {
-  const fetcher = useFetcher();
-  const isSubmitting = fetcher.state === 'submitting';
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === 'submitting';
   const errorMessage =
-    typeof fetcher.data === 'object' && fetcher.data && 'error' in fetcher.data
-      ? String(fetcher.data.error)
-      : undefined;
-  const action = API_ROUTES_MAP['auth.sign-up'].url;
+    actionData && typeof actionData === 'object' && 'error' in actionData ? String(actionData.error) : undefined;
 
   return (
     <AuthFormContainer
@@ -31,7 +75,7 @@ export default function AuthSignUp() {
         </div>
       }
     >
-      <fetcher.Form method="post" action={action} className="space-y-6">
+      <Form method="post" className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <AuthFormField
             id="givenName"
@@ -101,7 +145,7 @@ export default function AuthSignUp() {
         <AuthFormButton isLoading={isSubmitting} loadingText="Oppretter konto…">
           Opprett konto
         </AuthFormButton>
-      </fetcher.Form>
+      </Form>
     </AuthFormContainer>
   );
 }
