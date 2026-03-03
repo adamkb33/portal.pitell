@@ -17,8 +17,10 @@ import { Footer } from './_components/footer';
 import type { CompanySummaryDto } from '~/api/generated/base';
 import { logRouteError, logRouteStart, logRouteSuccess } from '~/lib/route-log';
 
-export async function loader({ request }: Route.LoaderArgs) {
-  logRouteStart('loader', 'root.layout', { request });
+export async function loader(args: Route.LoaderArgs) {
+  const { request } = args;
+
+  logRouteStart('loader', 'root.layout', args);
 
   try {
     const { message: flashMessage } = await getFlashMessage(request);
@@ -26,7 +28,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (!accessToken && !refreshToken) {
       const response = await defaultResponse(flashMessage);
-      logRouteSuccess('loader', 'root.layout', { request }, {
+      logRouteSuccess('loader', 'root.layout', args, {
         branch: 'no-tokens',
       });
       return response;
@@ -34,7 +36,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (!accessToken && refreshToken) {
       const response = await refreshAndBuildResponse(request, refreshToken, flashMessage);
-      logRouteSuccess('loader', 'root.layout', { request }, {
+      logRouteSuccess('loader', 'root.layout', args, {
         branch: 'refresh-only',
       });
       return response;
@@ -44,26 +46,26 @@ export async function loader({ request }: Route.LoaderArgs) {
       if (authService.isTokenExpired(accessToken)) {
         if (refreshToken) {
           const response = await refreshAndBuildResponse(request, refreshToken, flashMessage);
-          logRouteSuccess('loader', 'root.layout', { request }, {
+          logRouteSuccess('loader', 'root.layout', args, {
             branch: 'expired-access-refresh',
           });
           return response;
         }
         const response = await defaultResponse(flashMessage);
-        logRouteSuccess('loader', 'root.layout', { request }, {
+        logRouteSuccess('loader', 'root.layout', args, {
           branch: 'expired-access-no-refresh',
         });
         return response;
       }
       const response = await buildResponseData(request, accessToken, flashMessage);
-      logRouteSuccess('loader', 'root.layout', { request }, {
+      logRouteSuccess('loader', 'root.layout', args, {
         branch: 'access-token',
       });
       return response;
     }
 
     const response = await defaultResponse(flashMessage);
-    logRouteSuccess('loader', 'root.layout', { request }, {
+    logRouteSuccess('loader', 'root.layout', args, {
       branch: 'fallback-default',
     });
     return response;
@@ -72,7 +74,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       throw error;
     }
 
-    logRouteError('loader', 'root.layout', { request }, error);
+    logRouteError('loader', 'root.layout', args, error);
     logger.error('Root loader failed', { error: error instanceof Error ? error.message : String(error) });
     if (error instanceof AuthenticationError) {
       return await defaultResponse(null);
