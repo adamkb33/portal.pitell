@@ -21,7 +21,7 @@ function buildRequestDetails(args: RouteArgs) {
 export function logRouteStart(kind: 'loader' | 'action', routeId: string, args: RouteArgs, context?: RouteLogContext) {
   logger.info(`[route:${kind}:${routeId}] Started`, {
     ...buildRequestDetails(args),
-    ...sanitizeForLog(context ?? {}),
+    ...(sanitizeForLog(context ?? {}) as RouteLogContext),
   });
 }
 
@@ -33,7 +33,7 @@ export function logRouteSuccess(
 ) {
   logger.info(`[route:${kind}:${routeId}] Succeeded`, {
     ...buildRequestDetails(args),
-    ...sanitizeForLog(context ?? {}),
+    ...(sanitizeForLog(context ?? {}) as RouteLogContext),
   });
 }
 
@@ -46,7 +46,7 @@ export function logRouteError(
 ) {
   logger.error(`[route:${kind}:${routeId}] Failed`, {
     ...buildRequestDetails(args),
-    ...sanitizeForLog(context ?? {}),
+    ...(sanitizeForLog(context ?? {}) as RouteLogContext),
     error: describeAxiosError(error),
   });
 }

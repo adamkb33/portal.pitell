@@ -8,8 +8,10 @@ import { withAuth } from '~/api/utils/with-auth';
 import { logRouteError, logRouteStart, logRouteSuccess } from '~/lib/route-log';
 import { describeAxiosError } from '~/lib/http-log';
 
-export async function loader({ request }: Route.LoaderArgs) {
-  logRouteStart('loader', 'company.admin.employees', { request });
+export async function loader(args: Route.LoaderArgs) {
+  const { request } = args;
+
+  logRouteStart('loader', 'company.admin.employees', args);
 
   try {
     const url = new URL(request.url);
@@ -26,7 +28,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           search,
         },
       }).catch((error) => {
-        logRouteError('loader', 'company.admin.employees.users', { request }, error, {
+        logRouteError('loader', 'company.admin.employees.users', args, error, {
           page,
           size,
           search: search ?? null,
@@ -35,7 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       });
 
       const inviteResponsePromise = AdminCompanyUserController.getInvitations().catch((error) => {
-        logRouteError('loader', 'company.admin.employees.invitations', { request }, error);
+        logRouteError('loader', 'company.admin.employees.invitations', args, error);
         throw error;
       });
 
@@ -43,7 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
 
     if (!userResponse.data?.data) {
-      logRouteError('loader', 'company.admin.employees', { request }, new Error('Missing users payload'), {
+      logRouteError('loader', 'company.admin.employees', args, new Error('Missing users payload'), {
         page,
         size,
         search: search ?? null,
@@ -51,7 +53,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       return { error: 'Kunne ikke hente brukere for selskapet' };
     }
 
-    logRouteSuccess('loader', 'company.admin.employees', { request }, {
+    logRouteSuccess('loader', 'company.admin.employees', args, {
       page,
       size,
       search: search ?? null,
@@ -71,7 +73,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       flashMessage: message,
     };
   } catch (error: unknown) {
-    logRouteError('loader', 'company.admin.employees', { request }, error, {
+    logRouteError('loader', 'company.admin.employees', args, error, {
       errorType: error instanceof Error ? error.name : typeof error,
       axios: describeAxiosError(error),
     });
