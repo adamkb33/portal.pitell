@@ -99,7 +99,7 @@ function SidebarItem({ item, currentPath, level }: SidebarItemProps) {
               )
             )}
 
-            <span className="sidebar-item-label" title={item.label}>{item.label}</span>
+            <span className="truncate">{item.label}</span>
           </Link>
 
           {showToggle && (

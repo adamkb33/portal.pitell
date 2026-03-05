@@ -317,8 +317,6 @@
   --layout-footer-height: 4rem;
   --layout-content-padding: 1rem;
   --layout-content-padding-sm: 1.5rem;
-  --layout-sidebar-width: clamp(18rem, 24vw, 22rem);
-  --layout-right-rail-width: clamp(6rem, 8vw, 8rem);
 
   /* ========================================
      NAVBAR TOKENS
@@ -588,16 +586,15 @@
   }
 
   .app-header-grid {
-    @apply h-full lg:grid;
-    grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr) var(--layout-right-rail-width);
+    @apply h-full lg:grid lg:grid-cols-12;
   }
 
   .app-header-spacer {
-    @apply hidden lg:block;
+    @apply hidden lg:block lg:col-span-2;
   }
 
   .app-header-nav {
-    @apply h-full min-w-0;
+    @apply h-full lg:col-span-8;
   }
 
   .app-header-row {
@@ -605,34 +602,21 @@
   }
 
   .app-main {
-    @apply relative lg:grid;
-    grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr) var(--layout-right-rail-width);
+    @apply relative lg:grid lg:grid-cols-12;
     min-height: calc(100vh - var(--layout-header-height) - var(--layout-footer-height));
   }
 
   .app-sidebar {
-    @apply hidden lg:block border-r border-sidebar-border bg-sidebar-bg p-4;
-    max-height: calc(100vh - var(--layout-header-height) - var(--layout-footer-height));
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    @apply hidden lg:block lg:col-span-2 border-r border-sidebar-border bg-sidebar-bg p-4;
   }
 
   .app-sidebar-placeholder {
-    @apply hidden lg:block;
+    @apply hidden lg:block lg:col-span-2;
   }
 
   .app-content {
-    @apply min-w-0;
+    @apply lg:col-span-8;
     padding: var(--layout-content-padding);
-  }
-
-  .sidebar-item-label {
-    display: -webkit-box;
-    overflow: hidden;
-    text-wrap: pretty;
-    word-break: break-word;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   @media (min-width: 640px) {
