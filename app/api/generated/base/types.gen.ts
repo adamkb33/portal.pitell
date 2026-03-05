@@ -18,7 +18,7 @@ export type ApiError = {
 };
 
 export type ApiMessage = {
-    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'MOBILE_ALREADY_IN_USE' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT_EMAIL' | 'VERIFICATION_RESENT_MOBILE' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
+    id: 'SUCCESS' | 'CREATED' | 'VALIDATION_ERROR' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'UNAUTHENTICATED' | 'INVALID_CREDENTIALS' | 'FORBIDDEN' | 'ACCESS_DENIED' | 'CONFLICT' | 'EMAIL_ALREADY_IN_USE' | 'MOBILE_ALREADY_IN_USE' | 'AUTH_PROVIDER_MISMATCH_LOCAL' | 'AUTH_PROVIDER_MISMATCH_GOOGLE' | 'AUTH_PROVIDER_MISMATCH_FACEBOOK' | 'MOBILE_INVALID' | 'EMAIL_ALREADY_VERIFIED' | 'MOBILE_ALREADY_VERIFIED' | 'SIGNUP_OK' | 'SIGNIN_OK' | 'EMAIL_VERIFIED' | 'MOBILE_VERIFIED' | 'VERIFICATION_STATUS' | 'VERIFICATION_RESENT_EMAIL' | 'VERIFICATION_RESENT_MOBILE' | 'PROFILE_UPDATED' | 'SESSION_PENDING_USER_SET' | 'SESSION_PENDING_USER_CLEARED' | 'SESSION_USER_REMOVED' | 'SESSION_ALREADY_ATTACHED' | 'SESSION_USER_ATTACHED' | 'SESSION_REQUIREMENTS' | 'INVALID_PROVIDER_TOKEN' | 'EMAIL_REQUIRED' | 'MOBILE_REQUIRED' | 'USER_NOT_FOUND' | 'INVALID_TOKEN' | 'TOKEN_EXPIRED' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'MOBILE_OTP_TOO_MANY_ATTEMPTS' | 'EMAIL_NOT_VERIFIED' | 'MOBILE_NOT_VERIFIED' | 'DATA_INTEGRITY_VIOLATION' | 'CONCURRENT_UPDATE_CONFLICT' | 'METHOD_NOT_ALLOWED' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_ACCEPTABLE' | 'MALFORMED_JSON' | 'INVALID_REQUEST_BODY' | 'INVALID_REQUEST_PARAMETERS' | 'REQUEST_TIMEOUT' | 'INTERNAL_SERVER_ERROR' | 'PROFILE_NOT_FOUND' | 'CONTACT_NOT_FOUND' | 'COMPANY_NOT_FOUND' | 'COMPANY_VALIDATION_FAILED' | 'SESSION_NOT_FOUND' | 'COMPANY_HAS_NO_PROFILES' | 'PROFILE_DELETED' | 'START_TIME_MUST_BE_BEFORE_END' | 'START_TIME_MUST_BE_IN_THE_FUTURE' | 'BOOKING_PROFILE_REQUIRED' | 'COMPANY_CONTEXT_REQUIRED' | 'INVALID_USER_ID' | 'CUSTOM_ERROR';
     value: string;
 };
 
@@ -358,7 +358,7 @@ export type AuthenticationTokenDto = {
 };
 
 export type VerifyMobileResponseDto = {
-    nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
     authTokens?: AuthenticationTokenDto;
 };
 
@@ -380,13 +380,29 @@ export type ApiResponseSignUpResponseDto = {
     timestamp: string;
 };
 
+export type DeliveryStatusDto = {
+    status: 'SENT' | 'SKIPPED_ALREADY_ACTIVE' | 'NOT_ATTEMPTED' | 'FAILED';
+};
+
 export type SignUpResponseDto = {
     authTokens: AuthenticationTokenDto;
     userId: number;
     verificationToken?: VerificationTokenDto;
+    emailDelivery: DeliveryStatusDto;
+    mobileDelivery: DeliveryStatusDto;
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    /**
+     * Use emailDelivery
+     *
+     * @deprecated
+     */
     emailSent: boolean;
+    /**
+     * Use mobileDelivery
+     *
+     * @deprecated
+     */
     mobileSent: boolean;
-    nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
 };
 
 export type VerificationTokenDto = {
@@ -420,9 +436,22 @@ export type SignInResponseDto = {
     userId: number;
     email?: string;
     mobileNumber?: string;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    verificationToken?: VerificationTokenDto;
+    emailDelivery?: DeliveryStatusDto;
+    mobileDelivery?: DeliveryStatusDto;
     verificationTokenDto?: VerificationTokenDto;
+    /**
+     * Use emailDelivery
+     *
+     * @deprecated
+     */
     emailSent?: boolean;
+    /**
+     * Use mobileDelivery
+     *
+     * @deprecated
+     */
     mobileSent?: boolean;
 };
 
@@ -480,9 +509,21 @@ export type ApiResponseResendVerificationResponseDto = {
 };
 
 export type ResendVerificationResponseDto = {
-    emailSent: boolean;
-    mobileSent: boolean;
+    emailDelivery: DeliveryStatusDto;
+    mobileDelivery: DeliveryStatusDto;
     verificationToken?: VerificationTokenDto;
+    /**
+     * Use emailDelivery
+     *
+     * @deprecated
+     */
+    emailSent: boolean;
+    /**
+     * Use mobileDelivery
+     *
+     * @deprecated
+     */
+    mobileSent: boolean;
 };
 
 export type RefreshTokenRequestDto = {
@@ -508,7 +549,10 @@ export type ProviderCompleteProfileResponseDto = {
     userId: number;
     email?: string;
     mobileNumber?: string;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    verificationToken?: VerificationTokenDto;
+    emailDelivery?: DeliveryStatusDto;
+    mobileDelivery?: DeliveryStatusDto;
     verificationTokenDto?: VerificationTokenDto;
 };
 
@@ -555,6 +599,60 @@ export type ForgotPasswordDto = {
 
 export type CompanySignInDto = {
     companyId: number;
+};
+
+export type ChangeUnverifiedMobileDto = {
+    verificationSessionToken: string;
+    mobileNumber: string;
+};
+
+export type ApiResponseChangeUnverifiedMobileResponseDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: ChangeUnverifiedMobileResponseDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type ChangeUnverifiedMobileResponseDto = {
+    mobileNumber: string;
+    mobileDelivery: DeliveryStatusDto;
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    verificationToken: VerificationTokenDto;
+    /**
+     * Use mobileDelivery
+     *
+     * @deprecated
+     */
+    mobileSent: boolean;
+};
+
+export type ChangeUnverifiedEmailDto = {
+    verificationSessionToken: string;
+    email: string;
+};
+
+export type ApiResponseChangeUnverifiedEmailResponseDto = {
+    success: boolean;
+    message: ApiMessage;
+    data?: ChangeUnverifiedEmailResponseDto;
+    errors?: Array<ApiError>;
+    meta?: ApiMeta;
+    timestamp: string;
+};
+
+export type ChangeUnverifiedEmailResponseDto = {
+    email: string;
+    emailDelivery: DeliveryStatusDto;
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    verificationToken: VerificationTokenDto;
+    /**
+     * Use emailDelivery
+     *
+     * @deprecated
+     */
+    emailSent: boolean;
 };
 
 export type RequestCompanyRoleDeleteDto = {
@@ -677,8 +775,15 @@ export type VerifyEmailResponseDto = {
     verificationToken?: VerificationTokenDto;
     mobileRequired: boolean;
     mobileVerified: boolean;
-    nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
     authTokens?: AuthenticationTokenDto;
+    mobileDelivery?: DeliveryStatusDto;
+    /**
+     * Use mobileDelivery
+     *
+     * @deprecated
+     */
+    mobileSent?: boolean;
 };
 
 export type ApiResponseVerificationStatusResponseDto = {
@@ -694,9 +799,19 @@ export type VerificationStatusResponseDto = {
     emailVerified: boolean;
     mobileRequired: boolean;
     mobileVerified: boolean;
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+    /**
+     * Delivery status is no longer exposed from verification status
+     *
+     * @deprecated
+     */
     emailSent: boolean;
+    /**
+     * Delivery status is no longer exposed from verification status
+     *
+     * @deprecated
+     */
     mobileSent: boolean;
-    nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
 };
 
 export type ApiResponseUserAuthStatusDto = {
@@ -710,7 +825,7 @@ export type ApiResponseUserAuthStatusDto = {
 
 export type UserAuthStatusDto = {
     user: UserDto;
-    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN' | 'DONE';
+    nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
     verificationToken?: VerificationTokenDto;
 };
 
@@ -1543,6 +1658,40 @@ export type CompanySignInResponses = {
 };
 
 export type CompanySignInResponse = CompanySignInResponses[keyof CompanySignInResponses];
+
+export type ChangeUnverifiedMobileData = {
+    body: ChangeUnverifiedMobileDto;
+    path?: never;
+    query?: never;
+    url: '/auth/change-unverified-mobile';
+};
+
+export type ChangeUnverifiedMobileResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseChangeUnverifiedMobileResponseDto;
+};
+
+export type ChangeUnverifiedMobileResponse = ChangeUnverifiedMobileResponses[keyof ChangeUnverifiedMobileResponses];
+
+export type ChangeUnverifiedEmailData = {
+    body: ChangeUnverifiedEmailDto;
+    path?: never;
+    query?: {
+        redirectUrl?: string;
+    };
+    url: '/auth/change-unverified-email';
+};
+
+export type ChangeUnverifiedEmailResponses = {
+    /**
+     * OK
+     */
+    200: ApiResponseChangeUnverifiedEmailResponseDto;
+};
+
+export type ChangeUnverifiedEmailResponse = ChangeUnverifiedEmailResponses[keyof ChangeUnverifiedEmailResponses];
 
 export type RequestDeleteRoleData = {
     body: RequestCompanyRoleDeleteDto;
