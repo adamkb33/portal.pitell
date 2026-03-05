@@ -23,6 +23,13 @@ vi.mock('~/lib/auth-service', () => ({
 
 import { action, getContactFieldVisibility, loader } from './auth.respond-user-invite.route';
 
+function unwrapData<T = unknown>(result: unknown): T {
+  if (result && typeof result === 'object' && 'data' in (result as Record<string, unknown>)) {
+    return (result as { data: T }).data;
+  }
+  return result as T;
+}
+
 describe('auth.respond-user-invite.route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +59,7 @@ describe('auth.respond-user-invite.route', () => {
     expect(mocks.decodeUserInvite).toHaveBeenCalledWith({
       query: { token: 'abc123' },
     });
-    expect(result).toMatchObject({
+    expect(unwrapData(result)).toMatchObject({
       inviteToken: 'abc123',
       invalidInvite: false,
       invite: {
@@ -70,7 +77,7 @@ describe('auth.respond-user-invite.route', () => {
       request: new Request('http://localhost/auth/respond-user-invite?token=expired'),
     } as never);
 
-    expect(result).toMatchObject({
+    expect(unwrapData(result)).toMatchObject({
       inviteToken: 'expired',
       invalidInvite: true,
     });
@@ -151,7 +158,7 @@ describe('auth.respond-user-invite.route', () => {
       }),
     } as never);
 
-    expect(result).toMatchObject({
+    expect(unwrapData(result)).toMatchObject({
       fieldErrors: {
         password2: 'Passordene må være like.',
       },
@@ -184,7 +191,7 @@ describe('auth.respond-user-invite.route', () => {
       }),
     } as never);
 
-    expect(result).toMatchObject({
+    expect(unwrapData(result)).toMatchObject({
       fieldErrors: {
         mobileNumber: 'Mobilnummer er obligatorisk.',
       },
@@ -216,7 +223,7 @@ describe('auth.respond-user-invite.route', () => {
       }),
     } as never);
 
-    expect(result).toMatchObject({
+    expect(unwrapData(result)).toMatchObject({
       formError: 'VALIDATION_ERROR',
       fieldErrors: {
         givenName: 'Fornavn mangler.',
