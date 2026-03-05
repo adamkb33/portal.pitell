@@ -3,28 +3,21 @@ import * as React from 'react';
 import { Link, data, redirect, Form, useActionData, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.route';
 
-import { AuthController } from '~/api/generated/base';
+import { AuthController, type VerificationStatusResponseDto } from '~/api/generated/base';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { Label } from '@/components/ui/label';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { AuthFormButton } from '../_components/auth.form-button';
-import { ContactAuthService } from '~/routes/booking/public/appointment/session/contact/_services/contact-auth.service.server';
 import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils.server';
 import { VerificationTokenService } from '~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server';
 import { resolveAuthNextStepHref } from '../_utils/auth-flow';
+import { authService } from '~/lib/auth-service';
 
 type VerifyMobileLoaderData = {
   verificationSessionToken: string;
-  status?: {
-    emailVerified: boolean;
-    mobileRequired: boolean;
-    mobileVerified: boolean;
-    emailSent: boolean;
-    mobileSent: boolean;
-    nextStep: 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'SIGN_IN';
-  };
+  status?: VerificationStatusResponseDto;
   error?: string | null;
 };
 
@@ -120,16 +113,26 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const code = String(formData.get('code') || '');
-    const result = await ContactAuthService.verifyMobile({
-      verificationSessionToken,
-      code,
+    const response = await AuthController.verifyMobile({
+      body: {
+        verificationSessionToken,
+        code,
+      },
     });
 
-    if (result.signedIn) {
-      return redirect('/', { headers: result.headers });
+    const payload = response.data?.data;
+
+    if (payload?.authTokens) {
+      const headers = await authService.setAuthCookies(
+        payload.authTokens.accessToken,
+        payload.authTokens.refreshToken,
+        payload.authTokens.accessTokenExpiresAt,
+        payload.authTokens.refreshTokenExpiresAt,
+      );
+      return redirect('/', { headers });
     }
 
-    const nextStepHref = resolveAuthNextStepHref(result.nextStep);
+    const nextStepHref = resolveAuthNextStepHref(payload?.nextStep ?? null);
     return redirect(nextStepHref ?? ROUTES_MAP['auth.sign-in'].href);
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke bekrefte mobilnummer. Prøv igjen.');

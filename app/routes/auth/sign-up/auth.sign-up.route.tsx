@@ -8,6 +8,7 @@ import { AuthFormButton } from '../_components/auth.form-button';
 import { AuthController } from '~/api/generated/base';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
+import { authService } from '~/lib/auth-service';
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -38,12 +39,24 @@ export async function action({ request }: Route.ActionArgs) {
     const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(payload);
     const headers = new Headers();
 
+    if (payload?.authTokens) {
+      const authCookieHeaders = await authService.setAuthCookies(
+        payload.authTokens.accessToken,
+        payload.authTokens.refreshToken,
+        payload.authTokens.accessTokenExpiresAt,
+        payload.authTokens.refreshTokenExpiresAt,
+      );
+      for (const [key, value] of new Headers(authCookieHeaders).entries()) {
+        headers.append(key, value);
+      }
+    }
+
     if (verificationCookieHeader) {
       headers.append('Set-Cookie', verificationCookieHeader);
     }
 
     return redirect(nextStepHref ?? ROUTES_MAP['auth.sign-in'].href, {
-      headers: headers.has('Set-Cookie') ? headers : undefined,
+      headers: headers.entries().next().done ? undefined : headers,
     });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke opprette konto. Prøv igjen.');

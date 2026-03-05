@@ -19,17 +19,13 @@ export async function resolveAuthPostRedirect(payload: AuthFlowPayload): Promise
 
   const nextStepHref = resolveAuthNextStepHref(payload.nextStep, {
     userId: payload.userId ?? null,
-    emailSent: 'emailSent' in payload ? payload.emailSent ?? null : null,
-    mobileSent: 'mobileSent' in payload ? payload.mobileSent ?? null : null,
+    emailDelivery: 'emailDelivery' in payload ? payload.emailDelivery ?? null : null,
+    mobileDelivery: 'mobileDelivery' in payload ? payload.mobileDelivery ?? null : null,
   });
 
-  const verificationCookieHeader =
-    (await VerificationTokenService.buildVerificationCookieHeaderFromDto(
-      'verificationTokenDto' in payload ? payload.verificationTokenDto ?? null : null,
-    )) ??
-    (await VerificationTokenService.buildVerificationCookieHeaderFromDto(
-      'verificationToken' in payload ? payload.verificationToken ?? null : null,
-    ));
+  const verificationCookieHeader = await VerificationTokenService.buildVerificationCookieHeaderFromDto(
+    'verificationToken' in payload ? payload.verificationToken ?? null : null,
+  );
 
   return {
     nextStepHref,

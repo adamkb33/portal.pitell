@@ -66,28 +66,26 @@ export async function action({ request }: Route.ActionArgs) {
       email: redactEmail(email),
       nextStep: payload?.nextStep ?? null,
       hasAuthTokens: Boolean(payload?.authTokens),
-      hasVerificationToken: Boolean(payload?.verificationTokenDto),
-      emailSent: payload?.emailSent ?? null,
-      mobileSent: payload?.mobileSent ?? null,
+      hasVerificationToken: Boolean(payload?.verificationToken),
+      emailDelivery: payload?.emailDelivery?.status ?? null,
+      mobileDelivery: payload?.mobileDelivery?.status ?? null,
     });
 
-    if (payload?.authTokens) {
-      logger.info('[auth.sign-in] Auth tokens issued, redirecting to home', {
-        email: redactEmail(email),
-        nextStep: payload.nextStep ?? null,
-      });
-      const headers = await authService.setAuthCookies(
-        payload.authTokens.accessToken,
-        payload.authTokens.refreshToken,
-        payload.authTokens.accessTokenExpiresAt,
-        payload.authTokens.refreshTokenExpiresAt,
-      );
-      return redirect('/', { headers });
-    }
-
-    if (payload?.verificationTokenDto || payload?.nextStep) {
+    if (payload?.nextStep) {
       const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(payload);
       const headers = new Headers();
+
+      if (payload.authTokens) {
+        const authCookieHeaders = await authService.setAuthCookies(
+          payload.authTokens.accessToken,
+          payload.authTokens.refreshToken,
+          payload.authTokens.accessTokenExpiresAt,
+          payload.authTokens.refreshTokenExpiresAt,
+        );
+        for (const [key, value] of new Headers(authCookieHeaders).entries()) {
+          headers.append(key, value);
+        }
+      }
 
       if (verificationCookieHeader) {
         headers.append('Set-Cookie', verificationCookieHeader);
@@ -100,18 +98,14 @@ export async function action({ request }: Route.ActionArgs) {
       });
 
       if (nextStepHref) {
-        return redirect(nextStepHref, {
-          headers: headers.has('Set-Cookie') ? headers : undefined,
-        });
+        return redirect(nextStepHref, { headers: headers.entries().next().done ? undefined : headers });
       }
 
       logger.info('[auth.sign-in] Returning verification payload to client', {
         email: redactEmail(email),
         nextStep: payload.nextStep ?? null,
       });
-      return data(payload, {
-        headers: headers.has('Set-Cookie') ? headers : undefined,
-      });
+      return data(payload, { headers: headers.entries().next().done ? undefined : headers });
     }
 
     logger.warn('[auth.sign-in] Missing expected sign-in payload branch', {
@@ -160,9 +154,11 @@ export default function AuthSignIn({ actionData }: Route.ComponentProps) {
 
     logger.info('[auth.sign-in.client] Action returned payload', {
       nextStep: 'nextStep' in actionData ? String(actionData.nextStep) : null,
-      emailSent: 'emailSent' in actionData ? Boolean(actionData.emailSent) : null,
-      mobileSent: 'mobileSent' in actionData ? Boolean(actionData.mobileSent) : null,
-      hasVerificationToken: 'verificationTokenDto' in actionData && Boolean(actionData.verificationTokenDto),
+      emailDelivery:
+        'emailDelivery' in actionData && actionData.emailDelivery ? String(actionData.emailDelivery.status) : null,
+      mobileDelivery:
+        'mobileDelivery' in actionData && actionData.mobileDelivery ? String(actionData.mobileDelivery.status) : null,
+      hasVerificationToken: 'verificationToken' in actionData && Boolean(actionData.verificationToken),
     });
   }, [actionData]);
 

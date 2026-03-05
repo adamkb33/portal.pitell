@@ -9,6 +9,7 @@ import { verificationSessionToken } from '~/lib/auth.server';
 import { AuthFormContainer } from '../_components/auth.form-container';
 import { AuthFormButton } from '../_components/auth.form-button';
 import { resolveAuthNextStepHref } from '../_utils/auth-flow';
+import { authService } from '~/lib/auth-service';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -25,11 +26,24 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
 
     const payload = response.data?.data;
+    const headers = new Headers();
+
+    if (payload?.authTokens) {
+      const authCookieHeaders = await authService.setAuthCookies(
+        payload.authTokens.accessToken,
+        payload.authTokens.refreshToken,
+        payload.authTokens.accessTokenExpiresAt,
+        payload.authTokens.refreshTokenExpiresAt,
+      );
+      for (const [key, value] of new Headers(authCookieHeaders).entries()) {
+        headers.append(key, value);
+      }
+    }
+
     if (payload?.nextStep === 'VERIFY_MOBILE' && payload.verificationToken?.value) {
       const cookie = await verificationSessionToken.serialize(payload.verificationToken.value, {
         expires: new Date(payload.verificationToken.expiresAt),
       });
-      const headers = new Headers();
       headers.append('Set-Cookie', cookie);
       const params = new URLSearchParams({
         verificationSessionToken: payload.verificationToken?.value,
@@ -42,7 +56,7 @@ export async function loader({ request }: Route.LoaderArgs) {
             nextStep: payload.nextStep,
             redirectUrl,
           },
-          { headers },
+          { headers: headers.entries().next().done ? undefined : headers },
         );
       }
 
@@ -51,16 +65,16 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (payload?.nextStep) {
       const nextStepHref = resolveAuthNextStepHref(payload.nextStep);
-      if (nextStepHref && payload.nextStep !== 'SIGN_IN') {
-        return redirect(nextStepHref);
+      if (nextStepHref) {
+        return redirect(nextStepHref, { headers: headers.entries().next().done ? undefined : headers });
       }
     }
 
     return data({
       error: null,
-      nextStep: payload?.nextStep ?? 'SIGN_IN',
+      nextStep: payload?.nextStep ?? 'DONE',
       redirectUrl,
-    });
+    }, { headers: headers.entries().next().done ? undefined : headers });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Ugyldig eller utløpt verifiseringslenke.');
     return data({ error: message }, { status: status ?? 400 });

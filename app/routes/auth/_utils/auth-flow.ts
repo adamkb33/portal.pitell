@@ -1,4 +1,5 @@
 import type {
+  DeliveryStatusDto,
   ProviderCompleteProfileResponseDto,
   SignInResponseDto,
   SignUpResponseDto,
@@ -16,8 +17,8 @@ type NextStep =
 
 type ResolveNextStepOptions = {
   userId?: number | null;
-  emailSent?: boolean | null;
-  mobileSent?: boolean | null;
+  emailDelivery?: DeliveryStatusDto | null;
+  mobileDelivery?: DeliveryStatusDto | null;
 };
 
 function buildHref(href: string, params?: URLSearchParams) {
@@ -43,16 +44,18 @@ export function resolveAuthNextStepHref(nextStep: NextStep, options: ResolveNext
     }
     case 'VERIFY_EMAIL': {
       const params = new URLSearchParams();
-      params.set('emailSent', String(options.emailSent ?? false));
-      params.set('mobileSent', String(options.mobileSent ?? false));
+      if (options.emailDelivery?.status) {
+        params.set('emailDelivery', options.emailDelivery.status);
+      }
+      if (options.mobileDelivery?.status) {
+        params.set('mobileDelivery', options.mobileDelivery.status);
+      }
       return buildHref(ROUTES_MAP['auth.check-email'].href, params);
     }
     case 'VERIFY_MOBILE':
       return ROUTES_MAP['auth.verify-mobile'].href;
     case 'DONE':
       return '/';
-    case 'SIGN_IN':
-      return ROUTES_MAP['auth.sign-in'].href;
     default:
       return null;
   }
