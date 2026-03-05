@@ -1,6 +1,5 @@
 import { data, redirect, Form, Link, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.employee.route';
-import { getSession } from '~/lib/appointments.server';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { cn } from '@/lib/utils';
@@ -15,13 +14,15 @@ import {
 } from '../../_components/booking-layout';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import { requireAuthenticatedBookingFlow } from '../_utils/require-authenticated-booking-flow.server';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirect(ROUTES_MAP['booking.public.appointment'].href);
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     // Allow users to return and change their profile selection
     // Don't auto-forward redirect - users should be able to edit previous steps
@@ -53,10 +54,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirect(ROUTES_MAP['booking.public.appointment'].href);
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     const formData = await request.formData();
     const selectedProfileId = formData.get('selectedProfileId') as string;

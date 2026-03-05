@@ -1,7 +1,6 @@
 import { redirect, Form, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.overview.route';
 import { Calendar, Clock, User, Mail, Scissors, DollarSign, CheckCircle2, Sparkles } from 'lucide-react';
-import { getSession } from '~/lib/appointments.server';
 import { PublicAppointmentSessionController } from '~/api/generated/booking';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { redirectWithError } from '~/routes/company/_lib/flash-message.server';
@@ -15,13 +14,15 @@ import {
   BookingCard,
 } from '../../_components/booking-layout';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { requireAuthenticatedBookingFlow } from '../_utils/require-authenticated-booking-flow.server';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirectWithError(request, ROUTES_MAP['booking.public.appointment'].href, 'Kunne ikke hente oversikt');
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     const response = await PublicAppointmentSessionController.getAppointmentSessionOverview({
       query: {
@@ -46,14 +47,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirectWithError(
-        request,
-        ROUTES_MAP['booking.public.appointment'].href,
-        'Kunne ikke bekrefte timebestilling',
-      );
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     const submitResponse = await PublicAppointmentSessionController.submitAppointmentSession({
       query: {

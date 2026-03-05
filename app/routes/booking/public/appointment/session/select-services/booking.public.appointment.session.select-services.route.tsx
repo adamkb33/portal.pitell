@@ -2,7 +2,6 @@ import { data, redirect, Form, useNavigation, Link } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.select-services.route';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Search, X, Clock, DollarSign, Check, Image as ImageIcon, ShoppingBag, Sparkles } from 'lucide-react';
-import { getSession } from '~/lib/appointments.server';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '~/components/ui/carousel';
@@ -23,13 +22,15 @@ import {
   BookingErrorBanner,
 } from '../../_components/booking-layout';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { requireAuthenticatedBookingFlow } from '../_utils/require-authenticated-booking-flow.server';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirect(ROUTES_MAP['booking.public.appointment'].href);
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     const serviceGroupsResponse = await PublicAppointmentSessionController.getAppointmentSessionProfileServices({
       query: {
@@ -57,10 +58,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   try {
-    const session = await getSession(request);
-    if (!session) {
-      return redirect(ROUTES_MAP['booking.public.appointment'].href);
+    const guardResult = await requireAuthenticatedBookingFlow(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
+    const { session } = guardResult;
 
     const formData = await request.formData();
     const selectedServices = formData.getAll('serviceId').map(Number);
