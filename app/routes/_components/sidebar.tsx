@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type RouteBranch } from '~/lib/route-tree';
 import { getIcon } from '~/lib/route-icon-map';
+import { onSidebarLinkSelect } from './sidebar-drilldown';
 
 type SidebarProps = {
   branches: RouteBranch[];
@@ -10,18 +11,75 @@ type SidebarProps = {
 
 export function Sidebar({ branches }: SidebarProps) {
   const location = useLocation();
+  const activeTrail = findTrail(branches, location.pathname);
+  const defaultFocusedSectionId =
+    [...activeTrail].reverse().find((entry) => entry.node.children && entry.node.children.length > 0)?.node.id ?? null;
+  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(defaultFocusedSectionId);
+
+  useEffect(() => {
+    setFocusedSectionId(defaultFocusedSectionId);
+  }, [defaultFocusedSectionId]);
 
   if (branches.length === 0) {
     return null;
   }
 
+  const focusedSection = focusedSectionId ? findNodeWithParent(branches, focusedSectionId) : null;
+  const shouldShowFocusedSection =
+    !!focusedSection &&
+    !!focusedSection.node.children &&
+    focusedSection.node.children.length > 0;
+
   return (
     <nav className="w-full bg-sidebar-bg" aria-label="Main navigation">
-      <ul className="space-y-2" role="list">
-        {branches.map((item) => (
-          <SidebarItem key={item.id} item={item} currentPath={location.pathname} level={0} />
-        ))}
-      </ul>
+      {shouldShowFocusedSection ? (
+        <>
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-sidebar-border/70 bg-sidebar-accent/10 px-2 py-2">
+            <button
+              type="button"
+              onClick={() => setFocusedSectionId(focusedSection.parent?.id ?? null)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-accent/10 hover:text-sidebar-text focus:outline-none focus:ring-2 focus:ring-sidebar-ring"
+              aria-label={`Tilbake til ${focusedSection.parent?.label || 'hovedmeny'}`}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Tilbake
+            </button>
+            <span className="truncate px-2 text-sm font-semibold text-sidebar-text">{focusedSection.node.label}</span>
+          </div>
+
+          <ul className="space-y-2" role="list">
+            {focusedSection.node.children!.map((child) => (
+              <SidebarItem
+                key={child.id}
+                item={child}
+                currentPath={location.pathname}
+                level={0}
+                onEnterSection={(branch) => {
+                  if (branch.children && branch.children.length > 0) {
+                    setFocusedSectionId(branch.id);
+                  }
+                }}
+              />
+            ))}
+          </ul>
+        </>
+      ) : (
+        <ul className="space-y-2" role="list">
+          {branches.map((item) => (
+            <SidebarItem
+              key={item.id}
+              item={item}
+              currentPath={location.pathname}
+              level={0}
+              onEnterSection={(branch) => {
+                if (branch.children && branch.children.length > 0) {
+                  setFocusedSectionId(branch.id);
+                }
+              }}
+            />
+          ))}
+        </ul>
+      )}
     </nav>
   );
 }
@@ -30,9 +88,10 @@ type SidebarItemProps = {
   item: RouteBranch;
   currentPath: string;
   level: number;
+  onEnterSection?: (branch: RouteBranch, level: number) => void;
 };
 
-function SidebarItem({ item, currentPath, level }: SidebarItemProps) {
+function SidebarItem({ item, currentPath, level, onEnterSection }: SidebarItemProps) {
   const Icon = item.iconName ? getIcon(item.iconName) : undefined;
   const hasChildren = item.children && item.children.length > 0;
   const isActive = currentPath === item.href;
@@ -68,6 +127,13 @@ function SidebarItem({ item, currentPath, level }: SidebarItemProps) {
           <Link
             to={item.href}
             aria-current={isActive ? 'page' : undefined}
+            onClick={() => {
+              onSidebarLinkSelect({
+                item,
+                level,
+                onEnterSection,
+              });
+            }}
             className={[
               'flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm leading-tight',
               level >= 2 ? 'gap-2 px-2 py-1.5 text-xs leading-snug' : '',
@@ -124,12 +190,60 @@ function SidebarItem({ item, currentPath, level }: SidebarItemProps) {
       {hasChildren && (level === 0 || isExpanded) && (
         <ul className={childContainerClass} role="list" aria-label={`${item.label} undermeny`}>
           {item.children!.map((child) => (
-            <SidebarItem key={child.id} item={child} currentPath={currentPath} level={level + 1} />
+            <SidebarItem
+              key={child.id}
+              item={child}
+              currentPath={currentPath}
+              level={level + 1}
+              onEnterSection={onEnterSection}
+            />
           ))}
         </ul>
       )}
     </li>
   );
+}
+
+type TrailEntry = { node: RouteBranch; level: number };
+
+function findTrail(branches: RouteBranch[], path: string, level = 0, currentTrail: TrailEntry[] = []): TrailEntry[] {
+  for (const branch of branches) {
+    const nextTrail = [...currentTrail, { node: branch, level }];
+
+    if (path === branch.href) {
+      return nextTrail;
+    }
+
+    if (branch.children?.length) {
+      const childTrail = findTrail(branch.children, path, level + 1, nextTrail);
+      if (childTrail.length) {
+        return childTrail;
+      }
+    }
+  }
+
+  return [];
+}
+
+function findNodeWithParent(
+  branches: RouteBranch[],
+  targetId: string,
+  parent: RouteBranch | null = null,
+  level = 0,
+): { node: RouteBranch; parent: RouteBranch | null; level: number } | null {
+  for (const branch of branches) {
+    if (branch.id === targetId) {
+      return { node: branch, parent, level };
+    }
+    if (branch.children?.length) {
+      const found = findNodeWithParent(branch.children, targetId, branch, level + 1);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
 }
 
 function getItemTone({

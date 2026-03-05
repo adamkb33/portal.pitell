@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type RouteBranch } from '~/lib/route-tree';
 import { getIcon } from '~/lib/route-icon-map';
+import { onSidebarLinkSelect } from './sidebar-drilldown';
 
 type MobileSidebarProps = {
   branches: RouteBranch[];
@@ -12,12 +13,20 @@ type MobileSidebarProps = {
 
 export function MobileSidebar({ branches, isOpen, onClose }: MobileSidebarProps) {
   const location = useLocation();
+  const activeTrail = findTrail(branches, location.pathname);
+  const defaultFocusedSectionId =
+    [...activeTrail].reverse().find((entry) => entry.node.children && entry.node.children.length > 0)?.node.id ?? null;
+  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(defaultFocusedSectionId);
 
   useEffect(() => {
     if (isOpen) {
       onClose();
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    setFocusedSectionId(defaultFocusedSectionId);
+  }, [defaultFocusedSectionId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,6 +42,12 @@ export function MobileSidebar({ branches, isOpen, onClose }: MobileSidebarProps)
   if (branches.length === 0 || !isOpen) {
     return null;
   }
+
+  const focusedSection = focusedSectionId ? findNodeWithParent(branches, focusedSectionId) : null;
+  const shouldShowFocusedSection =
+    !!focusedSection &&
+    !!focusedSection.node.children &&
+    focusedSection.node.children.length > 0;
 
   return (
     <>
@@ -63,17 +78,58 @@ export function MobileSidebar({ branches, isOpen, onClose }: MobileSidebarProps)
         </div>
 
         <nav className="overflow-y-auto h-[calc(100vh-3.75rem)] overscroll-contain">
-          <ul className="p-3 space-y-2" role="list">
-            {branches.map((item) => (
-              <MobileSidebarItem
-                key={item.id}
-                item={item}
-                currentPath={location.pathname}
-                onNavigate={onClose}
-                level={0}
-              />
-            ))}
-          </ul>
+          <div className="p-3">
+            {shouldShowFocusedSection ? (
+              <>
+                <div className="mb-3 flex items-center justify-between rounded-xl border border-sidebar-border/70 bg-sidebar-accent/10 px-2 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setFocusedSectionId(focusedSection.parent?.id ?? null)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-sidebar-text-muted hover:bg-sidebar-accent/10 hover:text-sidebar-text focus:outline-none focus:ring-2 focus:ring-sidebar-ring"
+                    aria-label={`Tilbake til ${focusedSection.parent?.label || 'hovedmeny'}`}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Tilbake
+                  </button>
+                  <span className="truncate px-2 text-sm font-semibold text-sidebar-text">{focusedSection.node.label}</span>
+                </div>
+
+                <ul className="space-y-2" role="list">
+                  {focusedSection.node.children!.map((item) => (
+                    <MobileSidebarItem
+                      key={item.id}
+                      item={item}
+                      currentPath={location.pathname}
+                      onNavigate={onClose}
+                      level={0}
+                      onEnterSection={(branch) => {
+                        if (branch.children && branch.children.length > 0) {
+                          setFocusedSectionId(branch.id);
+                        }
+                      }}
+                    />
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <ul className="space-y-2" role="list">
+                {branches.map((item) => (
+                  <MobileSidebarItem
+                    key={item.id}
+                    item={item}
+                    currentPath={location.pathname}
+                    onNavigate={onClose}
+                    level={0}
+                    onEnterSection={(branch) => {
+                      if (branch.children && branch.children.length > 0) {
+                        setFocusedSectionId(branch.id);
+                      }
+                    }}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </nav>
       </aside>
     </>
@@ -85,9 +141,10 @@ type MobileSidebarItemProps = {
   currentPath: string;
   level: number;
   onNavigate: () => void;
+  onEnterSection?: (branch: RouteBranch, level: number) => void;
 };
 
-function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSidebarItemProps) {
+function MobileSidebarItem({ item, currentPath, level, onNavigate, onEnterSection }: MobileSidebarItemProps) {
   const Icon = item.iconName ? getIcon(item.iconName) : undefined;
   const hasChildren = item.children && item.children.length > 0;
   const isActive = currentPath === item.href;
@@ -121,7 +178,14 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
       >
         <Link
           to={item.href}
-          onClick={onNavigate}
+          onClick={() => {
+            onSidebarLinkSelect({
+              item,
+              level,
+              onEnterSection,
+              onNavigate,
+            });
+          }}
           aria-current={isActive ? 'page' : undefined}
           className={[
             'flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-3 text-sm leading-tight',
@@ -184,12 +248,55 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
               currentPath={currentPath}
               level={level + 1}
               onNavigate={onNavigate}
+              onEnterSection={onEnterSection}
             />
           ))}
         </ul>
       )}
     </li>
   );
+}
+
+type TrailEntry = { node: RouteBranch; level: number };
+
+function findTrail(branches: RouteBranch[], path: string, level = 0, currentTrail: TrailEntry[] = []): TrailEntry[] {
+  for (const branch of branches) {
+    const nextTrail = [...currentTrail, { node: branch, level }];
+
+    if (path === branch.href) {
+      return nextTrail;
+    }
+
+    if (branch.children?.length) {
+      const childTrail = findTrail(branch.children, path, level + 1, nextTrail);
+      if (childTrail.length) {
+        return childTrail;
+      }
+    }
+  }
+
+  return [];
+}
+
+function findNodeWithParent(
+  branches: RouteBranch[],
+  targetId: string,
+  parent: RouteBranch | null = null,
+  level = 0,
+): { node: RouteBranch; parent: RouteBranch | null; level: number } | null {
+  for (const branch of branches) {
+    if (branch.id === targetId) {
+      return { node: branch, parent, level };
+    }
+    if (branch.children?.length) {
+      const found = findNodeWithParent(branch.children, targetId, branch, level + 1);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
 }
 
 function getItemTone({
