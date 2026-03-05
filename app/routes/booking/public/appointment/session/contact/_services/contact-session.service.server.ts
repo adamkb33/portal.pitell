@@ -30,9 +30,10 @@ export class ContactSessionService {
 
   static async getContactContext(request: Request): Promise<ContactSessionContext> {
     const session = await AppointmentSessionService.get(request);
-    const sessionUser = await this.getSessionUserStatus(request);
     const auth = await authService.getAuth(request);
     const verificationSessionToken = await VerificationTokenService.readVerificationToken(request);
+    const shouldResolveSessionUser = Boolean(auth) || Boolean(verificationSessionToken);
+    const sessionUser = shouldResolveSessionUser ? await this.getSessionUserStatus(request) : null;
 
     return {
       session,

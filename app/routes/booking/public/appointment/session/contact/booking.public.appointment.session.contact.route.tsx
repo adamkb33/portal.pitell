@@ -25,7 +25,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const { session, sessionUser, auth, verificationSessionToken } =
       await ContactSessionService.getContactContext(request);
-    console.log(auth);
 
     if (!session) {
       return redirectWithError(

@@ -5,6 +5,19 @@ import { client as notificationClient } from '~/api/generated/notification/clien
 import { accessTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
 import { logger } from '~/lib/logger';
 
+function setAuthorizationHeader(accessToken?: string) {
+  const headers = accessToken
+    ? {
+        Authorization: `Bearer ${accessToken}`,
+      }
+    : {};
+
+  baseClient.setConfig({ headers });
+  bookingClient.setConfig({ headers });
+  timesheetClient.setConfig({ headers });
+  notificationClient.setConfig({ headers });
+}
+
 export async function withAuth<T>(request: Request, callback: () => Promise<T> | T, token?: string): Promise<T> {
   const cookieHeader = request.headers.get('Cookie');
   const accessToken = token || (await accessTokenCookie.parse(cookieHeader));
@@ -17,31 +30,8 @@ export async function withAuth<T>(request: Request, callback: () => Promise<T> |
     tokenSource: token ? 'argument' : 'cookie',
   });
 
-  if (accessToken) {
-    baseClient.setConfig({
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    bookingClient.setConfig({
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    timesheetClient.setConfig({
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    notificationClient.setConfig({
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-  }
+  // These SDK clients are singletons; always overwrite auth headers per request.
+  setAuthorizationHeader(accessToken || undefined);
 
   try {
     const result = await callback();
@@ -57,5 +47,8 @@ export async function withAuth<T>(request: Request, callback: () => Promise<T> |
       error,
     });
     throw error;
+  } finally {
+    // Prevent auth header bleed into later unrelated requests.
+    setAuthorizationHeader(undefined);
   }
 }

@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { Bell, BellRing, ChevronRight, Circle } from 'lucide-react';
 import { Link } from 'react-router';
-import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated/notification';
-import { ROUTES_MAP } from '~/lib/route-tree';
+import axios from 'axios';
+import { type InAppNotificationDto } from '~/api/generated/notification';
+import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/route-tree';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { formatNotificationTimestamp } from '~/routes/company/notifications/_utils/format';
 import { getNotificationHeadline } from '~/routes/company/notifications/_utils/query';
-import { serializeQueryParams } from '~/lib/query';
 
 const NAVBAR_NOTIFICATION_POLL_MS = 15_000;
+const NAVBAR_NOTIFICATION_API_URL = API_ROUTES_MAP['auth.navbar-notifications'].url;
 
 type NavbarNotificationsState = {
   items: InAppNotificationDto[];
@@ -26,42 +27,23 @@ export function NavbarNotificationBell() {
 
   const loadNotifications = React.useEffectEvent(async (signal: AbortSignal) => {
     try {
-      const [latestResponse, unreadResponse] = await Promise.all([
-        CompanyUserInAppNotificationController.getInAppNotifications({
-          query: {
-            request: {
-              page: 0,
-              size: 5,
-              sortBy: 'createdAt',
-              sortDirection: 'DESC',
-            },
-          },
-          paramsSerializer: (params) => serializeQueryParams(params.request),
-          signal,
-        }),
-        CompanyUserInAppNotificationController.getInAppNotifications({
-          query: {
-            request: {
-              page: 0,
-              size: 1,
-              sortBy: 'createdAt',
-              sortDirection: 'DESC',
-              read: false,
-            },
-          },
-          paramsSerializer: (params) => serializeQueryParams(params.request),
-          signal,
-        }),
-      ]);
+      const response = await axios.get<NavbarNotificationsState | { error?: string }>(NAVBAR_NOTIFICATION_API_URL, {
+        withCredentials: true,
+        signal,
+      });
+
+      const payload = response.data;
 
       if (signal.aborted) {
         return;
       }
 
-      setNotifications({
-        items: latestResponse.data?.data?.content ?? [],
-        hasUnread: (unreadResponse.data?.data?.totalElements ?? 0) > 0,
-      });
+      if ('items' in payload && 'hasUnread' in payload) {
+        setNotifications({
+          items: payload.items ?? [],
+          hasUnread: Boolean(payload.hasUnread),
+        });
+      }
     } catch {}
   });
 

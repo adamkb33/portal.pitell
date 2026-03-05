@@ -623,6 +623,10 @@ export const API_ROUTES_TREE = [
     url: '/api/auth',
     children: [
       {
+        id: 'auth.navbar-notifications',
+        url: '/api/auth/navbar-notifications',
+      },
+      {
         id: 'auth.verify-mobile',
         url: '/api/auth/verify-mobile',
       },
