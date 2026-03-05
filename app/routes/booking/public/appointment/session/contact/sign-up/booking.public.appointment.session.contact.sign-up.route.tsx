@@ -12,7 +12,6 @@ import {
 import { UserPlus } from 'lucide-react';
 import { redirectWithError, redirectWithInfo } from '~/routes/company/_lib/flash-message.server';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { authService } from '~/lib/auth-service';
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
 import { resolveAuthNextStepHref } from '../_utils/auth.utils';
 
@@ -88,24 +87,6 @@ export async function action({ request }: Route.ActionArgs) {
     if (!setPendingUserResponse) {
       return data({ error: 'Kunne ikke knytte brukeren til økten. Prøv igjen.' }, { status: 400 });
     }
-    if (response?.nextStep === 'SIGN_IN') {
-      const auth = await authService.getAuth(request);
-
-      if (auth) {
-        return redirectWithInfo(
-          request,
-          `${ROUTES_MAP['booking.public.appointment.session.employee'].href}`,
-          'Du er allerede logget inn.',
-        );
-      }
-
-      return redirectWithInfo(
-        request,
-        `${ROUTES_MAP['booking.public.appointment.session.contact.sign-in'].href}?email=${email}`,
-        'Konto finnes allerede, logg inn for å fortsette.',
-      );
-    }
-
     const { verificationCookieHeader } = await ContactAuthService.resolvePostAuthRedirect(response);
     if (verificationCookieHeader) {
       headers.append('Set-Cookie', verificationCookieHeader);

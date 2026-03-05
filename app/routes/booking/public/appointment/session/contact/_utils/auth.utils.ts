@@ -5,7 +5,6 @@ import { ROUTES_MAP } from '~/lib/route-tree';
 export function resolveAuthNextStepHref(
   nextStep: SignInResponseDto['nextStep'] | SignUpResponseDto['nextStep'] | null | undefined,
 ) {
-  console.log('[resolveAuthNextStepHref] nextStep', nextStep);
   switch (nextStep) {
     case 'COLLECT_EMAIL':
       return ROUTES_MAP['booking.public.appointment.session.contact.collect-email'].href;
@@ -16,8 +15,6 @@ export function resolveAuthNextStepHref(
     case 'VERIFY_MOBILE':
       return ROUTES_MAP['booking.public.appointment.session.contact.verify-mobile'].href;
     case 'DONE':
-      return ROUTES_MAP['booking.public.appointment.session.employee'].href;
-    case 'SIGN_IN':
       return ROUTES_MAP['booking.public.appointment.session.employee'].href;
     default:
       return null;
@@ -40,7 +37,7 @@ export function redirectAuthStatusNextStepHref(authStatus: UserAuthStatusDto) {
 export function shouldStoreVerificationToken(
   nextStep: SignInResponseDto['nextStep'] | SignUpResponseDto['nextStep'] | null | undefined,
 ) {
-  return nextStep !== 'DONE' && nextStep !== 'SIGN_IN';
+  return nextStep !== 'DONE';
 }
 
 export function hasAuthErrors(

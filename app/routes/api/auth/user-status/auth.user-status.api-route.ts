@@ -13,7 +13,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await ContactAuthService.getUserStatus(userId);
+    const response = await ContactAuthService.getUserStatus(request);
     return data(response ?? null);
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente brukerstatus. Prøv igjen.');

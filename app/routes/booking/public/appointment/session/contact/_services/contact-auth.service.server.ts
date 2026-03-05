@@ -1,5 +1,10 @@
 import { PublicAppointmentSessionController } from '~/api/generated/booking';
-import { AuthController, type SignInResponseDto, type SignUpResponseDto } from '~/api/generated/base';
+import {
+  AuthController,
+  type ProviderCompleteProfileResponseDto,
+  type SignInResponseDto,
+  type SignUpResponseDto,
+} from '~/api/generated/base';
 import { AppointmentSessionService } from '../../_services/appointment-session.service.server';
 import { authService } from '~/lib/auth-service';
 import { resolveAuthNextStepHref } from '../_utils/auth.utils';
@@ -8,7 +13,8 @@ import { withAuth } from '~/api/utils/with-auth';
 
 type SignInLike = SignInResponseDto | null | undefined;
 type SignUpLike = SignUpResponseDto | null | undefined;
-type AuthLike = SignInLike | SignUpLike;
+type CompleteProfileLike = ProviderCompleteProfileResponseDto | null | undefined;
+type AuthLike = SignInLike | SignUpLike | CompleteProfileLike;
 
 export type PostAuthResolution = {
   nextStepHref: string | null;
@@ -92,10 +98,19 @@ export class ContactAuthService {
     return response.data?.data ?? null;
   }
 
-  static async completeProfile({ userId, mobileNumber }: { userId: number; mobileNumber: string }) {
+  static async completeProfile({
+    userId,
+    email,
+    mobileNumber,
+  }: {
+    userId: number;
+    email?: string;
+    mobileNumber?: string;
+  }) {
     const response = await AuthController.providerCompleteProfile({
       body: {
         userId,
+        email,
         mobileNumber,
       },
     });
@@ -111,7 +126,7 @@ export class ContactAuthService {
     });
 
     const payload = response.data?.data ?? null;
-    const nextStep = payload?.nextStep ?? 'SIGN_IN';
+    const nextStep = payload?.nextStep ?? 'DONE';
     const authTokens = payload?.authTokens;
 
     if (!authTokens) {
@@ -206,15 +221,9 @@ export class ContactAuthService {
     }
 
     const nextStepHref = resolveAuthNextStepHref(payload.nextStep);
-    const verificationCookieHeader =
-      (await VerificationTokenService.buildVerificationCookieHeaderFromDto(
-        // sign-in payload shape
-        (payload as SignInResponseDto)?.verificationTokenDto ?? null,
-      )) ??
-      (await VerificationTokenService.buildVerificationCookieHeaderFromDto(
-        // sign-up payload shape
-        (payload as SignUpResponseDto)?.verificationToken ?? null,
-      ));
+    const verificationCookieHeader = await VerificationTokenService.buildVerificationCookieHeaderFromDto(
+      'verificationToken' in payload ? payload.verificationToken ?? null : null,
+    );
 
     return {
       nextStepHref,
