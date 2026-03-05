@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { data, Form, useNavigation, useLocation, redirect } from 'react-router';
+import { data, Form, useNavigation, useLocation, redirect, Link } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.contact.sign-in.route';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { ProviderButtons } from '~/routes/auth/_components/provider-buttons';
@@ -11,7 +11,7 @@ import {
   BookingSection,
   BookingStepHeader,
 } from '../../../_components/booking-layout';
-import { LogIn } from 'lucide-react';
+import { ChevronLeft, LogIn } from 'lucide-react';
 import { redirectWithError, redirectWithInfo } from '~/routes/company/_lib/flash-message.server';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { logger } from '~/lib/logger';
@@ -129,6 +129,15 @@ export default function BookingPublicAppointmentSessionContactSignInRoute({
   return (
     <>
       <BookingStepHeader label="Kontakt" title="Logg inn" description="Logg inn for å fortsette booking." />
+      <div>
+        <Link
+          to={ROUTES_MAP['booking.public.appointment.session.contact'].href}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+          Tilbake til kontakt
+        </Link>
+      </div>
 
       <BookingSection title="Logg inn med e-post" variant="elevated">
         <Form method="post" className="space-y-4 md:space-y-5" aria-busy={isSubmitting}>

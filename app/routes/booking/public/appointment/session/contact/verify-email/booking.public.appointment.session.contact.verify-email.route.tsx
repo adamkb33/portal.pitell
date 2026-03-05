@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       return redirect(ROUTES_MAP['booking.public.appointment.session'].href);
     }
 
-    const authStatus = await ContactAuthService.getUserStatus(session.userId as number);
+    const authStatus = await ContactAuthService.getUserStatus(request);
     if (!authStatus) {
       return redirect(ROUTES_MAP['booking.public.appointment.session'].href);
     }

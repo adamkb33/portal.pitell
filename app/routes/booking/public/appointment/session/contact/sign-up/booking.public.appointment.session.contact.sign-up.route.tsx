@@ -1,4 +1,4 @@
-import { data, Form, redirect, useNavigation } from 'react-router';
+import { data, Form, redirect, useNavigation, Link } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.session.contact.sign-up.route';
 import { ROUTES_MAP } from '~/lib/route-tree';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import {
   BookingSection,
   BookingStepHeader,
 } from '../../../_components/booking-layout';
-import { UserPlus } from 'lucide-react';
+import { ChevronLeft, UserPlus } from 'lucide-react';
 import { redirectWithError, redirectWithInfo } from '~/routes/company/_lib/flash-message.server';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
@@ -120,6 +120,15 @@ export default function BookingPublicAppointmentSessionContactSignUpRoute({ acti
         title="Opprett konto"
         description="Opprett en konto for å fortsette booking."
       />
+      <div>
+        <Link
+          to={ROUTES_MAP['booking.public.appointment.session.contact'].href}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+          Tilbake til kontakt
+        </Link>
+      </div>
 
       <BookingSection title="Opprett konto" variant="elevated">
         <Form method="post" className="space-y-4 md:space-y-5" aria-busy={isSubmitting}>
