@@ -107,14 +107,14 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
   const childContainerClass =
     level === 0
       ? 'mt-2 space-y-1.5'
-      : 'mt-1.5 space-y-1 border-l border-sidebar-border/50 pl-3 ml-4';
+      : 'mt-1.5 space-y-1 border-l border-sidebar-border/50 pl-2 ml-2.5';
 
   return (
     <li role="listitem" className={level === 0 ? 'rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/5 p-2' : ''}>
       <div
         className={[
           'group flex items-center gap-2 rounded-xl transition-all duration-200',
-          level === 0 ? 'min-h-[54px] bg-sidebar-accent/10 px-2 py-2' : 'min-h-[48px]',
+          level === 0 ? 'min-h-[54px] bg-sidebar-accent/10 px-2 py-2' : level >= 2 ? 'min-h-[40px]' : 'min-h-[48px]',
           level >= 2 ? 'px-1' : '',
           itemTone.container,
         ].join(' ')}
@@ -125,6 +125,7 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
           aria-current={isActive ? 'page' : undefined}
           className={[
             'flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-3 text-sm leading-tight',
+            level >= 2 ? 'gap-2 px-2 py-2 text-xs leading-snug' : '',
             'focus:outline-none focus:ring-2 focus:ring-sidebar-ring focus:ring-inset',
             level === 0 ? 'font-semibold' : isActive ? 'font-semibold' : 'font-medium',
             itemTone.link,
@@ -148,7 +149,7 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
                 ) : hasChildren ? (
                   <ChevronRight className={['h-3.5 w-3.5', itemTone.bulletIcon].join(' ')} />
                 ) : (
-                  <span className={['h-2 w-2 rounded-full', itemTone.bullet].join(' ')} />
+                  <span className={['h-px w-2 rounded-full', itemTone.bullet].join(' ')} />
                 )}
               </span>
             )
