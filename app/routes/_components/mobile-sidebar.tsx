@@ -43,7 +43,7 @@ export function MobileSidebar({ branches, isOpen, onClose }: MobileSidebarProps)
       />
 
       <aside
-        className="fixed inset-y-0 left-0 w-[85vw] max-w-sm border-r border-sidebar-border bg-sidebar-bg z-50 lg:hidden shadow-2xl"
+        className="fixed inset-y-0 left-0 w-[90vw] max-w-md border-r border-sidebar-border bg-sidebar-bg z-50 lg:hidden shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
@@ -154,7 +154,7 @@ function MobileSidebarItem({ item, currentPath, level, onNavigate }: MobileSideb
             )
           )}
 
-          <span className="truncate">{item.label}</span>
+          <span className="sidebar-item-label" title={item.label}>{item.label}</span>
         </Link>
 
         {showToggle && (

@@ -317,6 +317,8 @@
   --layout-footer-height: 4rem;
   --layout-content-padding: 1rem;
   --layout-content-padding-sm: 1.5rem;
+  --layout-sidebar-width: clamp(18rem, 24vw, 22rem);
+  --layout-right-rail-width: clamp(6rem, 8vw, 8rem);
 
   /* ========================================
      NAVBAR TOKENS
@@ -586,15 +588,16 @@
   }
 
   .app-header-grid {
-    @apply h-full lg:grid lg:grid-cols-12;
+    @apply h-full lg:grid;
+    grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr) var(--layout-right-rail-width);
   }
 
   .app-header-spacer {
-    @apply hidden lg:block lg:col-span-2;
+    @apply hidden lg:block;
   }
 
   .app-header-nav {
-    @apply h-full lg:col-span-8;
+    @apply h-full min-w-0;
   }
 
   .app-header-row {
@@ -602,21 +605,34 @@
   }
 
   .app-main {
-    @apply relative lg:grid lg:grid-cols-12;
+    @apply relative lg:grid;
+    grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr) var(--layout-right-rail-width);
     min-height: calc(100vh - var(--layout-header-height) - var(--layout-footer-height));
   }
 
   .app-sidebar {
-    @apply hidden lg:block lg:col-span-2 border-r border-sidebar-border bg-sidebar-bg p-4;
+    @apply hidden lg:block border-r border-sidebar-border bg-sidebar-bg p-4;
+    max-height: calc(100vh - var(--layout-header-height) - var(--layout-footer-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .app-sidebar-placeholder {
-    @apply hidden lg:block lg:col-span-2;
+    @apply hidden lg:block;
   }
 
   .app-content {
-    @apply lg:col-span-8;
+    @apply min-w-0;
     padding: var(--layout-content-padding);
+  }
+
+  .sidebar-item-label {
+    display: -webkit-box;
+    overflow: hidden;
+    text-wrap: pretty;
+    word-break: break-word;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   @media (min-width: 640px) {
