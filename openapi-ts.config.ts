@@ -1,10 +1,13 @@
 // openapi-ts.config.ts
 import { defineConfig } from '@hey-api/openapi-ts';
 
+const gatewayUrl = (process.env.VITE_API_GATEWAY_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const serviceDocsUrl = (serviceName: string) => `${gatewayUrl}/${serviceName}/api-docs`;
+
 export default defineConfig([
   {
     client: '@hey-api/client-axios',
-    input: process.env.VITE_API_BASE_SERVICE_DOCS_URL || 'http://localhost:8080/base-service/api-docs',
+    input: serviceDocsUrl('base-service'),
     output: './app/api/generated/base',
     plugins: [
       {
@@ -19,7 +22,7 @@ export default defineConfig([
   },
   {
     client: '@hey-api/client-axios',
-    input: process.env.VITE_API_BOOKING_SERVICE_DOCS_URL || 'http://localhost:8080/booking-service/api-docs',
+    input: serviceDocsUrl('booking-service'),
     output: './app/api/generated/booking',
     plugins: [
       {
@@ -34,7 +37,7 @@ export default defineConfig([
   },
   {
     client: '@hey-api/client-axios',
-    input: process.env.VITE_API_TIMESHEET_SERVICE_DOCS_URL || 'http://localhost:8080/timesheet-service/api-docs',
+    input: serviceDocsUrl('timesheet-service'),
     output: './app/api/generated/timesheet',
     plugins: [
       {
@@ -49,7 +52,7 @@ export default defineConfig([
   },
   {
     client: '@hey-api/client-axios',
-    input: process.env.VITE_API_NOTIFICATION_SERVICE_DOCS_URL || 'http://localhost:8080/notification-service/api-docs',
+    input: serviceDocsUrl('notification-service'),
     output: './app/api/generated/notification',
     plugins: [
       {
