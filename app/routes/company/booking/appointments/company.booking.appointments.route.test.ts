@@ -57,7 +57,7 @@ describe('company booking appointments list route', () => {
         data: {
           content: [],
           page: 0,
-          size: 10,
+          size: 5,
           totalElements: 0,
           totalPages: 1,
         },
@@ -73,10 +73,20 @@ describe('company booking appointments list route', () => {
     expect(mocks.getAppointments).toHaveBeenCalledWith({
       query: {
         page: 0,
-        size: 10,
+        size: 5,
         fromDateTime: '2026-07-08T12:00:00+02:00',
         direction: 'ASC',
       },
+    });
+  });
+
+  it('always loads five appointments per page, ignoring a size query param', async () => {
+    await loader({
+      request: createRequest('https://portal.pitell.no/company/booking/appointments?size=50'),
+    } as never);
+
+    expect(mocks.getAppointments).toHaveBeenCalledWith({
+      query: expect.objectContaining({ size: 5 }),
     });
   });
 

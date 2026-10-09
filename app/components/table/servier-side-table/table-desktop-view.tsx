@@ -22,11 +22,12 @@ export function TableDesktopView<T>({
   pageSizeOptions = [5, 10, 20, 50],
   headerSlot,
   primaryAction,
+  scrollable = true,
   className,
 }: ServerPaginatedTableProps<T>) {
   const [showScrollHint, setShowScrollHint] = React.useState(true);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const hasScrollableContent = items.length > VISIBLE_DATA_ROWS;
+  const hasScrollableContent = scrollable && items.length > VISIBLE_DATA_ROWS;
 
   React.useEffect(() => {
     const container = scrollContainerRef.current;
@@ -61,8 +62,8 @@ export function TableDesktopView<T>({
       <div className="relative">
         <div
           ref={scrollContainerRef}
-          className="overflow-y-auto overflow-x-auto"
-          style={{ height: `${CELL_HEIGHT * TOTAL_VISIBLE_ROWS}px` }}
+          className={scrollable ? 'overflow-y-auto overflow-x-auto' : 'overflow-x-auto'}
+          style={scrollable ? { height: `${CELL_HEIGHT * TOTAL_VISIBLE_ROWS}px` } : undefined}
         >
           <Table className="w-full table-fixed">
             <TableHeader>

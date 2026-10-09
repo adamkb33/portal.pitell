@@ -17,7 +17,7 @@ type TableDesktopHeaderProps = {
     totalElements: number;
     totalPages: number;
   };
-  onPageSizeChange: (size: number) => void;
+  onPageSizeChange?: (size: number) => void;
   pageSizeOptions: number[];
   headerSlot?: React.ReactNode;
   primaryAction?: React.ReactNode;
@@ -57,27 +57,32 @@ export function TableDesktopHeader({
           )}
           {primaryAction ? <div className="flex items-center md:shrink-0">{primaryAction}</div> : null}
 
-          <div className="flex items-center gap-3 md:shrink-0">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-disabled">
-              Rader per side
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="min-w-[100px] justify-between">
-                  {size} rader
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuRadioGroup value={String(size)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-                  {pageSizeOptions.map((opt) => (
-                    <DropdownMenuRadioItem key={opt} value={String(opt)}>
-                      {opt} rader
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {onPageSizeChange ? (
+            <div className="flex items-center gap-3 md:shrink-0">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-text-disabled">
+                Rader per side
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="min-w-[100px] justify-between">
+                    {size} rader
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuRadioGroup
+                    value={String(size)}
+                    onValueChange={(value) => onPageSizeChange(Number(value))}
+                  >
+                    {pageSizeOptions.map((opt) => (
+                      <DropdownMenuRadioItem key={opt} value={String(opt)}>
+                        {opt} rader
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

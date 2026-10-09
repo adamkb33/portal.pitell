@@ -78,13 +78,6 @@ export class AppointmentPaginationService {
     this.navigate(`?${params.toString()}`, { replace: true });
   };
 
-  handlePageSizeChange = (newSize: number) => {
-    const params = new URLSearchParams(this.searchParams);
-    params.set('size', newSize.toString());
-    params.set('page', '0');
-    this.navigate(`?${params.toString()}`, { replace: true });
-  };
-
   handleSearchChange = (value: string) => {
     const params = new URLSearchParams(this.searchParams);
     const trimmed = value.trim();

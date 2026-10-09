@@ -23,7 +23,8 @@ export type ServerPaginatedTableProps<T> = {
   };
 
   onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
+  /** Omit to hide the rows-per-page menu and keep a fixed page size. */
+  onPageSizeChange?: (size: number) => void;
 
   emptyMessage?: React.ReactNode;
   pageSizeOptions?: number[];
@@ -31,6 +32,8 @@ export type ServerPaginatedTableProps<T> = {
   primaryAction?: React.ReactNode;
   mobileHeaderSlot?: React.ReactNode;
   mobilePrimaryAction?: React.ReactNode;
+  /** When false, rows grow with the page instead of scrolling inside a fixed-height box. */
+  scrollable?: boolean;
   className?: string;
 };
 

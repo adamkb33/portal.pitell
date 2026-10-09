@@ -17,11 +17,12 @@ import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyPageTemplate, Label, Notice, Textarea } from '~/ui';
 import { isAppointmentCompleted } from './_utils/appointments.utils';
 
+const PAGE_SIZE = 5;
+
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '0', 10);
-    const size = parseInt(url.searchParams.get('size') || '10', 10);
     const sort = url.searchParams.get('sort') || '';
     const search = url.searchParams.get('search')?.trim() || undefined;
     const fromDateTime = url.searchParams.get('fromDateTime');
@@ -37,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       return CompanyUserAppointmentController.getAppointments({
         query: {
           page,
-          size,
+          size: PAGE_SIZE,
           ...(sort && { sort }),
           ...(search ? { search } : {}),
           ...(effectiveFromDateTime && { fromDateTime: effectiveFromDateTime }),
@@ -54,7 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       appointments: pageData?.content || [],
       pagination: {
         page: pageData?.page ?? 0,
-        size: pageData?.size ?? size,
+        size: PAGE_SIZE,
         totalElements: pageData?.totalElements ?? 0,
         totalPages: pageData?.totalPages ?? 1,
       },
@@ -65,7 +66,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       appointments: [],
       pagination: {
         page: 0,
-        size: 10,
+        size: PAGE_SIZE,
         totalElements: 0,
         totalPages: 1,
       },
@@ -271,8 +272,8 @@ export default function CompanyBookingAppointmentsPage({ loaderData }: Route.Com
               { header: 'Handlinger' },
             ]}
             pagination={pagination}
+            scrollable={false}
             onPageChange={paginationService.handlePageChange}
-            onPageSizeChange={paginationService.handlePageSizeChange}
             emptyMessage="Ingen avtaler ennå"
             getRowKey={(appointment, index) => appointment.id ?? `appointment-${index}`}
             renderMobileCard={(appointment, index) => (

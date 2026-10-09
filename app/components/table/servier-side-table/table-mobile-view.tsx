@@ -75,6 +75,7 @@ export function TableMobileView<T>({
   emptyMessage = 'Ingen resultater.',
   mobileHeaderSlot,
   mobilePrimaryAction,
+  scrollable = true,
 }: ServerPaginatedTableProps<T>) {
   return (
     <div className="space-y-3 md:hidden">
@@ -88,7 +89,7 @@ export function TableMobileView<T>({
       )}
 
       {/* Scrollable container */}
-      <div className="max-h-[600px] space-y-2 overflow-y-auto pr-0.5">
+      <div className={scrollable ? 'max-h-[600px] space-y-2 overflow-y-auto pr-0.5' : 'space-y-2'}>
         {items.length > 0 ? (
           items.map((item, index) => (
             <React.Fragment key={getRowKey(item, index)}>
