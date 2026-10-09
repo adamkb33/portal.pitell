@@ -226,6 +226,18 @@ export default function BookingContactVerifyMobilePage({ loaderData }: Route.Com
 
         {/* THE verify form — wraps the card AND the footer, so no form="id" indirection. */}
         <Form method="post" aria-busy={isVerifyingCode} className="space-y-6">
+          {/* Pressing Enter submits with the first submit button in the form. Without this,
+              that is "Send SMS på nytt", so Enter would request a new code instead of verifying.
+              Visually hidden rather than display:none so Safari still treats it as the default. */}
+          <button
+            type="submit"
+            name="intent"
+            value="verify"
+            disabled={code.length !== CODE_LENGTH || isSubmitting}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="sr-only"
+          />
           <input type="hidden" name="challengeId" value={loaderData.requirements.challengeId} />
           {loaderData.isReplacingContact ? <input type="hidden" name="replacement" value="1" /> : null}
 
@@ -243,8 +255,6 @@ export default function BookingContactVerifyMobilePage({ loaderData }: Route.Com
             />
 
             <div className="flex flex-col gap-2 border-t border-booking-border pt-4 md:flex-row md:items-center md:justify-between">
-              {/* Resend is its own tiny form; nesting forms is invalid HTML, so it sits
-                  outside via the button's formAction-free sibling pattern below. */}
               <ResendButton isSendingCode={isSendingCode} isSubmitting={isSubmitting} />
               <button
                 type="submit"
