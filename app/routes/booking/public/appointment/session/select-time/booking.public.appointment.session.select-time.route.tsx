@@ -1,16 +1,15 @@
 import { data } from 'react-router';
-import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import { PublicAppointmentSessionController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
-import { BookingCompanyBadge } from '~/routes/booking/public/_components/booking-company-badge';
 import { BookingFooterNav } from '~/routes/booking/public/_components/booking-footer-nav';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
-import { getBookingCompanySummary } from '~/routes/booking/public/_utils/booking-company.server';
 import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
+import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
 import {
   OVERVIEW_RETURN_VALUE,
   shouldReturnToOverview,
@@ -19,12 +18,11 @@ import {
 import { redirect } from 'react-router';
 import { useFetcher, useNavigation, useRevalidator } from 'react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { BookingStepTemplate, Panel as BookingSection, Stack } from '~/ui';
-import { DateSelectorSection } from './_components/date-selector-section';
+import { BookingStepTemplate, Stack } from '~/ui';
+import { DayPickerSection } from './_components/day-picker-section';
 import { QuickBookButton } from './_components/quick-book-button';
 import { TimeSlotsSection } from './_components/time-slots-section';
-import { WeekNavigator } from './_components/week-navigator';
-import { findScheduleWithTime, getEarliestSlot, groupSchedulesByWeek } from './_utils/select-time-schedule';
+import { findScheduleWithTime, getEarliestSlot } from './_utils/select-time-schedule';
 import type { Route } from './+types/booking.public.appointment.session.select-time.route';
 
 const SCHEDULE_REFRESH_INTERVAL_MS = 30_000;
@@ -49,29 +47,22 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
 
     try {
-      const [schedulesResponse, companySummary] = await Promise.all([
-        withBookingBackendCall(
-          { request, routeId: ROUTE_ID, step: 'select-time', call: 'get-schedules', session },
-          () =>
-            withAuth(request, () =>
-              PublicAppointmentSessionController.getAppointmentSessionSchedules({
-                query: {
-                  sessionId: session.sessionId,
-                },
-              }),
-            ),
-        ),
-        withBookingBackendCall(
-          { request, routeId: ROUTE_ID, step: 'select-time', call: 'get-company-summary', session },
-          () => getBookingCompanySummary(session.companyId, request),
-        ),
-      ]);
+      const schedulesResponse = await withBookingBackendCall(
+        { request, routeId: ROUTE_ID, step: 'select-time', call: 'get-schedules', session },
+        () =>
+          withAuth(request, () =>
+            PublicAppointmentSessionController.getAppointmentSessionSchedules({
+              query: {
+                sessionId: session.sessionId,
+              },
+            }),
+          ),
+      );
       const schedules = schedulesResponse.data?.data || [];
 
       return data({
         session,
         schedules,
-        companySummary,
         returnToOverview,
       });
     } catch (error) {
@@ -135,6 +126,7 @@ export default function BookingSelectTimePage({ loaderData }: Route.ComponentPro
   const schedules = loaderData.schedules ?? [];
   const session = loaderData.session;
   const routes = getBookingRouteMap();
+  const companyName = useBookingCompanyName();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const startTimeFetcher = useFetcher();
@@ -148,32 +140,26 @@ export default function BookingSelectTimePage({ loaderData }: Route.ComponentPro
   const selectedStartTime = session.selectedStartTime ?? '';
   const pendingStartTime = startTimeFetcher.formData?.get('startTime') as string | null;
   const displayTime = pendingStartTime || selectedStartTime || null;
-  const weekGroups = useMemo(() => groupSchedulesByWeek(schedules), [schedules]);
   const earliestSlot = useMemo(() => getEarliestSlot(schedules), [schedules]);
 
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [isDateListCollapsed, setIsDateListCollapsed] = useState(false);
-
-  const currentWeek = weekGroups[selectedWeekIndex];
-  const currentWeekSchedules = currentWeek?.schedules || [];
-  const selectedSchedule = currentWeekSchedules.find((schedule) => schedule.date === selectedDate);
+  // Until the customer picks a day, show the day of their chosen time, or the first day with free times.
+  const activeDate =
+    selectedDate ??
+    (displayTime ? findScheduleWithTime(schedules, displayTime) : null) ??
+    schedules.find((schedule) => schedule.timeSlots.length > 0)?.date ??
+    null;
+  const selectedSchedule = schedules.find((schedule) => schedule.date === activeDate);
   const timeSlots = selectedSchedule?.timeSlots ?? [];
 
+  // Jump to the chosen time's day when the time changes, not on every 30-second refresh of free times.
   useEffect(() => {
-    if (displayTime && weekGroups.length > 0) {
-      const scheduleDate = findScheduleWithTime(schedules, displayTime);
-      const weekIndex = scheduleDate
-        ? weekGroups.findIndex((week) => week.schedules.some((schedule) => schedule.date === scheduleDate))
-        : -1;
-
-      if (scheduleDate && weekIndex !== -1) {
-        setSelectedWeekIndex(weekIndex);
-        setSelectedDate(scheduleDate);
-        setIsDateListCollapsed(true);
-      }
+    if (!displayTime) return;
+    const scheduleDate = findScheduleWithTime(schedules, displayTime);
+    if (scheduleDate) {
+      setSelectedDate(scheduleDate);
     }
-  }, [displayTime, schedules, weekGroups]);
+  }, [displayTime]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -195,93 +181,39 @@ export default function BookingSelectTimePage({ loaderData }: Route.ComponentPro
     return () => window.clearInterval(intervalId);
   }, [navigation.state, revalidator]);
 
-  const handlePrevWeek = () => {
-    if (selectedWeekIndex > 0) {
-      setSelectedWeekIndex(selectedWeekIndex - 1);
-      setSelectedDate(null);
-      setIsDateListCollapsed(false);
-    }
-  };
-
-  const handleNextWeek = () => {
-    if (selectedWeekIndex < weekGroups.length - 1) {
-      setSelectedWeekIndex(selectedWeekIndex + 1);
-      setSelectedDate(null);
-      setIsDateListCollapsed(false);
-    }
-  };
-
-  const handleSelectWeek = (index: number) => {
-    setSelectedWeekIndex(index);
-    setSelectedDate(null);
-    setIsDateListCollapsed(false);
-  };
-
-  const handleSelectDate = (date: string) => {
-    setSelectedDate(date);
-    setIsDateListCollapsed(true);
-  };
-
   return (
-    <BookingStepTemplate
-      label="Velg tidspunkt"
-      title="Når passer det?"
-      description={displayTime ? 'Valgt tidspunkt kan endres.' : 'Velg dato og klokkeslett.'}
-      headerMeta={<BookingCompanyBadge company={loaderData.companySummary} />}
-    >
+    <BookingStepTemplate label={companyName} title="Når passer det?">
       <startTimeFetcher.Form method="post" preventScrollReset>
         {returnToOverview ? <input type="hidden" name="returnTo" value={OVERVIEW_RETURN_VALUE} /> : null}
         <fieldset disabled={isSubmitting} className="contents">
-          <Stack space="xl">
-            {earliestSlot && !displayTime && (
-              <BookingSection>
-                <QuickBookButton slot={earliestSlot} disabled={isSubmitting} />
-              </BookingSection>
-            )}
+          <Stack space="md">
+            {/* The quick-book button is its own card; no panel around it (compact: no padding that groups nothing). */}
+            {earliestSlot && !displayTime && <QuickBookButton slot={earliestSlot} disabled={isSubmitting} />}
 
-            <WeekNavigator
-              weekGroups={weekGroups}
-              selectedWeekIndex={selectedWeekIndex}
-              onPreviousWeek={handlePrevWeek}
-              onNextWeek={handleNextWeek}
-              onSelectWeek={handleSelectWeek}
-            />
+            <DayPickerSection schedules={schedules} selectedDate={activeDate} onSelectDate={setSelectedDate} />
 
-            <div className="space-y-6 md:hidden">
-              <DateSelectorSection
-                schedules={currentWeekSchedules}
-                selectedDate={selectedDate}
-                isCollapsed={isDateListCollapsed}
-                displayTime={displayTime}
-                onSelectDate={handleSelectDate}
-                onShowAllDates={() => setIsDateListCollapsed(false)}
-              />
-              <TimeSlotsSection
-                selectedDate={selectedDate}
-                timeSlots={timeSlots}
-                displayTime={displayTime}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-
-            <div className="hidden md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-5">
-              <DateSelectorSection
-                schedules={currentWeekSchedules}
-                selectedDate={selectedDate}
-                isCollapsed={isDateListCollapsed}
-                displayTime={displayTime}
-                onSelectDate={handleSelectDate}
-                onShowAllDates={() => setIsDateListCollapsed(false)}
-                variant="desktop"
-              />
-              <TimeSlotsSection
-                selectedDate={selectedDate}
-                timeSlots={timeSlots}
-                displayTime={displayTime}
-                isSubmitting={isSubmitting}
-                variant="desktop"
-              />
-            </div>
+            {/* The time section is unchanged; a fully booked day shows its message in the day picker instead. */}
+            {timeSlots.length > 0 ? (
+              <>
+                <div className="md:hidden">
+                  <TimeSlotsSection
+                    selectedDate={activeDate}
+                    timeSlots={timeSlots}
+                    displayTime={displayTime}
+                    isSubmitting={isSubmitting}
+                  />
+                </div>
+                <div className="hidden md:block">
+                  <TimeSlotsSection
+                    selectedDate={activeDate}
+                    timeSlots={timeSlots}
+                    displayTime={displayTime}
+                    isSubmitting={isSubmitting}
+                    variant="desktop"
+                  />
+                </div>
+              </>
+            ) : null}
           </Stack>
         </fieldset>
       </startTimeFetcher.Form>

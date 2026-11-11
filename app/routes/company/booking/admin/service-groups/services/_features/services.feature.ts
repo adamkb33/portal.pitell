@@ -1,4 +1,5 @@
-import { ServiceController } from '~/api/generated/booking';
+import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
+import { ServiceController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -6,6 +7,7 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import type { Route } from '../+types/company.booking.admin.service-groups.services.route';
 
 export async function servicesActions({ request }: Route.ActionArgs) {
+  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const intent = formData.get('intent') as string;
 

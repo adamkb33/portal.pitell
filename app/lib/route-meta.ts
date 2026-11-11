@@ -29,13 +29,15 @@ const ROUTE_TITLE_OVERRIDES: Record<string, string> = {
   'booking.public.appointment.success': 'Bestilling fullført',
   'booking.public.appointment.cancel': 'Avbestill time',
   'booking.public.appointment.cancel-by-id': 'Avbestill time',
+  'booking.public.my-appointments.appointment': 'Din time',
+  'booking.public.my-appointments.loyalty': 'Lojalitetskort',
   'company.request-role-delete': 'Slett selskapsrolle',
   'company.booking.admin': 'Bookingadministrasjon',
   'company.booking.admin.settings': 'Bookinginnstillinger',
   'company.booking.admin.service-groups': 'Tjenestegrupper',
   'company.booking.profile': 'Min bookingprofil',
   'company.booking.profile.create': 'Opprett bookingprofil',
-  'company.booking.profile.edit': 'Rediger bookingprofil',
+  'company.booking.profile.edit': 'Rediger profil',
   'company.booking.schedule-unavailability': 'Fravær',
   'company.booking.appointments': 'Timebestillinger',
   'company.booking.appointments.create': 'Opprett timebestilling',
@@ -56,6 +58,7 @@ const ROUTE_TITLE_OVERRIDES: Record<string, string> = {
   'system-admin.smtp': 'Systemadmin: SMTP',
   'system-admin.smtp.diagnostics': 'SMTP-diagnostikk',
   'offer.public': 'Tilbud',
+  'marketing.public': 'Avmelding',
   styleguide: 'Stilguide',
 };
 
@@ -143,8 +146,11 @@ const getDescription = (routeId: string): string => {
 };
 
 export const getRouteMetadata = (pathname: string) => {
+  // An exact path wins over a pattern of the same depth: `/company/offers/create` is the create page, not `:offerId`.
   const matchedRoute =
-    ROUTE_META_ENTRIES.find((entry) => matchesRoutePath(entry.href, pathname)) ?? STATIC_ROUTE_META[0];
+    ROUTE_META_ENTRIES.find((entry) => normalizePath(entry.href) === normalizePath(pathname)) ??
+    ROUTE_META_ENTRIES.find((entry) => matchesRoutePath(entry.href, pathname)) ??
+    STATIC_ROUTE_META[0];
   const title = matchedRoute.title.endsWith(TITLE_SUFFIX) ? matchedRoute.title : `${matchedRoute.title}${TITLE_SUFFIX}`;
 
   return {

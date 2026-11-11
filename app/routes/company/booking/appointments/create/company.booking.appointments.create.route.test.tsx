@@ -18,13 +18,10 @@ vi.mock('~/api/utils/with-auth', () => ({
   withAuth: vi.fn(async (_request: Request, callback: () => Promise<unknown>) => callback()),
 }));
 
-vi.mock('~/api/generated/base', () => ({
+vi.mock('~/api/generated', () => ({
   CompanyUserController: {
     resolveOrCreateAppointmentCustomer: mocks.resolveOrCreateAppointmentCustomer,
   },
-}));
-
-vi.mock('~/api/generated/booking', () => ({
   CompanyUserAppointmentController: {
     companyUserCreateAppointment: mocks.companyUserCreateAppointment,
     getAppointmentCustomers: mocks.getAppointmentCustomers,
@@ -43,10 +40,6 @@ vi.mock('~/routes/company/booking/_components/customer-selector', () => ({
 
 vi.mock('~/routes/company/booking/_components/services-selector', () => ({
   ServicesSelector: () => null,
-}));
-
-vi.mock('~/routes/company/booking/_components/date-time-selector', () => ({
-  DateTimeSelector: () => null,
 }));
 
 vi.mock('~/lib/flash-message.server', async (importOriginal) => ({
@@ -99,37 +92,48 @@ describe('company.booking.appointments.create.route', () => {
     expect(createBranch?.children).toBeUndefined();
   });
 
-  it('loads customers with pagination/search from appointment customers endpoint', async () => {
-    const request = new Request(
-      'http://localhost/company/booking/appointments/create?contact-page=2&contact-size=10&customer-search=ada',
-    );
+  it('searches customers by name when there is a search', async () => {
+    const request = new Request('http://localhost/company/booking/appointments/create?customer-search=ada');
 
     await loader({ request } as never);
 
     expect(mocks.getAppointmentCustomers).toHaveBeenCalledWith({
-      query: {
-        page: 2,
-        size: 10,
-        sort: 'familyName',
-        direction: 'ASC',
-        search: 'ada',
-      },
+      query: { page: 0, size: 10, sort: 'familyName', direction: 'ASC', search: 'ada' },
     });
   });
 
-  it('falls back to default contact size when contact-size is 0', async () => {
-    const request = new Request('http://localhost/company/booking/appointments/create?contact-page=0&contact-size=0');
+  it('shows the five newest customers without a search', async () => {
+    const request = new Request('http://localhost/company/booking/appointments/create');
 
     await loader({ request } as never);
 
     expect(mocks.getAppointmentCustomers).toHaveBeenCalledWith({
-      query: {
-        page: 0,
-        size: 10,
-        sort: 'familyName',
-        direction: 'ASC',
-      },
+      query: { page: 0, size: 5, sort: 'createdAt', direction: 'DESC' },
     });
+  });
+
+  it('remembers that the flow started in Kalender and returns there on the booked day', async () => {
+    const loaded = (await loader({
+      request: new Request('http://localhost/company/booking/appointments/create?fra=kalender'),
+    } as never)) as { from: string | null };
+    expect(loaded.from).toBe('kalender');
+
+    mocks.companyUserCreateAppointment.mockResolvedValueOnce({ data: { message: { value: 'Avtalen er opprettet.' } } });
+    const formData = new FormData();
+    formData.append('userId', '55');
+    formData.append('serviceIds', '1');
+    formData.append('startTime', '2026-03-01T23:30:00.000Z');
+    formData.append('fra', 'kalender');
+    await action({
+      request: new Request('http://localhost/company/booking/appointments/create', { method: 'POST', body: formData }),
+    } as never);
+
+    // 23:30 UTC on 1 March is 2 March in Oslo.
+    expect(mocks.redirectWithSuccess).toHaveBeenCalledWith(
+      expect.anything(),
+      `${ROUTES_MAP['company.booking.schedule'].href}?date=2026-03-02`,
+      'Avtalen er opprettet.',
+    );
   });
 
   it('resolves customer then creates appointment successfully', async () => {
@@ -163,7 +167,10 @@ describe('company.booking.appointments.create.route', () => {
     expect(mocks.companyUserCreateAppointment).toHaveBeenCalledWith({
       body: {
         userId: 44,
-        serviceIds: [1, 2],
+        services: [
+          { serviceId: 1, quantity: 1 },
+          { serviceId: 2, quantity: 1 },
+        ],
         startTime: '2026-03-01T08:00:00.000Z',
       },
     });
@@ -191,7 +198,34 @@ describe('company.booking.appointments.create.route', () => {
     expect(mocks.companyUserCreateAppointment).toHaveBeenCalledWith({
       body: {
         userId: 55,
-        serviceIds: [1, 2],
+        services: [
+          { serviceId: 1, quantity: 1 },
+          { serviceId: 2, quantity: 1 },
+        ],
+        startTime: '2026-03-01T08:00:00.000Z',
+      },
+    });
+  });
+
+  it('sends how many of each service was chosen', async () => {
+    mocks.companyUserCreateAppointment.mockResolvedValueOnce({ data: { message: { value: 'Avtalen er opprettet.' } } });
+    const formData = new FormData();
+    formData.append('userId', '55');
+    formData.append('serviceIds', '1,2');
+    formData.append('antall', '1:2');
+    formData.append('startTime', '2026-03-01T08:00:00.000Z');
+
+    await action({
+      request: new Request('http://localhost/company/booking/appointments/create', { method: 'POST', body: formData }),
+    } as never);
+
+    expect(mocks.companyUserCreateAppointment).toHaveBeenCalledWith({
+      body: {
+        userId: 55,
+        services: [
+          { serviceId: 1, quantity: 2 },
+          { serviceId: 2, quantity: 1 },
+        ],
         startTime: '2026-03-01T08:00:00.000Z',
       },
     });
@@ -216,7 +250,7 @@ describe('company.booking.appointments.create.route', () => {
     const result = await action({ request } as never);
 
     expect((result as { data: unknown }).data).toEqual({
-      error: 'Email and mobile belong to different customers. Please use only one or correct contact info.',
+      error: 'E-post og mobilnummer hører til forskjellige kunder. Bruk bare én av dem.',
     });
   });
 

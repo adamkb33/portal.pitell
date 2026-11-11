@@ -33,7 +33,7 @@ export function SignInForm({ onSubmit, isSubmitting = false, initialValues }: Si
 
   return (
     <Form {...form}>
-      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <FormField
           name="email"
           control={form.control}

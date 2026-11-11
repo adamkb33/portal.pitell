@@ -1,6 +1,6 @@
 import { data } from 'react-router';
 import type { Route } from './+types/public.booking.session.attach-user.api-route';
-import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import { PublicAppointmentSessionController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 
 export async function action({ request }: Route.ActionArgs) {

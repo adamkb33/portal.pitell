@@ -131,8 +131,13 @@ function dayButtonClassName({
       ? 'cursor-not-allowed text-text-disabled opacity-50'
       : 'cursor-pointer text-text-primary hover:bg-surface',
     isOutside && 'text-text-secondary/60',
-    isToday && !isSelectedSingle && !isStart && !isEnd && 'ring-1 ring-border',
-    isMiddle && 'rounded-none bg-surface text-text-primary',
+    // Today is outlined, never filled: only chosen days are filled.
+    isToday &&
+      !isSelectedSingle &&
+      !isStart &&
+      !isEnd &&
+      'font-semibold text-interactive ring-2 ring-inset ring-interactive',
+    isMiddle && 'rounded-none bg-blue-50 text-text-primary hover:bg-blue-50',
     (isSelectedSingle || isStart || isEnd) && 'bg-interactive text-text-inverse hover:bg-interactive-hover',
     isStart && 'rounded-r-none',
     isEnd && 'rounded-l-none',

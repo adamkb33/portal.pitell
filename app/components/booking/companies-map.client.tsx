@@ -10,7 +10,7 @@ import OSM from 'ol/source/OSM';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
-import type { CompanySummaryDto } from '~/api/generated/booking';
+import type { CompanySummaryDto } from '~/api/generated';
 import 'ol/ol.css';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 

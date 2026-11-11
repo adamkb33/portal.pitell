@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   deleteAppointmentSession: vi.fn(),
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   PublicAppointmentSessionController: {
     createAppointmentSession: mocks.createAppointmentSession,
     getAppointmentSession: mocks.getAppointmentSession,

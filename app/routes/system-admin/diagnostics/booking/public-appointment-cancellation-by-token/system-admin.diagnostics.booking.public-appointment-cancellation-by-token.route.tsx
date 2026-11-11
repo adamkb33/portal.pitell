@@ -1,7 +1,7 @@
 import { data, Form, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.diagnostics.booking.public-appointment-cancellation-by-token.route';
-import { Diagnostic } from '~/api/generated/diagnostic';
-import type { SystemAdminCompanyDto } from '~/api/generated/base';
+import { Diagnostic } from '~/api/generated';
+import type { SystemAdminCompanyDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

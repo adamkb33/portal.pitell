@@ -1,4 +1,4 @@
-import type { GroupedServiceDto } from '~/api/generated/booking';
+import type { GroupedServiceDto } from '~/api/generated';
 import {
   Carousel,
   CarouselContent,
@@ -23,7 +23,7 @@ export function ServiceImageDialog({ service, onClose }: ServiceImageDialogProps
       <DialogContent className="max-w-3xl gap-0 p-0">
         {service ? (
           <>
-            <DialogHeader className="border-b border-booking-border p-4 md:p-6">
+            <DialogHeader className="border-b border-booking-border p-4">
               <DialogTitle className="text-base font-bold text-booking-text md:text-lg">{service.name}</DialogTitle>
               <DialogDescription className="mt-1 text-sm text-booking-text-muted">
                 {service.images?.length} {service.images?.length === 1 ? 'bilde' : 'bilder'}
@@ -31,7 +31,7 @@ export function ServiceImageDialog({ service, onClose }: ServiceImageDialogProps
             </DialogHeader>
 
             {service.images && service.images.length > 0 ? (
-              <div className="p-4 md:p-6">
+              <div className="p-4">
                 <Carousel className="w-full">
                   <CarouselContent>
                     {service.images.map((image, index) => (

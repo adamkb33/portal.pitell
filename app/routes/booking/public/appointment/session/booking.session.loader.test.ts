@@ -16,7 +16,7 @@ vi.mock('~/routes/booking/public/_services/booking.appointment-session.service.s
   },
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   AppointmentsController: {
     validateCompanyBooking: mocks.validateCompanyBooking,
   },

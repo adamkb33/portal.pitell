@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { data, Link, useNavigation, useSubmit } from 'react-router';
 import type { Route } from './+types/company.timesheet.register.route';
-import { CompanyUserTimesheetEntryController } from '~/api/generated/timesheet';
+import { CompanyUserTimesheetEntryController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
 import { resolveErrorPayload } from '~/lib/api-error';

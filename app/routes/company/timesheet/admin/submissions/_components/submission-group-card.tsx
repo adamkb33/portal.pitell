@@ -1,4 +1,4 @@
-import type { AdminEmployeeTimesheetEntriesDto, TimesheetDayEntryDto } from '~/api/generated/timesheet/types.gen';
+import type { AdminEmployeeTimesheetEntriesDto, TimesheetDayEntryDto } from '~/api/generated/types.gen';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Badge, Card } from '~/ui';
 import { SubmissionStatusSection } from './submission-status-section';
 

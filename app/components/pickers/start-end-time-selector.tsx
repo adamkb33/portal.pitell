@@ -10,9 +10,12 @@ type StartEndTimeSelectorProps = {
   onEndChange: (next: string) => void;
   startPlaceholder?: string;
   endPlaceholder?: string;
+  startLabel?: string;
+  endLabel?: string;
   zIndex?: number;
   endPanelAlign?: 'start' | 'end';
   panelMode?: 'overlay' | 'inline';
+  className?: string;
 };
 
 function toMinutes(value: string): number | null {
@@ -33,9 +36,12 @@ export function StartEndTimeSelector({
   onEndChange,
   startPlaceholder = 'Starttid',
   endPlaceholder = 'Sluttid',
+  startLabel,
+  endLabel,
   zIndex = 60,
   endPanelAlign = 'end',
   panelMode = 'overlay',
+  className,
 }: StartEndTimeSelectorProps) {
   const [isStartOpen, setIsStartOpen] = useState(false);
   const [isEndOpen, setIsEndOpen] = useState(false);
@@ -49,13 +55,14 @@ export function StartEndTimeSelector({
     }
   }, [startValue, endValue, onEndChange]);
 
-  return (
+  const fields = (
     <>
       <div>
         <input type="hidden" name={startName} value={startValue} />
         <TimePicker
           value={startValue}
           placeholder={startPlaceholder}
+          contextLabel={startLabel}
           isOpen={isStartOpen}
           onOpenChange={(open) => {
             setIsStartOpen(open);
@@ -72,6 +79,7 @@ export function StartEndTimeSelector({
         <TimePicker
           value={endValue}
           placeholder={endPlaceholder}
+          contextLabel={endLabel}
           isOpen={isEndOpen}
           onOpenChange={(open) => {
             if (!startValue) return;
@@ -88,4 +96,6 @@ export function StartEndTimeSelector({
       </div>
     </>
   );
+
+  return className ? <div className={className}>{fields}</div> : fields;
 }

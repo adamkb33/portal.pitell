@@ -18,13 +18,20 @@ export function FlashMessageBanner({ message }: FlashMessageProps) {
       ? message
       : null;
 
+  const [isPaused, setIsPaused] = React.useState(false);
+  const staysOpen = safeMessage?.type === 'error';
+
   React.useEffect(() => {
-    if (safeMessage) {
-      setIsVisible(true);
-      const hideTimer = setTimeout(() => setIsVisible(false), 5000);
-      return () => clearTimeout(hideTimer);
-    }
+    if (safeMessage) setIsVisible(true);
   }, [safeMessage]);
+
+  // Errors stay until closed: they may need reading twice or acting on (WCAG 2.2.1). Other toasts close after
+  // 5 seconds, but not while the pointer or keyboard focus is on them.
+  React.useEffect(() => {
+    if (!isVisible || staysOpen || isPaused) return;
+    const hideTimer = setTimeout(() => setIsVisible(false), 5000);
+    return () => clearTimeout(hideTimer);
+  }, [isVisible, staysOpen, isPaused, safeMessage]);
 
   if (!safeMessage || !isVisible) {
     return null;
@@ -66,9 +73,13 @@ export function FlashMessageBanner({ message }: FlashMessageProps) {
 
   return (
     <div className="fixed inset-x-0 top-0 z-[9999] p-4 pointer-events-none">
+      {/* Errors interrupt (role alert = assertive); everything else waits its turn (role status = polite). */}
       <div
-        role="status"
-        aria-live={isError ? 'assertive' : 'polite'}
+        role={isError ? 'alert' : 'status'}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onFocus={() => setIsPaused(true)}
+        onBlur={() => setIsPaused(false)}
         className={`animate-in fade-in-0 slide-in-from-top-2 mx-auto w-full max-w-md pointer-events-auto overflow-hidden rounded-lg border shadow-md ${container}`}
       >
         <div className={`h-0.5 w-full ${accent}`} />
@@ -78,8 +89,9 @@ export function FlashMessageBanner({ message }: FlashMessageProps) {
           </span>
           <p className="flex-1 text-sm font-medium leading-relaxed">{safeMessage.text}</p>
           <button
+            type="button"
             onClick={() => setIsVisible(false)}
-            className={`shrink-0 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100 ${closeHover}`}
+            className={`-m-1.5 grid size-9 shrink-0 place-items-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-current ${closeHover}`}
             aria-label="Lukk"
           >
             <X className="h-4 w-4" />

@@ -1,6 +1,17 @@
 // lib/flash.server.ts
+import { randomBytes } from 'node:crypto';
 import { createCookieSessionStorage, redirect } from 'react-router';
-import type { ApiMessage } from '~/api/generated/booking';
+import type { ApiMessage } from '~/api/generated';
+
+/**
+ * The secret that signs the flash cookie, so nobody can forge a toast. No setup needed: without SESSION_SECRET the
+ * server makes a random one each time it starts. A flash cookie only lives 5 seconds, so a restart just drops a toast
+ * that was in flight. Set SESSION_SECRET only if the app ever runs as several server instances behind a load balancer
+ * (they must share the secret to read each other's toasts).
+ */
+function flashCookieSecret(): string {
+  return process.env.SESSION_SECRET || randomBytes(32).toString('hex');
+}
 
 const { getSession, commitSession } = createCookieSessionStorage({
   cookie: {
@@ -9,7 +20,7 @@ const { getSession, commitSession } = createCookieSessionStorage({
     maxAge: 5,
     path: '/',
     sameSite: 'lax',
-    secrets: [process.env.SESSION_SECRET || 'default-secret'],
+    secrets: [flashCookieSecret()],
     secure: process.env.NODE_ENV === 'production',
   },
 });

@@ -4,7 +4,7 @@ import type {
   SignInResponseDto,
   SignUpResponseDto,
   UserAuthStatusDto,
-} from '~/api/generated/base';
+} from '~/api/generated';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 
 type NextStep =

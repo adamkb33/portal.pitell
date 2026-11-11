@@ -5,7 +5,7 @@ import { Button } from '~/ui';
 import { FormDialog } from '~/components/dialog/form-dialog';
 import { toast } from 'sonner';
 import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/routing/route-tree';
-import type { ContactDto } from '~/api/generated/base';
+import type { ContactDto } from '~/api/generated';
 
 export type ContactPickerProps = {
   contacts: ContactDto[];

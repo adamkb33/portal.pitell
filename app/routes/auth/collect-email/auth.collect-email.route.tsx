@@ -1,7 +1,7 @@
 import { Link, Form, data, redirect, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.collect-email.route';
 
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';

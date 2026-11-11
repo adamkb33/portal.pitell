@@ -1,4 +1,4 @@
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
 import { toDateInputValue } from './date';
 
 export const parseTimesheetId = (idParam: string | undefined) => {

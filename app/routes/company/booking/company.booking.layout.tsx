@@ -2,7 +2,7 @@ import { Link, Outlet } from 'react-router';
 
 import type { Route } from './+types/company.booking.layout';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { CompanyUserBookingController } from '~/api/generated/booking';
+import { CompanyUserBookingController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 
@@ -119,12 +119,6 @@ export default function CompanyBookingLayout({ loaderData }: Route.ComponentProp
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {loaderData.error && (
-        <div className="border-2 border-destructive bg-destructive/10 p-4 mb-4">
-          <p className="text-xs font-medium text-destructive">{loaderData.error}</p>
         </div>
       )}
 

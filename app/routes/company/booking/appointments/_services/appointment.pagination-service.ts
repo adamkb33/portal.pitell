@@ -1,5 +1,5 @@
 // ~/services/appointment-pagination.service.ts
-import { addDays, endOfDay, isSameDay } from 'date-fns';
+import { addDays, endOfDay, endOfWeek, format, isSameDay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { formatCurrentDateTimeInTimeZone, formatDateBoundaryInTimeZone, formatEndOfDayInTimeZone } from '~/lib/query';
 
@@ -9,6 +9,8 @@ export enum AppointmentPaginationQuickFilter {
   TODAY,
   NEXT_7_DAYS,
   NEXT_30_DAYS,
+  TOMORROW,
+  THIS_WEEK,
 }
 
 export class AppointmentPaginationService {
@@ -52,6 +54,17 @@ export class AppointmentPaginationService {
         // TODAY: both from and to are today
         if (isFromToday && isToToday) {
           return AppointmentPaginationQuickFilter.TODAY;
+        }
+
+        // TOMORROW: both from and to are tomorrow
+        const tomorrow = addDays(now, 1);
+        if (isSameDay(fromDt, tomorrow) && isSameDay(toDt, tomorrow)) {
+          return AppointmentPaginationQuickFilter.TOMORROW;
+        }
+
+        // THIS_WEEK: from now to the end of this week (Sunday)
+        if (isFromToday && isSameDay(toDt, endOfWeek(now, { weekStartsOn: 1 }))) {
+          return AppointmentPaginationQuickFilter.THIS_WEEK;
         }
 
         // For NEXT_7_DAYS and NEXT_30_DAYS, from should be today
@@ -148,6 +161,24 @@ export class AppointmentPaginationService {
     const endOfToday = formatEndOfDayInTimeZone(nowInNorway, timezone);
 
     this.handleQuickFilter(startOfToday, endOfToday);
+  };
+
+  handleTomorrowFilter = () => {
+    const timezone = 'Europe/Oslo';
+    const tomorrow = addDays(toZonedTime(new Date(), timezone), 1);
+    const startOfTomorrow = formatDateBoundaryInTimeZone(format(tomorrow, 'yyyy-MM-dd'), 'start', timezone);
+
+    this.handleQuickFilter(startOfTomorrow, formatEndOfDayInTimeZone(tomorrow, timezone));
+  };
+
+  handleThisWeekFilter = () => {
+    const timezone = 'Europe/Oslo';
+    const nowInNorway = toZonedTime(new Date(), timezone);
+
+    this.handleQuickFilter(
+      formatCurrentDateTimeInTimeZone(timezone),
+      formatEndOfDayInTimeZone(endOfWeek(nowInNorway, { weekStartsOn: 1 }), timezone),
+    );
   };
 
   handleNext7days = () => {

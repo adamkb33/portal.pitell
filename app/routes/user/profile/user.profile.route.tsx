@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Form, data, useMatches } from 'react-router';
-import { AuthController } from '~/api/generated/base';
-import type { UserDto } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
+import type { UserDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';

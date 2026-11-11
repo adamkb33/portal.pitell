@@ -1,16 +1,34 @@
-import { Link, data, useFetcher, useNavigate } from 'react-router';
+import { Link, data, useFetcher } from 'react-router';
 import { useState } from 'react';
-import { ArrowLeft, ImagePlus, Trash2 } from 'lucide-react';
 import type { Route } from './+types/company.booking.appointments.detail.route';
-import { CompanyUserAppointmentController } from '~/api/generated/booking';
+import { CompanyUserAppointmentController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, Label, Notice, Textarea } from '~/ui';
-import { AppointmentDetailsContent } from '../_components/appointment-details-content';
+import { Button, cn, CompanyPageTemplate, Label, Notice, Textarea } from '~/ui';
+import { AppointmentCard } from '../_components/appointment-card';
+import { isBookingAdmin, setNoShowFromForm } from '../_services/appointment-admin.server';
 import { isAppointmentCompleted } from '../_utils/appointments.utils';
+import type { UpHandle } from '~/lib/routing/up-link';
+
+export const handle: UpHandle = {
+  up: (loaderData) => {
+    const data = loaderData as { from?: string | null; returnTo?: string | null } | undefined;
+    if (data?.from !== 'kalender') return null;
+
+    const safeReturnTo = data.returnTo?.startsWith('/company/booking/schedule') ? data.returnTo : null;
+    if (!safeReturnTo) return { label: 'Kalender', href: ROUTES_MAP['company.booking.schedule'].href };
+
+    const returnUrl = new URL(safeReturnTo, 'http://localhost');
+    return {
+      label: 'Kalender',
+      href: returnUrl.pathname,
+      search: returnUrl.search,
+    };
+  },
+};
 
 export function parseAppointmentRouteId(value: string | undefined): number | null {
   if (!value) {
@@ -29,6 +47,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   try {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') === 'kalender' ? 'kalender' : null;
+    const requestedReturnTo = url.searchParams.get('returnTo');
+    const returnTo = requestedReturnTo?.startsWith('/company/booking/schedule') ? requestedReturnTo : null;
     const response = await withAuth(request, () =>
       CompanyUserAppointmentController.getAppointmentById1({
         path: { id: appointmentId },
@@ -41,7 +63,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       return data({ appointment: null, error: 'Fant ikke timebestillingen' }, { status: 404 });
     }
 
-    return data({ appointment, error: null as string | null });
+    return data({
+      appointment,
+      canMarkNoShow: await isBookingAdmin(request),
+      from,
+      returnTo,
+      error: null as string | null,
+    });
   } catch (error) {
     const { status, message } = resolveErrorPayload(error, 'Kunne ikke hente timebestilling');
 
@@ -64,6 +92,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
+
+  if (intent === 'no-show') {
+    return setNoShowFromForm(request, formData);
+  }
 
   if (intent !== 'delete') {
     return redirectWithError(request, request.url, 'Ukjent handling');
@@ -106,7 +138,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function CompanyBookingAppointmentDetailPage({ loaderData }: Route.ComponentProps) {
   const { appointment, error } = loaderData;
-  const navigate = useNavigate();
+  const canMarkNoShow = 'canMarkNoShow' in loaderData && loaderData.canMarkNoShow;
   const fetcher = useFetcher();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
@@ -114,12 +146,13 @@ export default function CompanyBookingAppointmentDetailPage({ loaderData }: Rout
   const isDeleting = fetcher.state !== 'idle';
   const isCompleted = appointment ? isAppointmentCompleted(appointment) : false;
 
-  const openUploadImagePage = () => {
-    if (!appointment?.id) {
-      return;
-    }
-
-    navigate(`${ROUTES_MAP['company.booking.appointments.upload-image'].href}?id=${appointment.id}`);
+  const handleToggleNoShow = () => {
+    if (!appointment) return;
+    const fd = new FormData();
+    fd.append('intent', 'no-show');
+    fd.append('id', String(appointment.id));
+    fd.append('noShow', String(!appointment.noShow));
+    fetcher.submit(fd, { method: 'post' });
   };
 
   const handleDeleteConfirm = () => {
@@ -138,16 +171,7 @@ export default function CompanyBookingAppointmentDetailPage({ loaderData }: Rout
   };
 
   return (
-    <CompanyPageTemplate
-      actions={
-        <Button asChild variant="outline" size="sm">
-          <Link to={ROUTES_MAP['company.booking.appointments'].href}>
-            <ArrowLeft className="h-4 w-4" />
-            Tilbake til timebestillinger
-          </Link>
-        </Button>
-      }
-    >
+    <CompanyPageTemplate title="Timebestilling">
       {error || !appointment ? (
         <Notice
           tone="emphasis"
@@ -161,28 +185,23 @@ export default function CompanyBookingAppointmentDetailPage({ loaderData }: Rout
         />
       ) : (
         <>
-          <AppointmentDetailsContent
-            appointment={appointment}
-            actions={
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={openUploadImagePage}>
-                  <ImagePlus className="h-4 w-4" />
-                  Last opp bilde
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  disabled={isDeleting || isCompleted}
-                  title={isCompleted ? 'Fullførte avtaler kan ikke slettes' : undefined}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Slett
-                </Button>
-              </div>
-            }
-          />
+          <section
+            aria-label="Avtaledetaljer"
+            className={cn(
+              'w-full max-w-[32rem] rounded-xl border p-3 sm:p-4',
+              appointment.noShow
+                ? 'border-dashed border-border-strong bg-surface-variant-1'
+                : 'border-border bg-background',
+            )}
+          >
+            <AppointmentCard
+              appointment={appointment}
+              onDelete={isCompleted ? undefined : () => setIsDeleteDialogOpen(true)}
+              isDeleting={isDeleting}
+              onToggleNoShow={canMarkNoShow && isCompleted ? handleToggleNoShow : undefined}
+              isTogglingNoShow={isDeleting}
+            />
+          </section>
 
           <DeleteConfirmDialog
             open={isDeleteDialogOpen}

@@ -1,13 +1,14 @@
+import type { loader as rootLoader } from '~/routes/root.layout';
 import * as React from 'react';
-import { Link } from 'react-router';
+import { Link, useRouteLoaderData } from 'react-router';
 import { CalendarDays, Clock3, PenLine } from 'lucide-react';
 import type { Route } from './+types/company.timesheet.route';
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
-import { CompanyUserTimesheetEntryController } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
+import { CompanyUserTimesheetEntryController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { CalendarView, type CalendarEntry } from '~/components/calendar/CalendarView';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
+import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
 import {
   Button,
   CompanyEmptyState,
@@ -59,6 +60,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function CompanyTimesheetRoute({ loaderData }: Route.ComponentProps) {
+  const rootData = useRouteLoaderData<typeof rootLoader>('routes/root.layout');
+  const canAdminister = rootData?.userNavigation?.[RoutePlaceMent.SIDEBAR]
+    ?.find((branch) => branch.id === 'company')
+    ?.children?.find((branch) => branch.id === 'company.timesheet')
+    ?.children?.some((branch) => branch.id === 'company.timesheet.admin');
   const entries = loaderData.entries;
   const error = loaderData.error;
   const calendarEntries: CalendarEntry[] = entries.map((entry) => ({
@@ -83,6 +89,13 @@ export default function CompanyTimesheetRoute({ loaderData }: Route.ComponentPro
       title="Timelister"
       description="Kalenderbasert oversikt over egne registreringer i samme kompakte sideoppsett som resten av company-domenet."
       label="Timeregistrering"
+      routeLinks={
+        canAdminister ? (
+          <Button asChild variant="outline" size="sm">
+            <Link to={ROUTES_MAP['company.timesheet.admin'].href}>Administrasjon</Link>
+          </Button>
+        ) : undefined
+      }
       actions={
         <Button asChild size="sm">
           <Link to={ROUTES_MAP['company.timesheet.register'].href}>Ny registrering</Link>

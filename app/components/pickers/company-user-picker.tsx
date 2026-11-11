@@ -1,5 +1,5 @@
 import { Badge, Button } from '~/ui';
-import type { PublicCompanyUserDto } from '~/api/generated/base';
+import type { PublicCompanyUserDto } from '~/api/generated';
 
 export type CompanyUserPickerProps = {
   companyUsers: PublicCompanyUserDto[];

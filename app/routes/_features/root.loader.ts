@@ -3,8 +3,8 @@ import { createNavigation } from '~/lib/routing/route-tree';
 import { authService } from '~/lib/auth-service';
 import { logger } from '~/lib/logger';
 import type { FlashMessage } from '~/lib/flash-message.server';
-import { AuthController } from '~/api/generated/base';
-import type { UserContextDto } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
+import type { UserContextDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { parseBookingContext } from '~/lib/booking-context.server';
 

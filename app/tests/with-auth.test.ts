@@ -1,32 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const baseSetConfig = vi.fn();
-const bookingSetConfig = vi.fn();
-const timesheetSetConfig = vi.fn();
-const notificationSetConfig = vi.fn();
+const setConfig = vi.fn();
 const parseAccessToken = vi.fn();
 
-vi.mock('~/api/generated/base/client.gen', () => ({
+vi.mock('~/api/generated/client.gen', () => ({
   client: {
-    setConfig: baseSetConfig,
-  },
-}));
-
-vi.mock('~/api/generated/booking/client.gen', () => ({
-  client: {
-    setConfig: bookingSetConfig,
-  },
-}));
-
-vi.mock('~/api/generated/timesheet/client.gen', () => ({
-  client: {
-    setConfig: timesheetSetConfig,
-  },
-}));
-
-vi.mock('~/api/generated/notification/client.gen', () => ({
-  client: {
-    setConfig: notificationSetConfig,
+    setConfig,
   },
 }));
 
@@ -45,10 +24,7 @@ vi.mock('~/lib/logger', () => ({
 
 describe('withAuth', () => {
   beforeEach(() => {
-    baseSetConfig.mockClear();
-    bookingSetConfig.mockClear();
-    timesheetSetConfig.mockClear();
-    notificationSetConfig.mockClear();
+    setConfig.mockClear();
     parseAccessToken.mockReset();
   });
 
@@ -64,17 +40,11 @@ describe('withAuth', () => {
     const result = await withAuth(request, async () => 'ok');
 
     expect(result).toBe('ok');
-    expect(baseSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: 'Bearer token-123' } });
-    expect(bookingSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: 'Bearer token-123' } });
-    expect(timesheetSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: 'Bearer token-123' } });
-    expect(notificationSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: 'Bearer token-123' } });
+    expect(setConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: 'Bearer token-123' } });
     // Reset must send an explicit `null`, not `{}` — the generated client's
     // mergeHeaders only clears a header when its value is null; an absent key
     // is left untouched, which silently kept the previous request's token.
-    expect(baseSetConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
-    expect(bookingSetConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
-    expect(timesheetSetConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
-    expect(notificationSetConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
+    expect(setConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
   });
 
   it('clears headers when no token exists', async () => {
@@ -84,10 +54,7 @@ describe('withAuth', () => {
 
     await withAuth(request, async () => 'ok');
 
-    expect(baseSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: null } });
-    expect(bookingSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: null } });
-    expect(timesheetSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: null } });
-    expect(notificationSetConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: null } });
-    expect(baseSetConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
+    expect(setConfig).toHaveBeenNthCalledWith(1, { headers: { Authorization: null } });
+    expect(setConfig).toHaveBeenLastCalledWith({ headers: { Authorization: null } });
   });
 });

@@ -1,7 +1,7 @@
 import { data, Form } from 'react-router';
 import { Building2, User } from 'lucide-react';
 import type { Route } from './+types/company.admin.settings.route';
-import { AdminCompanyController, CompanyUserController } from '~/api/generated/base';
+import { AdminCompanyController, CompanyUserController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

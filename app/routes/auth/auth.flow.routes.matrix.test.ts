@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
 }));
 
-vi.mock('~/api/generated/base', () => ({
+vi.mock('~/api/generated', () => ({
   AuthController: {
     signIn: mocks.signIn,
     getCompanyContexts: mocks.getCompanyContexts,

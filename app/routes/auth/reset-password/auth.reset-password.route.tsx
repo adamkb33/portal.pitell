@@ -3,7 +3,7 @@ import { Form, Link, redirect, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.reset-password.route';
 
 import { decodeResetPasswordToken } from './_utils/auth.reset-password.utils';
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -89,7 +89,7 @@ export default function AuthResetPassword({ loaderData }: Route.ComponentProps) 
       }
       bottom="Velg et nytt passord før lenken utløper."
     >
-      <Form method="post" className="space-y-6">
+      <Form method="post" className="space-y-4">
         <input type="hidden" name="resetPasswordToken" value={resetPasswordToken} />
 
         <FormField

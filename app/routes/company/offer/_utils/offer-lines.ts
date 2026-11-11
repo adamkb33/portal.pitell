@@ -1,4 +1,4 @@
-import type { OfferLineDto, ReplaceOfferLineRequest } from '~/api/generated/offer';
+import type { OfferLineDto, ReplaceOfferLineRequest } from '~/api/generated';
 
 export type OfferLineFormRow = {
   key: string;

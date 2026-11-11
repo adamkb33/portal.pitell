@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router';
 import type { Route } from './+types/company.booking.appointments.layout';
-import { CompanyUserBookingProfileController, type ApiMessage } from '~/api/generated/booking';
+import { CompanyUserBookingProfileController, type ApiMessage } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithInfo } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

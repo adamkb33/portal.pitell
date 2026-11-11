@@ -5,7 +5,8 @@ import { Pen } from 'lucide-react';
 import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/routing/route-tree';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { ServerPaginatedTable } from '~/components/table/server-side-table';
-import type { CompanyUserDto } from '~/api/generated/base';
+import { PageCreateButton } from '~/routes/_components/page-create-button';
+import type { CompanyUserDto } from '~/api/generated';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 import { Button, Input, TableCell, TableRow } from '~/ui';
 
@@ -101,16 +102,8 @@ export function EmployeesTable({ users, pagination }: EmployeesTableProps) {
             className="max-w-sm"
           />
         }
-        primaryAction={
-          <Button asChild size="sm">
-            <NavLink to={ROUTES_MAP['company.admin.employees.invite'].href}>Inviter en ny ansatt</NavLink>
-          </Button>
-        }
-        mobilePrimaryAction={
-          <Button asChild size="sm">
-            <NavLink to={ROUTES_MAP['company.admin.employees.invite'].href}>Inviter en ny ansatt</NavLink>
-          </Button>
-        }
+        // The page's create action; on phones the bottom menu's + does it.
+        primaryAction={<PageCreateButton size="sm" />}
         renderRow={(user) => (
           <TableRow>
             <TableCell className="font-medium">{formatName(user)}</TableCell>

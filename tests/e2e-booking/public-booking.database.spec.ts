@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
 import {
   SEEDED_SERVICES,
+  acceptTerms,
   completeGuestContact,
   fillContactForm,
   pickFirstAvailableTime,
@@ -86,6 +87,8 @@ test('guest booking persists verified contact, selected services, appointment, a
     'select count(*)::text as count from booking.appointments',
   );
   expect(beforeConfirmation.rows[0]?.count).toBe('0');
+
+  await acceptTerms(page);
 
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
@@ -278,6 +281,8 @@ test('a company with several providers lets the customer choose, and books the o
   await selectServicesAndTime(page, ['Herreklipp']);
   await completeGuestContact(page, { givenName: 'Chose', familyName: 'Bjørn', mobileNumber: '90000005' });
 
+  await acceptTerms(page);
+
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
 
@@ -305,10 +310,13 @@ test('two customers cannot book the same slot', async ({ page, browser, db }) =>
     );
     expect(contested.rows[0]?.distinct_start_times).toBe('1');
 
+    await acceptTerms(page);
+
     await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
     await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
 
     // The loser is sent back to pick another time rather than into a dead end.
+    await acceptTerms(secondPage);
     await secondPage.getByRole('button', { name: /Bekreft timebestilling/ }).click();
     await secondPage.waitForURL(/\/select-time/);
 
@@ -326,7 +334,7 @@ test('an expired challenge is refused even when the code is correct', async ({ p
   await db.query("update base.booking_otp_challenges set expires_at = now() - interval '1 minute'");
 
   await submitVerificationCode(page, '111111');
-  await expect(page.getByText('SMS-koden er utløpt. Be om en ny kode.')).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveText('Koden er utløpt. Be om en ny kode.');
 
   const stranded = await latestSession(db);
   expect(stranded.user_id).toBeNull();
@@ -340,9 +348,14 @@ test('choosing the same service twice books it with a quantity of two', async ({
   await page.goto('/booking/public/appointment/session?companyId=1&reset=1');
   await page.waitForURL(/\/select-services/);
   await selectServices(page, ['Hårklipp']);
-  await page.getByRole('button', { name: 'Legg til en til' }).click();
+  await page
+    .getByRole('group', { name: 'Antall Hårklipp', exact: true })
+    .getByRole('button', { name: 'Flere' })
+    .click();
   await pickFirstAvailableTime(page);
   await completeGuestContact(page, { givenName: 'Two', familyName: 'Cuts', mobileNumber: '90000009' });
+
+  await acceptTerms(page);
 
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
@@ -361,6 +374,7 @@ test('choosing the same service twice books it with a quantity of two', async ({
 test('a customer can cancel their own appointment', async ({ page, db }) => {
   await selectBookingDetails(page, ['Hårklipp']);
   await completeGuestContact(page, { givenName: 'Will', familyName: 'Cancel', mobileNumber: '90000010' });
+  await acceptTerms(page);
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
   const appointmentId = Number(new URL(page.url()).searchParams.get('appointmentId'));
@@ -374,8 +388,9 @@ test('a customer can cancel their own appointment', async ({ page, db }) => {
 
   await page.goto('/booking/public/my-appointments');
   await page.getByRole('link', { name: 'Avbestill' }).first().click();
-  await page.getByRole('button', { name: 'Avbestill', exact: true }).click();
-  await page.getByRole('button', { name: /Ja, avbestill/ }).click();
+  // The cancel page is the question itself: one tap, no second dialog.
+  await page.getByRole('button', { name: 'Avbestill timen', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Timen er avbestilt' })).toBeVisible();
 
   await expect
     .poll(async () => {
@@ -388,7 +403,10 @@ test('a customer can cancel their own appointment', async ({ page, db }) => {
     .toBe(true);
 });
 
-test('a confirmed booking records a skipped email and SMS for the customer', async ({ page, db }) => {
+test('a confirmed booking with an email address records only the skipped email for the customer', async ({
+  page,
+  db,
+}) => {
   await selectBookingDetails(page, ['Hårklipp']);
   await completeGuestContact(page, {
     givenName: 'Notified',
@@ -396,8 +414,10 @@ test('a confirmed booking records a skipped email and SMS for the customer', asy
     mobileNumber: '90000011',
     email: 'notified.guest@booking.e2e.invalid',
   });
+  await acceptTerms(page);
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
+  await expect(page.getByText('Vi har sendt bekreftelse på e-post.', { exact: true })).toBeVisible();
   const appointmentId = new URL(page.url()).searchParams.get('appointmentId');
 
   const customerDeliveries = await db.query<{
@@ -427,21 +447,16 @@ test('a confirmed booking records a skipped email and SMS for the customer', asy
       failed_at: null,
       provider_message_id: 'skipped:non-production',
     },
-    {
-      channel: 'SMS',
-      recipient_address: '+4790000011',
-      sent_at: null,
-      failed_at: null,
-      provider_message_id: 'skipped:non-production',
-    },
   ]);
 });
 
 test('a booking without an email address still succeeds and records only the SMS', async ({ page, db }) => {
   await selectBookingDetails(page, ['Hårklipp']);
   await completeGuestContact(page, { givenName: 'No', familyName: 'Email', mobileNumber: '90000012' });
+  await acceptTerms(page);
   await page.getByRole('button', { name: /Bekreft timebestilling/ }).click();
   await page.waitForURL(/\/booking\/public\/appointment\/success\?/);
+  await expect(page.getByText('Vi har sendt bekreftelse på SMS.', { exact: true })).toBeVisible();
   const appointmentId = new URL(page.url()).searchParams.get('appointmentId');
 
   const customerDeliveries = await db.query<{ channel: string; recipient_address: string }>(
@@ -469,10 +484,13 @@ test('five wrong codes exhaust the challenge, and the correct code no longer wor
   for (let attempt = 1; attempt <= 5; attempt += 1) {
     await submitVerificationCode(page, '000000');
     await expect.poll(recordedAttempts).toBe(attempt);
+    await expect(page.getByRole('alert')).toHaveText(
+      attempt < 5 ? `Feil kode. ${5 - attempt} forsøk igjen.` : 'For mange feil forsøk. Be om en ny kode.',
+    );
   }
 
   await submitVerificationCode(page, '111111');
-  await expect(page.getByText('For mange forsøk. Be om en ny kode.')).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveText('For mange feil forsøk. Be om en ny kode.');
   expect((await latestSession(db)).user_id).toBeNull();
 });
 

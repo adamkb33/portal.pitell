@@ -1,36 +1,38 @@
 import * as React from 'react';
-import { Bell, BellRing, ChevronRight, Circle } from 'lucide-react';
-import { Link } from 'react-router';
+import { createPortal } from 'react-dom';
+import { Bell, ChevronRight } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
 import axios from 'axios';
-import { type InAppNotificationDto } from '~/api/generated/notification';
+import type { InAppNotificationDto } from '~/api/generated';
 import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/routing/route-tree';
-import { formatNotificationTimestamp } from '~/routes/company/notifications/_utils/format';
-import { getNotificationHeadline } from '~/routes/company/notifications/_utils/query';
-import {
-  Badge,
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '~/ui';
+import { NotificationRow } from '~/routes/company/notifications/_components/notification-row';
+import { notificationTimeLabel } from '~/routes/company/notifications/_utils/notification-display';
+import { cn, Popover, PopoverContent, PopoverTrigger } from '~/ui';
+import { navbarIconButtonClassName, navbarOnBrandClassName } from './navbar-controls';
 
 const NAVBAR_NOTIFICATION_POLL_MS = 15_000;
 const NAVBAR_NOTIFICATION_API_URL = API_ROUTES_MAP['auth.navbar-notifications'].url;
 
 type NavbarNotificationsState = {
   items: InAppNotificationDto[];
-  hasUnread: boolean;
+  unreadCount: number;
 };
 
-export function NavbarNotificationBell() {
-  const notificationsHref = ROUTES_MAP['company.notifications'].href;
-  const [notifications, setNotifications] = React.useState<NavbarNotificationsState>({
+/**
+ * The bell and its panel (approved sketch 2026-11-10): the latest notifications in the same rows as the Varsler page,
+ * how many are unread, and "Se alle varsler". A popover on desktop; on phones the same panel drops full width under
+ * the blue bar and dims the page behind it.
+ * `onBrand`: sits on the blue phone bar below `lg` (white icon); desktop keeps the white header's colors.
+ */
+export function NavbarNotificationBell({ onBrand = false }: { onBrand?: boolean }) {
+  const { pathname } = useLocation();
+  const [open, setOpen] = React.useState(false);
+  const [{ items, unreadCount }, setNotifications] = React.useState<NavbarNotificationsState>({
     items: [],
-    hasUnread: false,
+    unreadCount: 0,
   });
 
+  // Load now, every 15 s, and after every navigation: opening a notification reads it, so the count drops at once.
   React.useEffect(() => {
     let isActive = true;
     let currentController: AbortController | null = null;
@@ -39,128 +41,117 @@ export function NavbarNotificationBell() {
       currentController?.abort();
       const controller = new AbortController();
       currentController = controller;
-
       try {
-        const response = await axios.get<NavbarNotificationsState | { error?: string }>(NAVBAR_NOTIFICATION_API_URL, {
+        const { data: payload } = await axios.get<Partial<NavbarNotificationsState>>(NAVBAR_NOTIFICATION_API_URL, {
           withCredentials: true,
           signal: controller.signal,
         });
-
-        const payload = response.data;
-
-        if (!isActive || controller.signal.aborted) {
-          return;
-        }
-
-        if ('items' in payload && 'hasUnread' in payload) {
-          setNotifications({
-            items: payload.items ?? [],
-            hasUnread: Boolean(payload.hasUnread),
-          });
-        }
-      } catch {}
+        if (!isActive || controller.signal.aborted || !Array.isArray(payload.items)) return;
+        setNotifications({ items: payload.items, unreadCount: Number(payload.unreadCount ?? 0) });
+      } catch {
+        // Keep showing the last known state; the next poll tries again.
+      }
     };
 
     void loadNotifications();
-
-    const intervalId = window.setInterval(() => {
-      void loadNotifications();
-    }, NAVBAR_NOTIFICATION_POLL_MS);
+    const intervalId = window.setInterval(() => void loadNotifications(), NAVBAR_NOTIFICATION_POLL_MS);
 
     return () => {
       isActive = false;
       currentController?.abort();
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [pathname]);
 
-  const { items, hasUnread } = notifications;
+  // A new page closes the panel (Escape and taps outside close it already).
+  React.useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  const close = () => setOpen(false);
+  const unreadLabel = unreadCount > 9 ? '9+' : String(unreadCount);
+  const now = new Date();
 
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={hasUnread ? 'Varsler med uleste meldinger' : 'Varsler'}
-          className="relative h-11 w-11 rounded-md border border-navbar-border bg-navbar-icon-bg text-navbar-text hover:bg-navbar-accent hover:border-primary hover:text-primary transition-all duration-200"
-        >
-          {hasUnread ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-          {hasUnread && (
-            <>
-              <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-destructive" aria-hidden="true" />
-              <span className="sr-only">Du har uleste varsler</span>
-            </>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={unreadCount > 0 ? `Varsler, ${unreadCount} uleste` : 'Varsler'}
+          className={cn(
+            navbarIconButtonClassName,
+            onBrand && navbarOnBrandClassName,
+            'data-[state=open]:bg-blue-50 data-[state=open]:text-interactive',
+            onBrand && 'data-[state=open]:bg-on-brand-hover data-[state=open]:text-on-brand',
+            onBrand && 'lg:data-[state=open]:bg-blue-50 lg:data-[state=open]:text-interactive',
           )}
-        </Button>
-      </DropdownMenuTrigger>
+        >
+          <Bell className="size-5" strokeWidth={1.75} aria-hidden />
+          {unreadCount > 0 ? (
+            <span
+              aria-hidden
+              className={cn(
+                'absolute top-1 right-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] leading-none font-semibold text-text-inverse ring-2 ring-background',
+                onBrand && 'ring-interactive lg:ring-background',
+              )}
+            >
+              {unreadLabel}
+            </span>
+          ) : null}
+        </button>
+      </PopoverTrigger>
 
-      <DropdownMenuContent align="end" className="w-[min(92vw,24rem)] p-0">
-        <div className="border-b border-border/60 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <DropdownMenuLabel className="px-0 pt-0 pb-1 text-[11px]">Varsler</DropdownMenuLabel>
-              <p className="text-sm font-medium text-foreground">
-                {hasUnread ? 'Du har uleste varsler' : 'Siste varsler'}
-              </p>
-            </div>
-            <Badge variant={hasUnread ? 'primary' : 'secondary'} className="shrink-0">
-              {hasUnread ? 'Ulest' : 'Oppdatert'}
-            </Badge>
-          </div>
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              aria-hidden
+              className="fixed inset-x-0 top-[var(--app-header-height)] bottom-0 z-55 bg-scrim lg:hidden"
+            />,
+            document.body,
+          )
+        : null}
+
+      <PopoverContent
+        align="end"
+        collisionPadding={0}
+        aria-label="Varsler"
+        className="w-screen max-w-none overflow-hidden rounded-none rounded-b-2xl border-x-0 border-t-0 p-0 shadow-(--shadow-floating) lg:w-[25rem] lg:rounded-2xl lg:border-x lg:border-t"
+      >
+        <div className="flex items-baseline justify-between gap-3 px-4 pt-3.5 pb-3 sm:px-5">
+          <h2 className="font-display text-[1.0625rem] font-semibold tracking-tight text-text-primary">Varsler</h2>
+          {unreadCount > 0 ? (
+            <span className="text-sm text-text-secondary">
+              {unreadCount} {unreadCount === 1 ? 'ulest' : 'uleste'}
+            </span>
+          ) : null}
         </div>
 
         {items.length > 0 ? (
-          <div className="max-h-[min(60vh,26rem)] overflow-y-auto p-2">
-            {items.map((notification) => {
-              const href = ROUTES_MAP['company.notifications.view'].href.replace(':id', notification.id.toString());
-              const isUnread = notification.readAt == null;
-
-              return (
-                <DropdownMenuItem key={notification.id} asChild className="items-start px-0 py-0 focus:bg-transparent">
-                  <Link
-                    to={href}
-                    className="flex w-full items-start gap-3 rounded-md px-3 py-3 hover:bg-accent/10 focus:bg-accent/15"
-                  >
-                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      {isUnread ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="line-clamp-1 text-sm font-semibold text-foreground">
-                          {getNotificationHeadline(notification)}
-                        </p>
-                        {isUnread && <Circle className="mt-1 h-2.5 w-2.5 shrink-0 fill-current text-primary" />}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                        {notification.content}
-                      </p>
-                      <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                        {formatNotificationTimestamp(notification.createdAt)}
-                      </p>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
-          </div>
+          <ul className="max-h-[min(60vh,26rem)] divide-y divide-border overflow-y-auto border-t border-border">
+            {items.map((notification) => (
+              <li key={notification.id}>
+                <NotificationRow
+                  notification={notification}
+                  time={notificationTimeLabel(notification.createdAt, now)}
+                  chevron={false}
+                  onNavigate={close}
+                />
+              </li>
+            ))}
+          </ul>
         ) : (
-          <div className="px-4 py-6 text-center">
-            <p className="text-sm font-medium text-foreground">Ingen varsler ennå</p>
-            <p className="mt-1 text-xs text-muted-foreground">Nye in-app varsler vises her når de kommer inn.</p>
-          </div>
+          <p className="border-t border-border px-5 py-8 text-center text-sm text-text-secondary">Ingen varsler</p>
         )}
 
-        <div className="border-t border-border/60 p-2">
-          <DropdownMenuItem asChild className="justify-between">
-            <Link to={notificationsHref}>
-              Se alle varsler
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </DropdownMenuItem>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <Link
+          to={ROUTES_MAP['company.notifications'].href}
+          onClick={close}
+          className="flex h-12 items-center justify-center gap-1 border-t border-border text-sm font-semibold text-interactive transition-colors hover:bg-surface-variant-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive"
+        >
+          Se alle varsler
+          <ChevronRight className="size-4" aria-hidden />
+        </Link>
+      </PopoverContent>
+    </Popover>
   );
 }

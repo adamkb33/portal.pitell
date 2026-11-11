@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Form, data, redirect, useNavigation } from 'react-router';
 import { Mail, Phone, Plus } from 'lucide-react';
-import { Booking, PublicAppointmentSessionController } from '~/api/generated/booking';
+import { Booking, PublicAppointmentSessionController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
@@ -17,9 +17,10 @@ import {
 } from '~/routes/booking/public/_utils/booking-flow-log.server';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
-import { Input, Label, Notice, Stack, Text } from '~/ui';
+import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
+import { BookingStepTemplate, Input, Label, Notice, Text } from '~/ui';
 import { submitContactFormSchema } from './_schemas/submit-contact.form.schema';
-import { BOOKING_CONTACT_LABEL_CLASS, BOOKING_CONTACT_PAGE_HEADER_CLASS } from './_utils/booking-contact-theme';
+import { BOOKING_CONTACT_LABEL_CLASS } from './_utils/booking-contact-theme';
 import { clearManualContactOverride, hasManualContactOverride } from './_utils/manual-contact-override.cookie.server';
 import { mobileVerificationTokenCookie } from './_utils/mobile-verification-token.cookie.server';
 import type { Route } from './+types/booking.public.appointment.session.contact.route';
@@ -311,6 +312,7 @@ export default function BookingSessionContactPage({ loaderData, actionData }: Ro
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== 'idle';
   const routes = getBookingRouteMap();
+  const companyName = useBookingCompanyName();
   const pendingIntent = isSubmitting ? String(navigation.formData?.get('intent') ?? '') : '';
   const pendingDestination = isSubmitting
     ? `${navigation.location?.pathname ?? ''}${navigation.location?.search ?? ''}`
@@ -319,42 +321,31 @@ export default function BookingSessionContactPage({ loaderData, actionData }: Ro
     actionData && typeof actionData === 'object' && 'error' in actionData ? String(actionData.error) : null;
 
   return (
-    <Stack space="xl">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
-        <div className={BOOKING_CONTACT_PAGE_HEADER_CLASS}>
-          <Text as="p" variant="overline" className="text-booking-action">
-            Kontakt
-          </Text>
-          <Text as="h1" variant="heading-lg" className="text-booking-text">
-            {loaderData.isEditingContact ? 'Endre kontaktinformasjon' : 'Hvordan når vi deg?'}
-          </Text>
-          <Text as="p" variant="body" className="max-w-2xl text-booking-text-muted">
-            Etterpå får du se over alt før du bekrefter timebestillingen.
-          </Text>
-        </div>
-
-        {errorMessage ? (
-          <Notice variant="booking" tone="emphasis" title="Kunne ikke fortsette" message={errorMessage} />
-        ) : null}
-        {loaderData.requirementsError ? (
-          <Notice
-            variant="booking"
-            tone="emphasis"
-            title="Fyll ut kontaktinformasjonen"
-            message={loaderData.requirementsError}
-          />
-        ) : null}
-
-        <ContactForm
-          routes={routes}
-          isSubmitting={isSubmitting}
-          pendingIntent={pendingIntent}
-          pendingDestination={pendingDestination}
-          isEditingContact={loaderData.isEditingContact}
-          initialContact={loaderData.initialContact}
+    <BookingStepTemplate
+      label={companyName}
+      title={loaderData.isEditingContact ? 'Endre kontaktinformasjon' : 'Hvordan når vi deg?'}
+    >
+      {errorMessage ? (
+        <Notice variant="booking" tone="emphasis" title="Kunne ikke fortsette" message={errorMessage} />
+      ) : null}
+      {loaderData.requirementsError ? (
+        <Notice
+          variant="booking"
+          tone="emphasis"
+          title="Fyll ut kontaktinformasjonen"
+          message={loaderData.requirementsError}
         />
-      </div>
-    </Stack>
+      ) : null}
+
+      <ContactForm
+        routes={routes}
+        isSubmitting={isSubmitting}
+        pendingIntent={pendingIntent}
+        pendingDestination={pendingDestination}
+        isEditingContact={loaderData.isEditingContact}
+        initialContact={loaderData.initialContact}
+      />
+    </BookingStepTemplate>
   );
 }
 
@@ -377,10 +368,10 @@ function ContactForm({
   const isCancellingEdit = pendingIntent === 'cancel-edit';
 
   return (
-    <Form method="post" className="space-y-6">
+    <Form method="post" className="space-y-4">
       {isEditingContact ? <input type="hidden" name="replacement" value="1" readOnly /> : null}
 
-      <div className={`${CARD_CLASS} space-y-5 p-4 md:p-6`}>
+      <div className={`${CARD_CLASS} space-y-4 p-4`}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="givenName" className={BOOKING_CONTACT_LABEL_CLASS}>
@@ -468,7 +459,7 @@ function ContactForm({
             type="button"
             disabled={isSubmitting}
             onClick={() => setShowEmail(true)}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-booking-action hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-booking-action-text hover:underline"
           >
             <Plus className="size-4" />
             Legg til e-post (valgfritt)

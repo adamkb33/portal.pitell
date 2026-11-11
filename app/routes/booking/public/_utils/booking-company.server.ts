@@ -1,4 +1,4 @@
-import { PublicCompanyController, type CompanySummaryDto } from '~/api/generated/base';
+import { PublicCompanyController, type CompanySummaryDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function getBookingCompanySummary(companyId: number, request: Request): Promise<CompanySummaryDto | null> {

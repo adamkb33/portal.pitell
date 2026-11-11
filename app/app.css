@@ -5,6 +5,18 @@
 
 /* Global base styles */
 @layer base {
+  /* A floating action bar (form Lagre bar, booking bar) covers the bottom of the screen on phones. Make the browser
+     scroll focused fields clear of it (WCAG 2.4.11 Focus Not Obscured). */
+  @media (width < 64rem) {
+    html:has([data-floating-action-bar]) {
+      scroll-padding-bottom: 7rem;
+    }
+    /* The bottom menu plus the page's create button above it. */
+    html:has([data-bottom-menu-create]) {
+      scroll-padding-bottom: 9.5rem;
+    }
+  }
+
   html,
   body {
     height: 100%;
@@ -41,135 +53,59 @@
   .google-sign-in-button > div > div:first-child {
     display: none !important;
   }
+}
 
-  .schedule-calendar {
-    @apply overflow-hidden rounded-2xl border border-border bg-surface shadow-sm;
-  }
+/*
+ * The sidebar and phone menu: navy chrome (chrome-* tokens) with a quiet background — a soft blue glow behind the
+ * company card, a dot grid that fades out by the middle, and two thin rings in the bottom corner.
+ */
+.app-sidebar {
+  isolation: isolate;
+  background-color: var(--color-chrome);
+  color: var(--color-chrome-text);
+}
 
-  .schedule-calendar .fc {
-    --fc-border-color: var(--color-border);
-    --fc-page-bg-color: var(--color-surface);
-    --fc-neutral-bg-color: var(--color-background);
-    --fc-today-bg-color: var(--color-surface-primary-subtle);
-    --fc-now-indicator-color: var(--color-interactive);
-    @apply text-text-primary;
-  }
+.app-sidebar::before,
+.app-sidebar::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
 
-  .schedule-calendar .fc-theme-standard td,
-  .schedule-calendar .fc-theme-standard th,
-  .schedule-calendar .fc-scrollgrid {
-    @apply border-border;
-  }
+.app-sidebar::before {
+  inset: 0;
+  background:
+    radial-gradient(
+      16rem 12rem at 30% 4.5rem,
+      color-mix(in oklab, var(--color-interactive) 25%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(circle, var(--color-on-brand-decoration) 1px, transparent 1.2px) 0 0 / 16px 16px;
+  mask-image: linear-gradient(#000, #000 35%, transparent 75%);
+}
 
-  .schedule-calendar .fc-col-header-cell {
-    @apply bg-background py-3 text-xs font-semibold uppercase text-text-secondary;
-  }
+.app-sidebar::after {
+  right: 0;
+  bottom: 0;
+  width: 10rem;
+  height: 10rem;
+  --ring: color-mix(in oklab, var(--color-pure-white) 5%, transparent);
+  background:
+    radial-gradient(circle at 100% 100%, transparent 99px, var(--ring) 100px 101.5px, transparent 102.5px),
+    radial-gradient(circle at 100% 100%, transparent 159px, var(--ring) 160px 161.5px, transparent 162.5px);
+}
 
-  .schedule-calendar .fc-timegrid-axis,
-  .schedule-calendar .fc-timegrid-slot-label {
-    @apply bg-background text-xs font-medium text-text-secondary;
-  }
-
-  .schedule-calendar .fc-timegrid-slot {
-    @apply h-9;
-  }
-
-  .schedule-calendar .fc-timegrid-slot-minor {
-    @apply border-border/50;
-  }
-
-  .schedule-calendar .fc-non-business {
-    @apply bg-background/70;
-  }
-
-  .schedule-calendar .fc-timegrid-now-indicator-line {
-    @apply border-interactive;
-  }
-
-  .schedule-calendar .fc-timegrid-now-indicator-arrow {
-    border-color: var(--color-interactive);
-  }
-
-  .schedule-calendar .fc-highlight {
-    @apply bg-interactive/15;
-  }
-
-  .schedule-calendar .fc-event {
-    @apply cursor-pointer overflow-hidden rounded-lg border px-1.5 py-0 shadow-sm;
-  }
-
-  .schedule-calendar .fc-event-main {
-    @apply flex h-full min-w-0 items-center overflow-hidden;
-    color: inherit;
-    container-type: inline-size;
-  }
-
-  .schedule-calendar .schedule-event-content {
-    @apply flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] leading-none;
-  }
-
-  .schedule-calendar .schedule-event-time {
-    @apply shrink-0 font-semibold;
-  }
-
-  .schedule-calendar .schedule-event-title {
-    @apply min-w-0 truncate font-medium;
-  }
-
-  .schedule-calendar .schedule-event-appointment {
-    background-color: var(--color-blue-600) !important;
-    border-color: color-mix(in oklab, var(--color-blue-700) 82%, transparent) !important;
-    color: var(--color-text-inverse) !important;
-  }
-
-  .schedule-calendar .schedule-event-upcoming.schedule-event-appointment {
-    box-shadow:
-      inset 3px 0 0 color-mix(in oklab, var(--color-blue-700) 88%, white),
-      0 1px 2px color-mix(in oklab, var(--color-blue-700) 18%, transparent);
-  }
-
-  .schedule-calendar .schedule-event-past.schedule-event-appointment {
-    background-color: color-mix(in oklab, var(--color-slate-500) 82%, var(--color-background)) !important;
-    border-color: color-mix(in oklab, var(--color-slate-500) 82%, transparent) !important;
-    color: var(--color-text-inverse) !important;
-    box-shadow: inset 3px 0 0 var(--color-slate-700);
-  }
-
-  .schedule-calendar .schedule-event-availability {
-    background-color: var(--color-success) !important;
-    border-color: color-mix(in oklab, var(--color-success) 72%, black) !important;
-    color: var(--color-text-inverse) !important;
-    box-shadow: inset 3px 0 0 color-mix(in oklab, var(--color-success) 70%, black);
-  }
-
-  .schedule-calendar .schedule-event-unavailability {
-    background-color: var(--color-warning) !important;
-    border-color: color-mix(in oklab, var(--color-warning) 72%, black) !important;
-    color: var(--color-text-primary) !important;
-    box-shadow: inset 3px 0 0 color-mix(in oklab, var(--color-warning) 64%, black);
-  }
-
-  .schedule-calendar .schedule-event-cancelled {
-    background-color: var(--color-slate-400) !important;
-    border-color: var(--color-slate-500) !important;
-    color: var(--color-text-inverse) !important;
-    opacity: 0.76;
-  }
-
-  .schedule-calendar .schedule-event-cancelled .schedule-event-title {
-    @apply line-through;
-  }
-
-  .schedule-calendar .schedule-event-no-show {
-    background-color: var(--color-danger) !important;
-    border-color: color-mix(in oklab, var(--color-danger) 74%, black) !important;
-    color: var(--color-text-inverse) !important;
-    box-shadow: inset 3px 0 0 color-mix(in oklab, var(--color-danger) 70%, black);
-  }
-
-  @container (max-width: 9rem) {
-    .schedule-calendar .schedule-event-title {
-      display: none;
-    }
-  }
+/*
+ * Ny time (company side) reuses the customer booking flow's service rows and time pickers. They are coloured by the
+ * booking-* tokens (the salon's colour, indigo by default); inside this scope they take the company's blue instead.
+ * The derived tokens are set here too, because they are resolved where they are declared (:root), not where used.
+ */
+.company-booking-scope {
+  --color-booking-action: var(--color-interactive);
+  --color-booking-action-hover: var(--color-interactive-hover);
+  --color-booking-action-muted: color-mix(in oklab, var(--color-interactive) 10%, var(--color-surface));
+  --color-booking-action-ring: color-mix(in oklab, var(--color-interactive) 35%, transparent);
+  --color-booking-action-text: var(--color-interactive);
+  --color-booking-border-strong: color-mix(in oklab, var(--color-border) 72%, var(--color-interactive));
 }

@@ -1,5 +1,6 @@
 import { Form } from 'react-router';
-import type { BookingProfileDto } from '~/api/generated/booking';
+import type { BookingProfileDto } from '~/api/generated';
+import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
 import { OVERVIEW_RETURN_VALUE } from '~/routes/booking/public/_utils/booking-return-to';
 import { Button, Card, CardContent, CardFooter, Popover, PopoverContent, PopoverTrigger, Text, cn } from '~/ui';
 
@@ -22,7 +23,7 @@ export function ProfileCard({
     <Card
       variant="default"
       className={cn(
-        'group flex h-full min-h-64 flex-col border-booking-border bg-booking-surface-subtle shadow-[var(--shadow-booking-card)] transition-colors focus-within:ring-[length:var(--border-booking-focus-ring)] focus-within:ring-booking-action',
+        'group flex h-full flex-col border-booking-border bg-booking-surface-subtle shadow-[var(--shadow-booking-card)] transition-colors focus-within:ring-[length:var(--border-booking-focus-ring)] focus-within:ring-booking-action-text',
         isSelected
           ? 'border-booking-action bg-booking-action-muted ring-[length:var(--border-booking-focus-ring)] ring-booking-action/35'
           : 'hover:border-booking-action/20 hover:bg-booking-surface-muted',
@@ -31,7 +32,7 @@ export function ProfileCard({
     >
       <div className="mb-4 space-y-2">
         {isSelected ? (
-          <Text as="p" variant="overline" className="text-booking-action">
+          <Text as="p" variant="overline" className="text-booking-action-text">
             Valgt behandler
           </Text>
         ) : null}
@@ -91,8 +92,12 @@ export function ProfileCard({
                             >
                               <span className="text-sm text-booking-text">{service.name}</span>
                               <div className="flex flex-shrink-0 items-baseline gap-2">
-                                <span className="text-xs text-booking-text-muted">Fra {service.duration} min</span>
-                                <span className="text-sm font-medium text-booking-text">{service.price} kr</span>
+                                <span className="text-xs text-booking-text-muted">
+                                  {formatEstimatedDuration(service.duration)}
+                                </span>
+                                <span className="text-sm font-medium text-booking-text">
+                                  {formatEstimatedPrice(service.price)}
+                                </span>
                               </div>
                             </div>
                           ))}

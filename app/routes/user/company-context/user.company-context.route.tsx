@@ -1,7 +1,8 @@
 import { data, Form, redirect, useNavigation } from 'react-router';
 import { Building2, ChevronRight, MapPin } from 'lucide-react';
-import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
-import { AuthController, type CompanySummaryDto } from '~/api/generated/base';
+import { authService } from '~/lib/auth-service';
+import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
+import { AuthController, type CompanySummaryDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import type { Route } from './+types/user.company-context.route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -13,14 +14,29 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const returnTo = getSafeReturnTo(url.searchParams.get('returnTo'));
 
+  const auth = await getAuthPayloadFromRequest(request);
+
   return withAuth(request, async () => {
     try {
       const response = await AuthController.getCompanyContexts();
+      const companyContexts = response.data?.data ?? [];
 
-      return data({
-        companyContexts: response.data?.data,
-        returnTo,
-      });
+      if (companyContexts.length === 1) {
+        const companyId = companyContexts[0].id;
+
+        if (auth?.companyId === companyId) {
+          return redirect(returnTo ?? '/');
+        }
+
+        try {
+          return await signInToCompany(companyId, returnTo ?? ROUTES_MAP['company'].href);
+        } catch (error) {
+          console.error('[company-context] Automatic sign-in error:', error);
+          return redirectWithError(request, '/', 'Kunne ikke logge inn i selskapet. Prøv igjen.');
+        }
+      }
+
+      return data({ companyContexts, returnTo });
     } catch (error: any) {
       console.error('[company-context] Loader error:', error);
       return data({ companyContexts: [], returnTo });
@@ -40,35 +56,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   return withAuth(request, async () => {
     try {
-      const response = await AuthController.companySignIn({
-        body: {
-          companyId: parseInt(companyId.toString()),
-        },
-      });
-
-      const payload = response.data?.data;
-
-      if (!payload) {
-        return redirectWithError(
-          request,
-          ROUTES_MAP['user.company-context'].href,
-          'En feil har skjedd ved innlogging til selskap',
-        );
-      }
-
-      const accessCookie = await accessTokenCookie.serialize(payload.accessToken, {
-        expires: new Date(payload.accessTokenExpiresAt * 1000),
-      });
-      const refreshCookie = await refreshTokenCookie.serialize(payload.refreshToken, {
-        expires: new Date(payload.refreshTokenExpiresAt * 1000),
-      });
-
-      return redirect(returnTo ?? '/', {
-        headers: [
-          ['Set-Cookie', accessCookie],
-          ['Set-Cookie', refreshCookie],
-        ],
-      });
+      return await signInToCompany(parseInt(companyId.toString()), returnTo ?? '/');
     } catch (error: any) {
       console.error('[company-context] Action error:', error);
       return redirectWithError(
@@ -78,6 +66,23 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
   });
+}
+
+async function signInToCompany(companyId: number, destination: string) {
+  const response = await AuthController.companySignIn({ body: { companyId } });
+  const tokens = response.data?.data;
+
+  if (!tokens) {
+    throw new Error('Company sign-in did not return tokens');
+  }
+
+  const headers = await authService.setAuthCookies(
+    tokens.accessToken,
+    tokens.refreshToken,
+    tokens.accessTokenExpiresAt,
+    tokens.refreshTokenExpiresAt,
+  );
+  return redirect(destination, { headers });
 }
 
 export default function CompanyContextPage({ loaderData }: Route.ComponentProps) {

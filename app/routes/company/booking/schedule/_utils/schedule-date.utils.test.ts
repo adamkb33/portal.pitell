@@ -23,6 +23,10 @@ describe('schedule date utils', () => {
     expect(toSafeScheduleDate(null)).toBe('2026-07-06');
   });
 
+  it('preserves the selected day within an allowed week', () => {
+    expect(toSafeScheduleDate('2026-07-08')).toBe('2026-07-08');
+  });
+
   it('allows exactly four weeks of future navigation', () => {
     expect(FUTURE_WEEK_NAVIGATION_LIMIT).toBe(4);
     expect(toSafeScheduleDate('2026-08-03')).toBe('2026-08-03');

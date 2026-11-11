@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createNavigation, RoutePlaceMent } from '~/lib/routing/route-tree';
-import type { UserContextDto } from '~/api/generated/base';
+import type { UserContextDto } from '~/api/generated';
 
 const createUserContext = (
   roles: Array<'ADMIN' | 'EMPLOYEE'>,
-  products: Array<'BOOKING' | 'EVENT' | 'TIMESHEET'> = ['BOOKING'],
+  products: Array<'BOOKING' | 'EVENT' | 'OFFER' | 'MARKETING' | 'TIMESHEET'> = ['BOOKING'],
 ): UserContextDto => ({
   user: {
     id: 1,
@@ -53,8 +53,19 @@ describe('createNavigation', () => {
     expect(companyContext).toBeUndefined();
   });
 
-  it('shows company context link when user has memberships', () => {
+  it('hides company context link when user has one company', () => {
     const nav = createNavigation(createUserContext(['ADMIN']));
+    expect(nav[RoutePlaceMent.NAVIGATION].some((route) => route.id === 'user.company-context')).toBe(false);
+  });
+
+  it('shows company context link when user has multiple companies', () => {
+    const userContext = createUserContext(['ADMIN']);
+    const membership = userContext.companies[0];
+    userContext.companies.push({
+      ...membership,
+      company: { id: 101, orgNumber: '987654321', name: 'Second company' },
+    });
+    const nav = createNavigation(userContext);
     const companyContext = nav[RoutePlaceMent.NAVIGATION].find((r) => r.id === 'user.company-context');
     expect(companyContext).toBeDefined();
   });
@@ -86,6 +97,26 @@ describe('createNavigation', () => {
     const company = nav[RoutePlaceMent.SIDEBAR].find((r) => r.id === 'company');
     const booking = company?.children?.find((c) => c.id === 'company.booking');
     expect(booking).toBeUndefined();
+  });
+
+  it('shows marketing to an admin whose company has MARKETING, without its hidden pages', () => {
+    const nav = createNavigation(createUserContext(['ADMIN'], ['MARKETING']));
+    const company = nav[RoutePlaceMent.SIDEBAR].find((r) => r.id === 'company');
+    const marketing = company?.children?.find((c) => c.id === 'company.marketing');
+    expect(marketing).toMatchObject({ href: '/company/marketing', label: 'Markedsføring', iconName: 'Megaphone' });
+    expect(marketing?.children).toBeUndefined();
+  });
+
+  it('hides marketing from an employee even when the company has MARKETING', () => {
+    const nav = createNavigation(createUserContext(['EMPLOYEE'], ['MARKETING']));
+    const company = nav[RoutePlaceMent.SIDEBAR].find((r) => r.id === 'company');
+    expect(company?.children?.find((c) => c.id === 'company.marketing')).toBeUndefined();
+  });
+
+  it('hides marketing from an admin whose company lacks MARKETING', () => {
+    const nav = createNavigation(createUserContext(['ADMIN'], ['BOOKING']));
+    const company = nav[RoutePlaceMent.SIDEBAR].find((r) => r.id === 'company');
+    expect(company?.children?.find((c) => c.id === 'company.marketing')).toBeUndefined();
   });
 
   it('includes system-admin sidebar routes for system admins', () => {

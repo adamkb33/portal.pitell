@@ -1,4 +1,4 @@
-import type { OfferTemplateDto, OfferTemplateFieldDto, ReplaceOfferLineRequest } from '~/api/generated/offer';
+import type { OfferTemplateDto, OfferTemplateFieldDto, ReplaceOfferLineRequest } from '~/api/generated';
 import type {
   CreateOfferValues,
   TemplateFieldValue,

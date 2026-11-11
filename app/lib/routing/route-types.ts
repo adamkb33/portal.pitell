@@ -44,6 +44,12 @@ export type RouteBranch = {
   iconName?: IconName;
   children?: RouteBranch[];
   excludeLayout?: boolean;
+  /**
+   * Route id of the page one level up, when it differs from the tree parent (the URL). The domain map decides
+   * (ui-rules → Page top): e.g. Bookbar tid lives under Kalender's URL but belongs to Booking. Drives the breadcrumb
+   * and the phone header's ‹ arrow.
+   */
+  up?: string;
 };
 
 export type ApiRoute = {

@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('~/api/generated/base', () => ({
+vi.mock('~/api/generated', () => ({
   AuthController: {
     decodeUserInvite: mocks.decodeUserInvite,
     respondToUserInvite: mocks.respondToUserInvite,

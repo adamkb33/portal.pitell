@@ -1,9 +1,5 @@
 import { createCookie } from 'react-router';
-import {
-  PublicAppointmentSessionController,
-  type ApiMessage,
-  type AppointmentSessionDto,
-} from '~/api/generated/booking';
+import { PublicAppointmentSessionController, type ApiMessage, type AppointmentSessionDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 
 const appointmentSessionCookie = createCookie('appointment_session', {
@@ -42,6 +38,7 @@ function isSessionNotFoundError(error: unknown): boolean {
   return (
     candidate.response?.status === 404 ||
     message.id === 'SESSION_NOT_FOUND' ||
+    message.id === 'SESSION_EXPIRED' ||
     message.value === 'SESSION_NOT_FOUND' ||
     message.value === 'Sesjonen finnes ikke'
   );

@@ -1,4 +1,4 @@
-import type { SystemAdminCompanyDto } from '~/api/generated/base';
+import type { SystemAdminCompanyDto } from '~/api/generated';
 import { Label, Text } from '~/ui';
 import { formatCompanyOptionLabel } from '../_utils/system-admin-company-display';
 

@@ -4,6 +4,13 @@ const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie', 
 
 const MAX_STRING_LENGTH = 500;
 
+// URL path segments that are secrets on their own (anyone holding them can act), so logs never show them.
+const SECRET_PATH_SEGMENTS = [/(\/public\/unsubscribe\/)[^/?#\s"]+/g];
+
+export function redactUrl(text: string) {
+  return SECRET_PATH_SEGMENTS.reduce((current, pattern) => current.replace(pattern, '$1[Redacted]'), text);
+}
+
 function truncateString(value: string) {
   if (value.length <= MAX_STRING_LENGTH) {
     return value;
@@ -18,7 +25,7 @@ function sanitizeUnknown(value: unknown, seen = new WeakSet<object>()): unknown 
   }
 
   if (typeof value === 'string') {
-    return truncateString(value);
+    return truncateString(redactUrl(value));
   }
 
   if (typeof value === 'number' || typeof value === 'boolean') {
@@ -69,14 +76,14 @@ function buildRequestUrl(config?: AxiosRequestConfig) {
   }
 
   if (/^https?:\/\//i.test(config.url)) {
-    return config.url;
+    return redactUrl(config.url);
   }
 
   if (!config.baseURL) {
-    return config.url;
+    return redactUrl(config.url);
   }
 
-  return `${config.baseURL.replace(/\/$/, '')}/${config.url.replace(/^\//, '')}`;
+  return redactUrl(`${config.baseURL.replace(/\/$/, '')}/${config.url.replace(/^\//, '')}`);
 }
 
 export function describeAxiosRequest(config?: AxiosRequestConfig) {

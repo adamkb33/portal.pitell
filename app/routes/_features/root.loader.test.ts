@@ -26,7 +26,7 @@ vi.mock('~/lib/auth-service', () => ({
   },
 }));
 
-vi.mock('~/api/generated/base', () => ({
+vi.mock('~/api/generated', () => ({
   AuthController: {
     getMe: mocks.getMe,
     getPermissions: mocks.getPermissions,
@@ -49,7 +49,7 @@ vi.mock('~/lib/logger', () => ({
   },
 }));
 
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { buildResponseData } from './root.loader';
 
 describe('root loader response data', () => {

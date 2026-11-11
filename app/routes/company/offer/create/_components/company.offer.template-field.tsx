@@ -1,4 +1,4 @@
-import type { OfferTemplateFieldDto } from '~/api/generated/offer';
+import type { OfferTemplateFieldDto } from '~/api/generated';
 import { Checkbox, Input, Textarea } from '~/ui';
 import type { TemplateFieldValue } from '../_types/company.offer.create.types';
 import { getTemplateFieldName } from '../_utils/company.offer.create.utils';

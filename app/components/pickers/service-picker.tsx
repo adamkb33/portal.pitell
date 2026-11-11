@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Badge, Button } from '~/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '~/components/ui/carousel';
-import type { GroupedServiceDto, GroupedServiceGroupDto, ImageDto } from '~/api/generated/booking';
+import type { GroupedServiceDto, GroupedServiceGroupDto, ImageDto } from '~/api/generated';
 
 export type ServicePickerProps = {
   groupedServices: GroupedServiceGroupDto[];

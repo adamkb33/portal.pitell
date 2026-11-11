@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   cancelContactReplacement: vi.fn(),
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   Booking: {
     cancelAppointmentSessionContactReplacement: mocks.cancelContactReplacement,
   },

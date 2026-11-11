@@ -1,0 +1,939 @@
+<h2 class="sr-only">{{ONE_SENTENCE_SUMMARY}}</h2>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap"
+/>
+<style>
+  .pk {
+    --page: #e8edf5;
+    --card: #fff;
+    --bd: #c8d2e2;
+    --ink: #162238;
+    --mut: #475569;
+    --lt: #94a3b8;
+    --strip: #f1f5f9;
+    --blue: #2455d6;
+    --blue50: #e1eafe;
+    --bt: color-mix(in oklab, #2455d6 10%, white);
+    --side: #13213a;
+    --indigo: #4338ca;
+    --indigo-t: color-mix(in oklab, #4338ca 10%, #e8edf5);
+    --green: #047857;
+    --red: #b42318;
+    --red-t: #fef2f2;
+    --ok-t: #f0fdf4;
+    --ok: #14532d;
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .pk * {
+    box-sizing: border-box;
+  }
+  .pk p {
+    margin: 0;
+  }
+  .pk .cap {
+    font: 500 13px var(--font-sans);
+    color: var(--text-secondary);
+    margin: 16px 0 6px;
+  }
+  .pk .dk {
+    width: 1280px;
+    zoom: 0.53;
+    background: var(--page);
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    min-height: 820px;
+  }
+  .pk .ph {
+    width: 375px;
+    zoom: 0.8;
+    background: var(--page);
+    border: 1px solid var(--bd);
+    border-radius: 32px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 812px;
+  }
+  .pk .phs {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .pk .phs .ph {
+    zoom: 0.58;
+  }
+  .pk .side {
+    width: 272px;
+    background: var(--side);
+    color: #e8edf5;
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pk .side .logo {
+    font: 700 22px 'Inter Tight';
+    padding: 0 8px 20px;
+  }
+  .pk .nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #b5c1d4;
+  }
+  .pk .nav.on {
+    background: color-mix(in oklab, #fff 9%, #13213a);
+    color: #fff;
+    font-weight: 600;
+  }
+  .pk .nav.on i {
+    background: color-mix(in oklab, var(--c, #b5c1d4) 45%, #13213a);
+    color: #fff;
+  }
+  .pk .side {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .pk .side::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(16rem 12rem at 30% 4.5rem, #2455d640, transparent 70%),
+      radial-gradient(circle, #ffffff12 1px, transparent 1.2px) 0 0 / 16px 16px;
+    mask-image: linear-gradient(#000, #000 35%, transparent 75%);
+  }
+  .pk .co {
+    position: relative;
+    overflow: hidden;
+    background: var(--blue);
+    color: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font: 600 14px 'Inter Tight';
+  }
+  .pk .nav i {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    color: var(--c, #b5c1d4);
+    background: color-mix(in oklab, var(--c, #b5c1d4) 22%, #13213a);
+  }
+  .pk .hdr {
+    height: 60px;
+    background: #fff;
+    border-top: 3px solid var(--blue);
+    border-bottom: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .main {
+    flex: 1;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* Compact (preferences 2026-11-11): the frame pads like the app shell's <main>; pages inside add no side padding
+     of their own, 12–16px between blocks, no air under titles. */
+  .pk .pmain {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .pk .ptop {
+    position: relative;
+    overflow: hidden;
+    height: 60px;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    font: 600 19px 'Inter Tight';
+  }
+  .pk .ptop::after {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #ffffff12;
+    right: -30px;
+    top: -58px;
+  }
+  /* Menu button [navbar.tsx]: a white ≡ on a domain's top pages; pages below show ‹ (.up) in its place. */
+  .pk .ptop .hb {
+    font-size: 26px;
+    color: #fff;
+    margin-left: -2px;
+  }
+  .pk .ptop .up {
+    color: #fff;
+  }
+  .pk .pnav {
+    height: 72px;
+    background: #fff;
+    border-top: 1px solid var(--bd);
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    font-size: 11px;
+    color: var(--mut);
+  }
+  .pk .pnav span {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 12px;
+  }
+  .pk .pnav i {
+    font-size: 22px;
+  }
+  .pk .up {
+    font-size: 24px;
+    color: var(--blue);
+    margin-left: -6px;
+  }
+  .pk .me {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--blue50);
+    color: var(--blue);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pk .card {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pk .tb {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .pk .line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pk .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .seg b {
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+  }
+  .pk .seg b.on {
+    background: var(--bt);
+    color: var(--blue);
+  }
+  .pk .in {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--lt);
+    font-size: 15px;
+  }
+  .pk .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font: 600 14px Inter;
+    border: 1px solid var(--bd);
+    background: #fff;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .pk .btn.pri {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+  .pk .btn.ton {
+    background: var(--bt);
+    border-color: transparent;
+    color: var(--blue);
+  }
+  .pk .btn.ind {
+    background: var(--indigo);
+    border-color: var(--indigo);
+    color: #fff;
+  }
+  .pk .btn.grn {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+  .pk .btn.txt {
+    border: 0;
+    background: none;
+    color: var(--blue);
+  }
+  .pk .btn.del {
+    border: 0;
+    background: none;
+    color: var(--red);
+  }
+  /* The one destructive action on a public page ("Avbestill timen") [booking-action-styles.ts → danger]. */
+  .pk .btn.dan {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .pk .strip {
+    display: flex;
+    justify-content: space-between;
+    background: var(--strip);
+    border-top: 1px solid var(--bd);
+    padding: 6px 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pk .strip span {
+    font-weight: 400;
+    color: var(--mut);
+  }
+  .pk .gh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-top: 1px solid var(--bd);
+    background: color-mix(in oklab, var(--c) 14%, white);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .pk .gh::before {
+    content: '';
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .pk .gh span {
+    margin-left: auto;
+    font-weight: 400;
+    color: var(--mut);
+    font-size: 13px;
+  }
+  .pk .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 60px;
+    padding: 0 20px;
+    border-top: 1px solid var(--bd);
+    background: #fff;
+  }
+  .pk .row.next {
+    background: var(--bt);
+    box-shadow: inset 4px 0 0 var(--blue);
+  }
+  .pk .row.now {
+    background: var(--blue);
+    color: #fff;
+  }
+  .pk .row.past {
+    background: color-mix(in oklab, var(--page) 86%, white);
+    color: var(--mut);
+  }
+  .pk .t {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .pk .lead {
+    width: 56px;
+  }
+  .pk .mid {
+    flex: 1;
+    min-width: 0;
+  }
+  .pk .ttl {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pk .sub {
+    font-size: 14px;
+    color: var(--mut);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pk .now .sub {
+    color: #ffffffe6;
+  }
+  .pk .chev {
+    color: var(--lt);
+    font-size: 18px;
+  }
+  .pk .now .chev {
+    color: #fff;
+  }
+  .pk .av {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    background: color-mix(in oklab, var(--c) 20%, white);
+    color: var(--ci);
+  }
+  .pk .tile {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    font-size: 19px;
+    background: color-mix(in oklab, var(--c) 16%, white);
+    color: var(--ci);
+  }
+  .pk .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bt);
+    color: var(--blue);
+  }
+  .pk .chip.ok {
+    background: var(--ok-t);
+    color: var(--ok);
+  }
+  .pk .chip.bad {
+    background: var(--red-t);
+    color: var(--red);
+  }
+  .pk .ft {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-top: 1px solid var(--bd);
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .lbl {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .pk .fld {
+    height: 44px;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+  }
+  .pk .bar {
+    margin: auto 12px 12px;
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    box-shadow: 0 10px 15px -3px rgb(15 23 42/0.08);
+    overflow: hidden;
+  }
+  .pk .bar .msg {
+    background: var(--indigo-t);
+    text-align: center;
+    font-size: 14px;
+    padding: 8px;
+  }
+  .pk .bar .btns {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+  .pk .bar .btn {
+    height: 48px;
+  }
+  .pk .teal {
+    --c: #14b8a6;
+    --ci: #0f766e;
+  }
+  .pk .purple {
+    --c: #8b5cf6;
+    --ci: #6d28d9;
+  }
+  .pk .pink {
+    --c: #ec4899;
+    --ci: #be185d;
+  }
+  .pk .orange {
+    --c: #f97316;
+    --ci: #c2410c;
+  }
+  .pk .sky {
+    --c: #0ea5e9;
+    --ci: #0369a1;
+  }
+  .pk .plum {
+    --c: #702963;
+    --ci: #702963;
+  }
+
+  /* ── Added 2026-11-10 so sketches match what is built. Source files in brackets. ── */
+  /* Page background [CompanyBackground, app/components/layout/page-backgrounds.tsx]: set the section colour with
+     class area-teal|area-orange|area-purple|area-pink on .dk / .ph (none = primary blue). --area-ink is the
+     category ink the bottom menu's active tab uses. */
+  .pk .area-teal {
+    --area: #14b8a6;
+    --area-ink: #0f766e;
+  }
+  .pk .area-orange {
+    --area: #f97316;
+    --area-ink: #c2410c;
+  }
+  .pk .area-purple {
+    --area: #8b5cf6;
+    --area-ink: #6d28d9;
+  }
+  .pk .area-pink {
+    --area: #ec4899;
+    --area-ink: #be185d;
+  }
+  .pk .main,
+  .pk .pmain {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .pk .main::before,
+  .pk .pmain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(
+        circle at 100% 0,
+        color-mix(in oklab, var(--area, var(--blue)) 8%, transparent) 150px,
+        transparent 151px
+      ),
+      linear-gradient(color-mix(in oklab, var(--area, var(--blue)) 11%, var(--page)), var(--page) 280px);
+  }
+  .pk .main::after,
+  .pk .pmain::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 260px;
+    z-index: -1;
+    background:
+      radial-gradient(
+        circle at 0 100%,
+        transparent 129px,
+        color-mix(in oklab, var(--blue) 14%, transparent) 130px 131.5px,
+        transparent 132.5px
+      ),
+      radial-gradient(circle at 0 100%, color-mix(in oklab, var(--blue) 6%, transparent) 90px, transparent 91px),
+      linear-gradient(transparent, color-mix(in oklab, var(--blue) 7%, var(--page)));
+  }
+  /* Desktop header [navbar.tsx]: breadcrumb left, bell right; the account lives in the sidebar. */
+  .pk .hdr .bell {
+    font-size: 20px;
+    color: var(--mut);
+  }
+  /* Sidebar account row [sidebar-account.tsx] */
+  .pk .side .acc {
+    margin-top: auto;
+    border-top: 1px solid #31405b;
+    padding-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .pk .side .acc .av {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+    background: #263f69;
+    color: #a9c1ff;
+  }
+  /* Bottom menu [mobile-sidebar.tsx]: tabs only. Inside a domain (area-* on .ph) the bar is a light wash of the
+     domain's colour; the active tab fills its whole cell with the category tint + ink. Outside a domain: white bar,
+     blue active tab. No pill around the icon. */
+  .pk .pnav {
+    font-size: 12px;
+  }
+  .pk [class*='area-'] .pnav {
+    background: color-mix(in oklab, var(--area) 5%, white);
+    border-top-color: color-mix(in oklab, var(--area) 30%, white);
+  }
+  .pk .pnav span.on {
+    background: color-mix(in oklab, var(--area, var(--blue)) 14%, white);
+    color: var(--area-ink, var(--blue));
+    font-weight: 600;
+  }
+  /* Create button [mobile-sidebar.tsx]: the list page's create action, full width just above the bottom menu.
+     Only on list pages; none on pages nested below a list or with nothing to create. */
+  .pk .fab {
+    margin: 0 12px 10px;
+    height: 48px;
+    border-radius: 8px;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: 600 16px Inter;
+    box-shadow:
+      0 10px 15px -3px rgb(15 23 42/0.08),
+      0 4px 6px -4px rgb(15 23 42/0.05);
+  }
+  .pk .fab i {
+    font-size: 20px;
+  }
+  /* Tall: month stepper + stat rows [statistics-parts.tsx] */
+  .pk .mon {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 46px;
+    padding: 0 6px;
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .pk .mon i {
+    width: 40px;
+    text-align: center;
+    color: var(--blue);
+    font-size: 20px;
+  }
+  .pk .mon i.off {
+    color: var(--lt);
+  }
+  .pk .stat {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--bd);
+  }
+  .pk .stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .pk .stat .c {
+    font-size: 13px;
+    color: var(--mut);
+    text-align: right;
+  }
+  /* Summary / overview card rows with Endre [Ny time Oversikt] */
+  .pk .kv {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--bd);
+  }
+  .pk .kv .k {
+    font-size: 12px;
+    color: var(--mut);
+  }
+  .pk .kv a {
+    margin-left: auto;
+    color: var(--blue);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  /* Company form bar on phones [Ny time, Skjema]: message in a blue tint + one full-width button. */
+  .pk .cbar {
+    margin: auto 12px 12px;
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    box-shadow: 0 10px 15px -3px rgb(15 23 42/0.08);
+    overflow: hidden;
+  }
+  .pk .cbar .msg {
+    background: color-mix(in oklab, var(--blue) 12%, var(--page));
+    text-align: center;
+    font-size: 14px;
+    padding: 8px;
+  }
+  .pk .cbar .btn {
+    display: flex;
+    margin: 8px;
+    height: 48px;
+  }
+
+  /* Key destination card [KeyDestinationCard, app/routes/company/booking/_components/key-destination-card.tsx]:
+     <a class="key teal|cyan"><i class="ti ti-… bgi"></i><span class="kt"><i class="ti ti-…"></i></span>
+     <span><b class="kn">Kalender</b><span class="kc"><b>4</b> avtaler i dag</span></span></a>. Two side by side in .keys. */
+  .pk .keys {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .pk .key {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 136px;
+    padding: 14px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #fff;
+    text-decoration: none;
+    background: linear-gradient(150deg, var(--k1), var(--k2));
+    border: 1px solid var(--k2);
+  }
+  .pk .key.teal {
+    --k1: #0f766e;
+    --k2: #0d5e57;
+  }
+  .pk .key.cyan {
+    --k1: #0e7490;
+    --k2: #155e75;
+  }
+  .pk .key::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    right: -40px;
+    top: -48px;
+    background: #ffffff12;
+  }
+  .pk .key::after {
+    content: '\203A';
+    position: absolute;
+    right: 14px;
+    top: 8px;
+    font-size: 22px;
+    color: #ffffffd9;
+  }
+  .pk .key .bgi {
+    position: absolute;
+    z-index: -1;
+    right: -14px;
+    bottom: -18px;
+    font-size: 92px;
+    color: #ffffff14;
+  }
+  .pk .key .kt {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 19px;
+    background: #ffffff26;
+  }
+  .pk .key .kn {
+    display: block;
+    font: 700 17px 'Inter Tight';
+  }
+  .pk .key .kc {
+    font-size: 13px;
+    color: #ffffffd9;
+  }
+  .pk .key .kc b {
+    font: 700 28px 'Inter Tight';
+    color: #fff;
+    margin-right: 4px;
+  }
+  /* Notification row [notification-row.tsx]: <div class="row nr new"><span class="tile teal">…</span>
+     <div class="mid"><div class="ttl">Ny timebestilling</div><div class="sub">message</div></div>
+     <span class="tm">19:01</span><span class="dot"></span><i class="ti ti-chevron-right chev"></i></div>.
+     Unread = .new (bold title + blue dot); read rows keep an empty .dot so the times line up. */
+  .pk .nr {
+    height: auto;
+    min-height: 64px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .pk .nr .ttl {
+    font-weight: 500;
+  }
+  .pk .nr.new .ttl {
+    font-weight: 700;
+  }
+  .pk .nr .tm {
+    flex: none;
+    font-size: 13px;
+    color: var(--mut);
+    font-variant-numeric: tabular-nums;
+  }
+  .pk .nr .dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .pk .nr.new .dot {
+    background: var(--blue);
+  }
+  /* Bell panel [navbar-notification-bell.tsx]: header ("Varsler" + "n uleste"), notification rows without chevrons,
+     "Se alle varsler". Desktop: <div class="pop"> absolute under the bell inside .dk (give the frame position:
+     relative). Phone: <div class="pop full"> right under .ptop, then wrap the rest of the frame in .scrim. */
+  .pk .pop {
+    position: absolute;
+    right: 16px;
+    top: 58px;
+    z-index: 3;
+    width: 400px;
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    box-shadow:
+      0 10px 15px -3px rgb(15 23 42/0.08),
+      0 4px 6px -4px rgb(15 23 42/0.05);
+    overflow: hidden;
+  }
+  .pk .pop.full {
+    position: static;
+    width: auto;
+    border-width: 0 0 1px;
+    border-radius: 0 0 16px 16px;
+  }
+  .pk .pop .ph2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    font: 600 17px 'Inter Tight';
+  }
+  .pk .pop .ph2 span {
+    font: 400 14px Inter;
+    color: var(--mut);
+  }
+  .pk .pop .all {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    height: 48px;
+    border-top: 1px solid var(--bd);
+    color: var(--blue);
+    font: 600 14px Inter;
+  }
+  .pk .scrim {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .pk .scrim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(15 23 42/0.35);
+  }
+</style>
+<div class="pk">
+  <p class="cap">Desktop</p>
+  <div class="dk {{AREA_CLASS_OR_EMPTY}}">
+    <aside class="side">
+      <div class="logo">Pitell</div>
+      <div class="co">Fredrikstad Barbershop</div>
+      <div class="nav"><i class="ti ti-building" aria-hidden="true"></i>Oversikt</div>
+      <div class="nav teal on"><i class="ti ti-calendar" aria-hidden="true"></i>Booking</div>
+      <div class="nav orange"><i class="ti ti-file-text" aria-hidden="true"></i>Tilbud</div>
+      <div class="nav purple"><i class="ti ti-clock" aria-hidden="true"></i>Timelister</div>
+      <div class="nav pink"><i class="ti ti-speakerphone" aria-hidden="true"></i>Markedsføring</div>
+      <div class="nav"><i class="ti ti-settings" aria-hidden="true"></i>Administrasjon</div>
+      <div class="acc"><span class="av">MB</span>Majed Bahar</div>
+    </aside>
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <div class="hdr">
+        <span>{{BREADCRUMB_PARENTS}} / <b style="color: var(--ink); font-family: 'Inter Tight'">{{PAGE_NAME}}</b></span
+        ><i class="ti ti-bell bell" aria-hidden="true"></i>
+      </div>
+      <div class="main">{{DESKTOP_PAGE}}</div>
+    </div>
+  </div>
+  <p class="cap">Telefon</p>
+  <div class="ph {{AREA_CLASS_OR_EMPTY}}">
+    <div class="ptop">
+      <i class="ti ti-menu-2 hb" aria-label="Åpne meny"></i><span style="flex: 1">{{PAGE_NAME}}</span
+      ><i class="ti ti-bell" aria-hidden="true"></i>
+    </div>
+    <div class="pmain">{{PHONE_PAGE}}</div>
+    <div class="fab"><i class="ti ti-plus" aria-hidden="true"></i>{{CREATE_LABEL_OR_REMOVE_THIS_DIV}}</div>
+    <div class="pnav">
+      <span><i class="ti ti-building" aria-hidden="true"></i>Oversikt</span
+      ><span class="on"><i class="ti ti-calendar" aria-hidden="true"></i>Booking</span
+      ><span><i class="ti ti-clock" aria-hidden="true"></i>Timelister</span
+      ><span><i class="ti ti-file-text" aria-hidden="true"></i>Tilbud</span>
+    </div>
+  </div>
+</div>

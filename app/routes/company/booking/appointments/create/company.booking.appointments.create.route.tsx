@@ -1,39 +1,69 @@
-import { formatISO } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
-import { data, Form, Link, useNavigate, useNavigation, useSearchParams } from 'react-router';
-import { CompanyUserController } from '~/api/generated/base';
+import type { FormPageHandle } from '~/lib/routing/create-action';
+import type { UpHandle } from '~/lib/routing/up-link';
+import { addMinutes, format, formatISO } from 'date-fns';
+import { nb } from 'date-fns/locale';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { data, Form, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import {
   CompanyUserAppointmentController,
   CompanyUserBookingProfileController,
+  CompanyUserController,
   CompanyUserScheduleController,
-} from '~/api/generated/booking';
-import type { UserDto } from '~/api/generated/booking';
+} from '~/api/generated';
+import type { ScheduleDto, UserDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { CustomerSelector } from '~/routes/company/booking/_components/customer-selector';
-import { DateTimeSelector } from '~/routes/company/booking/_components/date-time-selector';
+import {
+  CustomerSelector,
+  customerInitials,
+  formatMobile,
+} from '~/routes/company/booking/_components/customer-selector';
+import { DayPickerSection } from '~/routes/booking/public/appointment/session/select-time/_components/day-picker-section';
+import { QuickBookButton } from '~/routes/booking/public/appointment/session/select-time/_components/quick-book-button';
+import { TimeSlotsSection } from '~/routes/booking/public/appointment/session/select-time/_components/time-slots-section';
+import {
+  findScheduleWithTime,
+  getEarliestSlot,
+} from '~/routes/booking/public/appointment/session/select-time/_utils/select-time-schedule';
 import { ServicesSelector } from '~/routes/company/booking/_components/services-selector';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import type { Route } from './+types/company.booking.appointments.create.route';
 import {
   parseCreateFlowQueryState,
-  parseListPageParam,
-  parseListSizeParam,
+  parseQuantitiesParam,
+  serializeQuantitiesParam,
   withCreateFlowQueryState,
 } from './_utils/create-flow-query-params';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
   Button,
   CompanyPageTemplate,
   Input,
   Label,
+  ListStrip,
+  Notice,
+  Panel as BookingSection,
+  categoryTone,
+  cn,
 } from '~/ui';
 
-const CONTACT_PAGE_SIZE = 10;
+/**
+ * Ny time: Kunde → Tjenester → Tid (approved sketch 2026-11-09). A form page: the phone bottom menu hides and the page
+ * shows its own bar (ui-rules, rule 2). Started from Kalender (`?fra=kalender`, set by Kalender's +), its ‹ and
+ * breadcrumb lead back to Kalender instead of Timebestillinger, and saving returns there.
+ */
+export const handle: FormPageHandle & UpHandle = {
+  formPage: true,
+  up: (loaderData) =>
+    (loaderData as { from?: string | null } | undefined)?.from === 'kalender'
+      ? { label: 'Kalender', href: ROUTES_MAP['company.booking.schedule'].href, replacesParent: true }
+      : null,
+};
+
+/** Without a search the first step shows the newest customers; with one, the first matches. */
+const RECENT_CUSTOMERS = 5;
+const SEARCH_RESULTS = 10;
+const TIME_ZONE = 'Europe/Oslo';
 
 const parsePositiveInt = (value: FormDataEntryValue | null): number | null => {
   const parsed = Number(value);
@@ -48,45 +78,20 @@ const getStatusCode = (error: unknown): number | undefined => {
   return payload.response?.status;
 };
 
-export async function loader({ request }: Route.LoaderArgs) {
-  try {
-    const url = new URL(request.url);
-    const state = parseCreateFlowQueryState(url.searchParams);
-    const contactPage = parseListPageParam(url.searchParams.get('contact-page'), 0);
-    const contactSize = parseListSizeParam(url.searchParams.get('contact-size'), CONTACT_PAGE_SIZE);
-    const contactSearch = url.searchParams.get('customer-search') || url.searchParams.get('contact-search') || '';
-    const serviceSearch = url.searchParams.get('service-search') || '';
-    const contactDirectionParam =
-      url.searchParams.get('customer-direction') || url.searchParams.get('contact-direction');
-    const contactDirection = contactDirectionParam === 'DESC' ? 'DESC' : 'ASC';
-    const contactsQuery = {
-      page: contactPage,
-      size: contactSize,
-      sort: 'familyName',
-      direction: contactDirection,
-      ...(contactSearch && { search: contactSearch }),
-    } as const;
+const readFrom = (url: URL) => (url.searchParams.get('fra') === 'kalender' ? 'kalender' : null);
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[appointments.create.loader] customers: incoming params', {
-        requestUrl: url.toString(),
-        raw: {
-          customerSearch: url.searchParams.get('customer-search'),
-          contactSearch: url.searchParams.get('contact-search'),
-          contactPage: url.searchParams.get('contact-page'),
-          contactSize: url.searchParams.get('contact-size'),
-          customerDirection: url.searchParams.get('customer-direction'),
-          contactDirection: url.searchParams.get('contact-direction'),
-        },
-        parsed: {
-          contactSearch,
-          contactPage,
-          contactSize,
-          contactDirection,
-        },
-      });
-      console.log('[appointments.create.loader] customers: api query', contactsQuery);
-    }
+/** "2026-11-10" for an ISO time, in Oslo. */
+const osloDateKey = (iso: string) => new Intl.DateTimeFormat('sv-SE', { timeZone: TIME_ZONE }).format(new Date(iso));
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const from = readFrom(url);
+  try {
+    const state = parseCreateFlowQueryState(url.searchParams);
+    const contactSearch = (url.searchParams.get('customer-search') || '').trim();
+    const contactsQuery = contactSearch
+      ? ({ page: 0, size: SEARCH_RESULTS, sort: 'familyName', direction: 'ASC', search: contactSearch } as const)
+      : ({ page: 0, size: RECENT_CUSTOMERS, sort: 'createdAt', direction: 'DESC' } as const);
 
     const apiResponses = await withAuth(request, async () => {
       const contactsResponse = await CompanyUserAppointmentController.getAppointmentCustomers({
@@ -97,7 +102,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       const scheduleResponse =
         state.serviceIds.length > 0
           ? await CompanyUserScheduleController.getSchedule({
-              body: { selectedServiceIds: state.serviceIds },
+              body: {
+                selectedServices: state.serviceIds.map((serviceId) => ({
+                  serviceId,
+                  quantity: state.quantities[serviceId] ?? 1,
+                })),
+              },
             })
           : null;
 
@@ -116,58 +126,23 @@ export async function loader({ request }: Route.LoaderArgs) {
       provider: user.provider,
     })) as UserDto[];
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[appointments.create.loader] customers: response summary', {
-        requestedQuery: contactsQuery,
-        pagination: {
-          page: contactsData?.page ?? 0,
-          size: contactsData?.size ?? contactSize,
-          totalElements: contactsData?.totalElements ?? 0,
-          totalPages: contactsData?.totalPages ?? 1,
-        },
-        returnedCount: contactsData?.content?.length ?? 0,
-      });
-      console.log(
-        '[appointments.create.loader] customers: returned users',
-        (contactsData?.content ?? []).map((user) => ({
-          id: user.id,
-          givenName: user.givenName,
-          familyName: user.familyName,
-          email: user.email,
-          mobileNumber: user.mobileNumber,
-        })),
-      );
-    }
-
     return {
+      from,
       customers,
-      contactPagination: {
-        page: contactsData?.page ?? 0,
-        size: contactsData?.size ?? contactSize,
-        totalElements: contactsData?.totalElements ?? 0,
-        totalPages: contactsData?.totalPages ?? 1,
-      },
+      totalMatches: contactsData?.totalElements ?? customers.length,
       bookingProfile: apiResponses.bookingProfileResponse.data,
       schedules: apiResponses.scheduleResponse?.data?.data || [],
       contactSearch,
-      contactDirection,
-      serviceSearch,
     };
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke hente data');
     return {
+      from,
       customers: [],
-      contactPagination: {
-        page: 0,
-        size: CONTACT_PAGE_SIZE,
-        totalElements: 0,
-        totalPages: 1,
-      },
+      totalMatches: 0,
       bookingProfile: null,
       schedules: [],
       contactSearch: '',
-      contactDirection: 'ASC',
-      serviceSearch: '',
       error: message,
     };
   }
@@ -188,6 +163,13 @@ export async function action({ request }: Route.ActionArgs) {
       .map((id) => Number(id))
       .filter((id) => Number.isInteger(id) && id > 0) || [];
   const startTime = formData.get('startTime')?.toString() || '';
+  const quantities = parseQuantitiesParam(formData.get('antall')?.toString() ?? null);
+  const services = serviceIds.map((serviceId) => ({ serviceId, quantity: quantities[serviceId] ?? 1 }));
+  // Back to where the flow started: Kalender on the booked day, or Timebestillinger.
+  const doneHref =
+    formData.get('fra') === 'kalender' && startTime
+      ? `${ROUTES_MAP['company.booking.schedule'].href}?date=${osloDateKey(startTime)}`
+      : ROUTES_MAP['company.booking.appointments'].href;
 
   if (!userId && !email && !mobileNumber) {
     const error = 'Velg kunde eller oppgi e-post/mobilnummer.';
@@ -213,17 +195,13 @@ export async function action({ request }: Route.ActionArgs) {
         CompanyUserAppointmentController.companyUserCreateAppointment({
           body: {
             userId,
-            serviceIds,
+            services,
             startTime,
           },
         }),
       );
 
-      return redirectWithSuccess(
-        request,
-        ROUTES_MAP['company.booking.appointments'].href,
-        response.data?.message?.value || 'Avtalen er opprettet.',
-      );
+      return redirectWithSuccess(request, doneHref, response.data?.message?.value || 'Avtalen er opprettet.');
     } catch (error) {
       if (getStatusCode(error) === 409) {
         const conflictError = 'Valgt tidspunkt ble nettopp opptatt. Velg et annet tidspunkt.';
@@ -263,7 +241,7 @@ export async function action({ request }: Route.ActionArgs) {
         CompanyUserAppointmentController.companyUserCreateAppointment({
           body: {
             userId: resolvedUserId,
-            serviceIds,
+            services,
             startTime,
           },
         }),
@@ -273,7 +251,7 @@ export async function action({ request }: Route.ActionArgs) {
       const successMessage =
         resolverStatus === 'CREATED' ? `${baseMessage} Kunden ble opprettet og invitert.` : baseMessage;
 
-      return redirectWithSuccess(request, ROUTES_MAP['company.booking.appointments'].href, successMessage);
+      return redirectWithSuccess(request, doneHref, successMessage);
     } catch (error) {
       if (getStatusCode(error) === 409) {
         const conflictError = 'Valgt tidspunkt ble nettopp opptatt. Velg et annet tidspunkt.';
@@ -286,8 +264,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
   } catch (error) {
     if (getStatusCode(error) === 409) {
-      const conflictError =
-        'Email and mobile belong to different customers. Please use only one or correct contact info.';
+      const conflictError = 'E-post og mobilnummer hører til forskjellige kunder. Bruk bare én av dem.';
       const flashCookie = await setFlashMessage(request, { type: 'error', text: conflictError });
       return data({ error: conflictError }, { status: 409, headers: { 'Set-Cookie': flashCookie } });
     }
@@ -297,345 +274,562 @@ export async function action({ request }: Route.ActionArgs) {
   }
 }
 
-export default function CompanyBookingAppointmentsCreatePage({ loaderData }: Route.ComponentProps) {
-  type CreateStep = 'contact' | 'services' | 'time' | 'submit';
+type CreateStep = 'contact' | 'services' | 'time';
+const STEPS: Array<{ id: CreateStep; label: string }> = [
+  { id: 'contact', label: 'Kunde' },
+  { id: 'services', label: 'Tjenester' },
+  { id: 'time', label: 'Tid' },
+];
+
+const formatKr = (value: number) => `${value.toLocaleString('nb-NO')} kr`;
+const formatClock = (date: Date) =>
+  date.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE });
+
+/** "tir 10. nov" (no trailing dots from the locale's abbreviations). */
+const shortDay = (date: Date) =>
+  `${format(date, 'EEE', { locale: nb }).replace(/\.$/, '')} ${format(date, 'd. MMM', { locale: nb }).replace(/\.$/, '')}`;
+
+export default function CompanyBookingAppointmentsCreatePage({ loaderData, actionData }: Route.ComponentProps) {
   type CustomerMode = 'existing' | 'new';
   const navigate = useNavigate();
   const navigation = useNavigation();
   const [searchParams] = useSearchParams();
   const state = parseCreateFlowQueryState(searchParams);
   const isSubmitting = navigation.state === 'submitting';
-
   const services = loaderData.bookingProfile?.services || [];
-  const searchLower = loaderData.serviceSearch.toLowerCase();
-  const filteredServices = !loaderData.serviceSearch
-    ? services
-    : services
-        .map((group) => ({
-          ...group,
-          services: group.services.filter((service) => service.name.toLowerCase().includes(searchLower)),
-        }))
-        .filter((group) => group.services.length > 0);
 
   const defaultStep = useMemo<CreateStep>(() => {
     const hasIdentifier = Boolean(state.userId) || Boolean(state.email.trim()) || Boolean(state.mobileNumber.trim());
     if (!hasIdentifier) return 'contact';
     if (state.serviceIds.length === 0) return 'services';
-    if (!state.startTime) return 'time';
-    return 'submit';
-  }, [state.userId, state.email, state.mobileNumber, state.serviceIds.length, state.startTime]);
+    return 'time';
+  }, [state.userId, state.email, state.mobileNumber, state.serviceIds.length]);
 
   const [openStep, setOpenStep] = useState<CreateStep>(defaultStep);
-  const [draftUserId, setDraftUserId] = useState<number | null>(state.userId);
+  const [customerMode, setCustomerMode] = useState<CustomerMode>(() =>
+    !state.userId && (state.email.trim() || state.mobileNumber.trim()) ? 'new' : 'existing',
+  );
   const [draftEmail, setDraftEmail] = useState(state.email);
   const [draftMobileNumber, setDraftMobileNumber] = useState(state.mobileNumber);
   const [draftGivenName, setDraftGivenName] = useState(state.givenName);
   const [draftFamilyName, setDraftFamilyName] = useState(state.familyName);
-  const [draftServiceIds, setDraftServiceIds] = useState<number[]>(state.serviceIds);
+  // Chosen services and how many of each (a service can be booked more than once, like in the customer flow).
+  const quantitiesFromUrl = () =>
+    Object.fromEntries(state.serviceIds.map((id) => [id, state.quantities[id] ?? 1])) as Record<number, number>;
+  const [draftQuantities, setDraftQuantities] = useState<Record<number, number>>(quantitiesFromUrl);
+  const draftServiceIds = Object.keys(draftQuantities)
+    .map(Number)
+    .filter((id) => draftQuantities[id] > 0);
   const [draftStartTime, setDraftStartTime] = useState<string>(state.startTime);
-  const [customerMode, setCustomerMode] = useState<CustomerMode>(() => {
-    if (state.userId) return 'existing';
-    if (state.email.trim() || state.mobileNumber.trim() || state.givenName.trim() || state.familyName.trim())
-      return 'new';
-    return 'existing';
-  });
-  const stateServiceIdsKey = state.serviceIds.join(',');
+  // Picking a time folds the picker away and shows the overview with the Book button; "Endre" opens it again.
+  const [editingTime, setEditingTime] = useState(!state.startTime);
+  const stateServiceIdsKey = `${state.serviceIds.join(',')}|${searchParams.get('antall') ?? ''}`;
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousStepRef = useRef(openStep);
 
   useEffect(() => {
-    setDraftUserId(state.userId);
-    setDraftEmail(state.email);
-    setDraftMobileNumber(state.mobileNumber);
-    setDraftGivenName(state.givenName);
-    setDraftFamilyName(state.familyName);
-    setDraftServiceIds(state.serviceIds);
+    setDraftQuantities(quantitiesFromUrl());
+  }, [stateServiceIdsKey]);
+
+  useEffect(() => {
     setDraftStartTime(state.startTime);
-    setCustomerMode(() => {
-      if (state.userId) return 'existing';
-      if (state.email.trim() || state.mobileNumber.trim() || state.givenName.trim() || state.familyName.trim())
-        return 'new';
-      return 'existing';
+  }, [state.startTime]);
+
+  // Each step starts at the top of the page, with focus on its heading.
+  useEffect(() => {
+    if (previousStepRef.current === openStep) return;
+    previousStepRef.current = openStep;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    stepHeadingRef.current?.focus({ preventScroll: true });
+  }, [openStep]);
+
+  const navigateTo = (next: URLSearchParams) =>
+    navigate(`?${next.toString()}`, { replace: true, preventScrollReset: true });
+  const updateState = (partial: Partial<typeof state>) => navigateTo(withCreateFlowQueryState(searchParams, partial));
+
+  const selectedServices = services
+    .flatMap((group) => group.services.map((service) => ({ ...service, groupName: group.name })))
+    .filter((service) => (draftQuantities[service.id] ?? 0) > 0)
+    .map((service) => ({ ...service, quantity: draftQuantities[service.id] }));
+  const totalCount = selectedServices.reduce((sum, service) => sum + service.quantity, 0);
+  const totalDuration = selectedServices.reduce((sum, service) => sum + service.duration * service.quantity, 0);
+  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price * service.quantity, 0);
+  const serviceNames = selectedServices
+    .map((service) => (service.quantity > 1 ? `${service.quantity} × ${service.name}` : service.name))
+    .join(', ');
+  const isValid =
+    Boolean(state.userId || state.email || state.mobileNumber) &&
+    state.serviceIds.length > 0 &&
+    Boolean(draftStartTime);
+
+  // An existing customer's name travels in the URL with their id, so it survives a reload and a later search.
+  const customerName =
+    [state.givenName, state.familyName].filter(Boolean).join(' ') || state.email || state.mobileNumber || 'Kunde';
+  const customerLine = state.userId
+    ? null
+    : [state.email, state.mobileNumber && formatMobile(state.mobileNumber)].filter(Boolean).join(' · ');
+
+  const start = draftStartTime ? new Date(draftStartTime) : null;
+  const timeLabel = start
+    ? `${shortDay(start)} · ${formatClock(start)}–${formatClock(addMinutes(start, totalDuration))}`
+    : null;
+  const longTimeLabel = start ? format(start, 'EEEE d. MMMM', { locale: nb }) : null;
+  const earliestSlot = useMemo(() => getEarliestSlot(loaderData.schedules), [loaderData.schedules]);
+  // Until a day is picked, show the day of the chosen time, or the first day with free times (as in the customer flow).
+  const activeDate =
+    selectedDate ??
+    (draftStartTime ? findScheduleWithTime(loaderData.schedules, draftStartTime) : null) ??
+    loaderData.schedules.find((schedule) => schedule.timeSlots.length > 0)?.date ??
+    null;
+  const activeTimeSlots = loaderData.schedules.find((schedule) => schedule.date === activeDate)?.timeSlots ?? [];
+
+  const selectCustomer = (customer: UserDto) => {
+    updateState({
+      userId: customer.id,
+      givenName: customer.givenName ?? '',
+      familyName: customer.familyName ?? '',
+      email: '',
+      mobileNumber: '',
     });
-    setOpenStep(defaultStep);
-  }, [
-    state.userId,
-    state.email,
-    state.mobileNumber,
-    state.givenName,
-    state.familyName,
-    stateServiceIdsKey,
-    state.startTime,
-    defaultStep,
-  ]);
-
-  const updateState = (partial: Partial<typeof state>) => {
-    const next = withCreateFlowQueryState(searchParams, partial);
-    navigate(`?${next.toString()}`, { replace: true, preventScrollReset: true });
+    setOpenStep('services');
   };
 
-  const updateParam = (key: string, value: string | null) => {
-    const next = new URLSearchParams(searchParams);
-    if (!value) {
-      next.delete(key);
-    } else {
-      next.set(key, value);
-    }
-    navigate(`?${next.toString()}`, { replace: true, preventScrollReset: true });
-  };
-
-  const updateParams = (updates: Array<{ key: string; value: string | null }>) => {
-    const next = new URLSearchParams(searchParams);
-    updates.forEach(({ key, value }) => {
-      if (!value) {
-        next.delete(key);
-      } else {
-        next.set(key, value);
-      }
+  const continueWithNewCustomer = () => {
+    if (!draftEmail.trim() && !draftMobileNumber.trim()) return;
+    updateState({
+      userId: null,
+      email: draftEmail,
+      mobileNumber: draftMobileNumber,
+      givenName: draftGivenName,
+      familyName: draftFamilyName,
     });
-    navigate(`?${next.toString()}`, { replace: true, preventScrollReset: true });
+    setOpenStep('services');
   };
 
-  const hasIdentifier = Boolean(state.userId) || Boolean(state.email.trim()) || Boolean(state.mobileNumber.trim());
-  const isValid = hasIdentifier && state.serviceIds.length > 0 && Boolean(state.startTime);
-  const servicesUnlocked = hasIdentifier;
-  const timeUnlocked = servicesUnlocked && state.serviceIds.length > 0;
-  const submitUnlocked = timeUnlocked && Boolean(state.startTime);
+  const continueToTime = () => {
+    updateState({ serviceIds: draftServiceIds, quantities: draftQuantities, startTime: draftStartTime });
+    setOpenStep('time');
+  };
+
+  const stepIndex = STEPS.findIndex((step) => step.id === openStep);
+  const primaryAction =
+    openStep === 'services' ? (
+      <Button
+        type="button"
+        className="h-12 w-full lg:h-11"
+        disabled={draftServiceIds.length === 0 || navigation.state !== 'idle'}
+        onClick={continueToTime}
+      >
+        Velg tid
+      </Button>
+    ) : null;
+  const showOverview = openStep === 'time' && Boolean(draftStartTime) && !editingTime;
+
+  const barMessage = selectedServices.length
+    ? `${totalCount} valgt · ${totalDuration} min · ${formatKr(totalPrice)}`
+    : 'Velg minst én tjeneste';
+  const pickTime = (date: Date | null) => {
+    setDraftStartTime(date ? formatISO(date) : '');
+    if (date) setEditingTime(false);
+  };
+
+  const stepHeadingClassName = 'sr-only';
+  const customerTone = categoryTone(state.userId ?? 0);
 
   return (
-    <CompanyPageTemplate
-      title="Opprett ny time"
-      description="Velg eksisterende kunde eller oppgi brukerinfo, deretter tjenester og tidspunkt i én flyt."
-      size="xl"
-      routeLinks={
-        <Button asChild variant="outline" size="sm">
-          <Link to={ROUTES_MAP['company.booking.appointments'].href}>Tilbake til timebestillinger</Link>
-        </Button>
-      }
-    >
-      <Accordion
-        type="single"
-        collapsible={false}
-        value={openStep}
-        onValueChange={(value) => {
-          if (value === 'contact') setOpenStep('contact');
-          if (value === 'services' && servicesUnlocked) setOpenStep('services');
-          if (value === 'time' && timeUnlocked) setOpenStep('time');
-          if (value === 'submit' && submitUnlocked) setOpenStep('submit');
-        }}
-      >
-        <AccordionItem value="contact">
-          <AccordionTrigger>1. Kunde og brukerinfo</AccordionTrigger>
-          <AccordionContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="grid w-full grid-cols-2 rounded-md border border-border bg-surface p-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={customerMode === 'existing' ? 'outline' : 'ghost'}
-                  className={customerMode === 'existing' ? 'bg-background' : ''}
-                  onClick={() => setCustomerMode('existing')}
-                >
-                  Eksisterende kunde
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={customerMode === 'new' ? 'outline' : 'ghost'}
-                  className={customerMode === 'new' ? 'bg-background' : ''}
-                  onClick={() => {
-                    setCustomerMode('new');
-                    setDraftUserId(null);
-                  }}
-                >
-                  Ny kunde
-                </Button>
-              </div>
+    <CompanyPageTemplate title="Ny time">
+      <div className="flex items-center gap-3">
+        <ol aria-label="Steg" className="grid max-w-sm flex-1 grid-cols-3 gap-1">
+          {STEPS.map((step, index) => (
+            <li
+              key={step.id}
+              aria-current={index === stepIndex ? 'step' : undefined}
+              className={cn('h-1 rounded-full', index <= stepIndex ? 'bg-interactive' : 'bg-border')}
+            >
+              <span className="sr-only">{step.label}</span>
+            </li>
+          ))}
+        </ol>
+        <span className="shrink-0 text-sm text-text-secondary">
+          {stepIndex + 1} av {STEPS.length}
+        </span>
+      </div>
 
-              {customerMode === 'existing' ? (
-                <div className="space-y-3">
-                  <CustomerSelector
-                    customers={loaderData.customers}
-                    selectedCustomerId={draftUserId}
-                    onSelectCustomer={(customer) => {
-                      setDraftUserId(customer?.id ?? null);
-                    }}
-                    pagination={loaderData.contactPagination}
-                    onPageChange={(page) => updateParam('contact-page', String(Math.max(0, page)))}
-                    onSearchChange={(search) => {
-                      updateParams([
-                        { key: 'contact-page', value: '0' },
-                        { key: 'customer-search', value: search || null },
-                      ]);
-                    }}
-                    initialSearch={loaderData.contactSearch}
-                  />
-                  <Button
-                    className="w-full"
-                    disabled={!draftUserId}
-                    onClick={() => {
-                      if (!draftUserId) return;
-                      updateState({
-                        userId: draftUserId,
-                        email: '',
-                        mobileNumber: '',
-                        givenName: '',
-                        familyName: '',
-                      });
-                      setOpenStep('services');
-                    }}
+      {loaderData.error && <Notice tone="emphasis" title="Kunne ikke hente data" message={loaderData.error} />}
+      {actionData?.error && <Notice tone="emphasis" title="Kunne ikke opprette time" message={actionData.error} />}
+
+      <div className={cn('grid items-start gap-4', showOverview ? 'max-w-2xl' : 'lg:grid-cols-[minmax(0,1fr)_22rem]')}>
+        <div className="min-w-0 space-y-3">
+          {openStep !== 'contact' && !showOverview ? (
+            <section
+              aria-label="Valgt"
+              className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background lg:hidden"
+            >
+              <ChosenRow
+                lead={
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold',
+                      customerTone.tint,
+                      customerTone.ink,
+                    )}
                   >
-                    Fortsett med valgt kunde
-                  </Button>
-                </div>
+                    {customerInitials({ givenName: state.givenName, familyName: state.familyName })}
+                  </span>
+                }
+                label="Kunde"
+                value={customerName}
+                onEdit={() => setOpenStep('contact')}
+              />
+              {openStep === 'time' ? (
+                <ChosenRow label="Tjenester" value={serviceNames} onEdit={() => setOpenStep('services')} />
+              ) : null}
+            </section>
+          ) : null}
+
+          {openStep === 'contact' && (
+            <section
+              aria-labelledby="step-heading"
+              className="overflow-hidden rounded-xl border border-border bg-background"
+            >
+              <h2 id="step-heading" ref={stepHeadingRef} tabIndex={-1} className={stepHeadingClassName}>
+                {customerMode === 'existing' ? 'Velg kunde' : 'Ny kunde'}
+              </h2>
+              {customerMode === 'existing' ? (
+                <CustomerSelector
+                  customers={loaderData.customers}
+                  totalMatches={loaderData.totalMatches}
+                  onSelectCustomer={selectCustomer}
+                  onAddNewCustomer={() => setCustomerMode('new')}
+                  onSearchChange={(search) => {
+                    const next = new URLSearchParams(searchParams);
+                    if (search) next.set('customer-search', search);
+                    else next.delete('customer-search');
+                    navigateTo(next);
+                  }}
+                  initialSearch={loaderData.contactSearch}
+                />
               ) : (
-                <div className="space-y-3">
-                  <div className="space-y-3 border-t border-border pt-3">
-                    <p className="text-sm font-medium text-text-primary">Oppgi ny kunde</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">E-post</Label>
-                        <Input
-                          id="email"
-                          name="email-view"
-                          placeholder="navn@eksempel.no"
-                          value={draftEmail}
-                          onChange={(e) => setDraftEmail(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="mobileNumber">Mobilnummer</Label>
-                        <Input
-                          id="mobileNumber"
-                          name="mobileNumber-view"
-                          placeholder="+47 99 99 99 99"
-                          value={draftMobileNumber}
-                          onChange={(e) => setDraftMobileNumber(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="givenName">Fornavn (valgfritt)</Label>
-                        <Input
-                          id="givenName"
-                          name="givenName-view"
-                          placeholder="Fornavn"
-                          value={draftGivenName}
-                          onChange={(e) => setDraftGivenName(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="familyName">Etternavn (valgfritt)</Label>
-                        <Input
-                          id="familyName"
-                          name="familyName-view"
-                          placeholder="Etternavn"
-                          value={draftFamilyName}
-                          onChange={(e) => setDraftFamilyName(e.target.value)}
-                        />
-                      </div>
+                <div className="space-y-4 p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-text-primary">Ny kunde</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-interactive"
+                      onClick={() => setCustomerMode('existing')}
+                    >
+                      Velg eksisterende
+                    </Button>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="givenName">Fornavn (valgfritt)</Label>
+                      <Input
+                        id="givenName"
+                        autoComplete="given-name"
+                        value={draftGivenName}
+                        onChange={(event) => setDraftGivenName(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="familyName">Etternavn (valgfritt)</Label>
+                      <Input
+                        id="familyName"
+                        autoComplete="family-name"
+                        value={draftFamilyName}
+                        onChange={(event) => setDraftFamilyName(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mobileNumber">Mobilnummer</Label>
+                      <Input
+                        id="mobileNumber"
+                        type="tel"
+                        autoComplete="tel"
+                        value={draftMobileNumber}
+                        onChange={(event) => setDraftMobileNumber(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-post</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        value={draftEmail}
+                        onChange={(event) => setDraftEmail(event.target.value)}
+                      />
                     </div>
                   </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    Minst ett felt for e-post eller mobilnummer må fylles ut.
-                  </p>
-                  <Button
-                    className="w-full"
-                    disabled={!draftEmail.trim() && !draftMobileNumber.trim()}
-                    onClick={() => {
-                      if (!draftEmail.trim() && !draftMobileNumber.trim()) return;
-                      updateState({
-                        userId: null,
-                        email: draftEmail,
-                        mobileNumber: draftMobileNumber,
-                        givenName: draftGivenName,
-                        familyName: draftFamilyName,
-                      });
-                      setOpenStep('services');
-                    }}
-                  >
-                    Fortsett med ny kunde
-                  </Button>
+                  <div className="flex justify-end border-t border-border pt-4">
+                    <Button
+                      type="button"
+                      disabled={isSubmitting || (!draftEmail.trim() && !draftMobileNumber.trim())}
+                      onClick={continueWithNewCustomer}
+                    >
+                      Fortsett
+                    </Button>
+                  </div>
                 </div>
               )}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+            </section>
+          )}
 
-        <AccordionItem value="services">
-          <AccordionTrigger disabled={!servicesUnlocked}>2. Velg tjenester</AccordionTrigger>
-          <AccordionContent className="space-y-3">
-            <ServicesSelector
-              serviceGroups={filteredServices}
-              selectedServiceIds={draftServiceIds}
-              onSelectService={(serviceId) =>
-                setDraftServiceIds((prev) => (prev.includes(serviceId) ? prev : [...prev, serviceId]))
-              }
-              onDeselectService={(serviceId) => setDraftServiceIds((prev) => prev.filter((id) => id !== serviceId))}
-              onSearchChange={(value) => updateParam('service-search', value || null)}
-              initialSearch={loaderData.serviceSearch}
-            />
-            <Button
-              className="w-full"
-              disabled={draftServiceIds.length === 0}
-              onClick={() => {
-                if (draftServiceIds.length === 0) return;
-                updateState({ serviceIds: draftServiceIds });
-                setOpenStep('time');
-              }}
+          {openStep === 'services' && (
+            <section
+              aria-labelledby="step-heading"
+              className="overflow-hidden rounded-xl border border-border bg-background"
             >
-              Lagre og fortsett
-            </Button>
-          </AccordionContent>
-        </AccordionItem>
+              <h2 id="step-heading" ref={stepHeadingRef} tabIndex={-1} className={stepHeadingClassName}>
+                Velg tjenester
+              </h2>
+              <ServicesSelector
+                serviceGroups={services}
+                quantities={draftQuantities}
+                onQuantityChange={(serviceId, quantity) => {
+                  setDraftQuantities((previous) => {
+                    const next = { ...previous };
+                    if (quantity > 0) next[serviceId] = quantity;
+                    else delete next[serviceId];
+                    return next;
+                  });
+                  setDraftStartTime('');
+                }}
+              />
+            </section>
+          )}
 
-        <AccordionItem value="time">
-          <AccordionTrigger disabled={!timeUnlocked}>3. Velg tidspunkt</AccordionTrigger>
-          <AccordionContent className="space-y-3">
-            <DateTimeSelector
-              schedules={loaderData.schedules}
-              selectedDateTime={draftStartTime ? new Date(draftStartTime) : null}
-              onSelectDateTime={(date) => setDraftStartTime(formatISO(date))}
-            />
-            <Button
-              className="w-full"
-              disabled={!draftStartTime}
-              onClick={() => {
-                if (!draftStartTime) return;
-                updateState({ startTime: draftStartTime });
-                setOpenStep('submit');
-              }}
-            >
-              Lagre og fortsett
-            </Button>
-          </AccordionContent>
-        </AccordionItem>
+          {openStep === 'time' && (
+            <section aria-labelledby="step-heading" className="space-y-3">
+              <h2 id="step-heading" ref={stepHeadingRef} tabIndex={-1} className={stepHeadingClassName}>
+                {showOverview ? 'Bekreft timen' : 'Velg tidspunkt'}
+              </h2>
+              {showOverview && start ? (
+                <div className="overflow-hidden rounded-xl border border-border bg-background">
+                  <ListStrip label="Oversikt" />
+                  <dl className="divide-y divide-border">
+                    <SummaryRow
+                      label="Kunde"
+                      value={customerName}
+                      line={customerLine}
+                      empty=""
+                      onEdit={() => setOpenStep('contact')}
+                    />
+                    <SummaryRow
+                      label="Tjenester"
+                      value={serviceNames}
+                      line={`${totalDuration} min`}
+                      empty=""
+                      onEdit={() => setOpenStep('services')}
+                    />
+                    <SummaryRow
+                      label="Tid"
+                      value={longTimeLabel ? `${longTimeLabel[0].toUpperCase()}${longTimeLabel.slice(1)}` : ''}
+                      line={`${formatClock(start)}–${formatClock(addMinutes(start, totalDuration))}`}
+                      empty=""
+                      onEdit={() => setEditingTime(true)}
+                    />
+                    <div className="flex items-center justify-between gap-3 px-5 py-3">
+                      <dt className="font-semibold text-text-primary">Totalt</dt>
+                      <dd className="text-lg font-bold tabular-nums text-text-primary">{formatKr(totalPrice)}</dd>
+                    </div>
+                  </dl>
+                  <div className="border-t border-border p-3">
+                    <Button
+                      type="submit"
+                      form="create-appointment-form"
+                      disabled={!isValid || navigation.state !== 'idle'}
+                      className="h-12 w-full bg-confirm text-text-inverse hover:bg-confirm-hover lg:h-11"
+                    >
+                      {isSubmitting ? 'Booker…' : 'Book time'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // The customer booking flow's time step (first free time, day strip, times by hour), picking instead of
+                // submitting; in company blue through `.company-booking-scope`.
+                <div className="company-booking-scope space-y-4">
+                  {earliestSlot ? (
+                    <BookingSection>
+                      <QuickBookButton slot={earliestSlot} onSelect={(time) => pickTime(new Date(time))} />
+                    </BookingSection>
+                  ) : null}
+                  <DayPickerSection
+                    schedules={loaderData.schedules}
+                    selectedDate={activeDate}
+                    onSelectDate={setSelectedDate}
+                  />
+                  {activeTimeSlots.length > 0 ? (
+                    <>
+                      <div className="md:hidden">
+                        <TimeSlotsSection
+                          selectedDate={activeDate}
+                          timeSlots={activeTimeSlots}
+                          displayTime={draftStartTime || null}
+                          isSubmitting={isSubmitting}
+                          onSelectTime={(time) => pickTime(new Date(time))}
+                        />
+                      </div>
+                      <div className="hidden md:block">
+                        <TimeSlotsSection
+                          selectedDate={activeDate}
+                          timeSlots={activeTimeSlots}
+                          displayTime={draftStartTime || null}
+                          isSubmitting={isSubmitting}
+                          variant="desktop"
+                          onSelectTime={(time) => pickTime(new Date(time))}
+                        />
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              )}
+              <Form method="post" id="create-appointment-form">
+                <input type="hidden" name="userId" value={state.userId ?? ''} />
+                <input type="hidden" name="email" value={state.email} />
+                <input type="hidden" name="mobileNumber" value={state.mobileNumber} />
+                <input type="hidden" name="givenName" value={state.givenName} />
+                <input type="hidden" name="familyName" value={state.familyName} />
+                <input type="hidden" name="serviceIds" value={state.serviceIds.join(',')} />
+                <input
+                  type="hidden"
+                  name="antall"
+                  value={serializeQuantitiesParam(state.quantities, state.serviceIds)}
+                />
+                <input type="hidden" name="startTime" value={draftStartTime} />
+                <input type="hidden" name="fra" value={loaderData.from ?? ''} />
+              </Form>
+            </section>
+          )}
+        </div>
 
-        <AccordionItem value="submit">
-          <AccordionTrigger disabled={!submitUnlocked}>4. Opprett time</AccordionTrigger>
-          <AccordionContent className="space-y-2">
-            <Form method="post" className="space-y-2">
-              <input type="hidden" name="userId" value={state.userId ?? ''} />
-              <input type="hidden" name="email" value={state.email} />
-              <input type="hidden" name="mobileNumber" value={state.mobileNumber} />
-              <input type="hidden" name="givenName" value={state.givenName} />
-              <input type="hidden" name="familyName" value={state.familyName} />
-              <input type="hidden" name="serviceIds" value={state.serviceIds.join(',')} />
-              <input type="hidden" name="startTime" value={state.startTime} />
-              <Button type="submit" className="w-full" disabled={!isValid || isSubmitting}>
-                {isSubmitting ? 'Oppretter time...' : 'Opprett time'}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => navigate(ROUTES_MAP['company.booking.appointments'].href)}
-                disabled={isSubmitting}
+        {showOverview ? null : (
+          <aside
+            aria-label="Oppsummering"
+            aria-live="polite"
+            className="hidden min-w-0 overflow-hidden rounded-xl border border-border bg-background lg:sticky lg:top-[calc(var(--app-header-height)+1rem)] lg:block"
+          >
+            <ListStrip label="Oppsummering" />
+            <dl className="divide-y divide-border">
+              <SummaryRow
+                label="Kunde"
+                value={
+                  openStep === 'contact' && !state.userId && !state.email && !state.mobileNumber ? null : customerName
+                }
+                line={customerLine}
+                empty="Ikke valgt"
+                onEdit={openStep !== 'contact' ? () => setOpenStep('contact') : undefined}
+              />
+              <SummaryRow
+                label="Tjenester"
+                value={serviceNames || null}
+                line={selectedServices.length ? `${totalDuration} min` : null}
+                trailing={selectedServices.length ? formatKr(totalPrice) : null}
+                empty="Ingen valgt"
+                onEdit={openStep === 'time' ? () => setOpenStep('services') : undefined}
+              />
+              <SummaryRow
+                label="Tid"
+                value={longTimeLabel ? `${longTimeLabel[0].toUpperCase()}${longTimeLabel.slice(1)}` : null}
+                line={start ? `${formatClock(start)}–${formatClock(addMinutes(start, totalDuration))}` : null}
+                empty="Ikke valgt"
+              />
+            </dl>
+            {primaryAction ? <div className="border-t border-border p-3">{primaryAction}</div> : null}
+          </aside>
+        )}
+      </div>
+
+      {primaryAction ? (
+        <>
+          {/* Room for the floating bar, so it never covers the last row. */}
+          <div aria-hidden className="h-28 lg:hidden" />
+          <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 px-3 lg:hidden">
+            <div className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
+              <p
+                aria-live="polite"
+                className="bg-surface-accent-strong px-3 py-2 text-center text-sm text-text-primary"
               >
-                Avbryt
-              </Button>
-            </Form>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+                {barMessage}
+              </p>
+              <div className="p-2">{primaryAction}</div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </CompanyPageTemplate>
+  );
+}
+
+/** A finished step on phones: what was chosen, with "Endre" to go back to it. */
+function ChosenRow({
+  lead,
+  label,
+  value,
+  onEdit,
+}: {
+  lead?: ReactNode;
+  label: string;
+  value: string;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="flex min-h-12 items-center gap-2.5 px-4 py-2 text-sm">
+      {lead}
+      <span className="sr-only">{label}:</span>
+      <span className="min-w-0 flex-1 truncate font-semibold text-text-primary">{value}</span>
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={`Endre ${label.toLowerCase()}`}
+        className="grid h-11 shrink-0 place-items-center rounded-[var(--radius-control)] px-2 font-semibold text-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive"
+      >
+        Endre
+      </button>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  line,
+  trailing,
+  empty,
+  onEdit,
+}: {
+  label: string;
+  value: string | null;
+  line?: string | null;
+  trailing?: string | null;
+  empty: string;
+  onEdit?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-3">
+      <div className="min-w-0 flex-1">
+        <dt className="text-xs text-text-secondary">{label}</dt>
+        <dd className={cn('truncate font-semibold', value ? 'text-text-primary' : 'font-normal text-text-secondary')}>
+          {value ?? empty}
+        </dd>
+        {value && line ? <dd className="truncate text-sm text-text-secondary">{line}</dd> : null}
+      </div>
+      {trailing ? <dd className="shrink-0 font-semibold tabular-nums">{trailing}</dd> : null}
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Endre ${label.toLowerCase()}`}
+          className="shrink-0 rounded-[var(--radius-control)] px-1 text-sm font-semibold text-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive"
+        >
+          Endre
+        </button>
+      ) : null}
+    </div>
   );
 }

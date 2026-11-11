@@ -48,3 +48,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function Root() {
   return <Outlet />;
 }
+
+// Errors thrown by the root layout's middleware bubble to this route, so it shows the same problems page.
+export { ErrorBoundary } from './routes/root.layout';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { data, Form, Link, useLoaderData, useNavigation } from 'react-router';
 import type { Route } from './+types/company.timesheet.edit-range.route';
-import { CompanyUserTimesheetEntryController } from '~/api/generated/timesheet';
+import { CompanyUserTimesheetEntryController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';

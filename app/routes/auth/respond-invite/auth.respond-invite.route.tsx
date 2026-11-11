@@ -5,8 +5,8 @@ import type { Route } from './+types/auth.respond-invite.route';
 import { accessTokenCookie, refreshTokenCookie } from '../_features/auth.cookies.server';
 import { toAuthTokens } from '../_utils/token.utils';
 import { redirectWithSuccess } from '~/lib/flash-message.server';
-import type { CompanySummaryDto } from '~/api/generated/base';
-import { AuthController, PublicCompanyController, PublicUserController } from '~/api/generated/base';
+import type { CompanySummaryDto } from '~/api/generated';
+import { AuthController, PublicCompanyController, PublicUserController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
 import { Lock, User } from 'lucide-react';
@@ -179,7 +179,7 @@ export async function action({ request }: Route.ActionArgs) {
     const authTokens = toAuthTokens(tokens);
 
     const accessCookie = await accessTokenCookie.serialize(authTokens.accessToken, {
-      expires: new Date(authTokens.accessTokenExpiresAt * 1000),
+      expires: new Date(authTokens.refreshTokenExpiresAt * 1000),
     });
     const refreshCookie = await refreshTokenCookie.serialize(authTokens.refreshToken, {
       expires: new Date(authTokens.refreshTokenExpiresAt * 1000),
@@ -253,7 +253,7 @@ export default function AuthRespondInvite({ loaderData, actionData }: Route.Comp
 
       {existingUser ? (
         isLoggedIn ? (
-          <Form method="post" className="space-y-6">
+          <Form method="post" className="space-y-4">
             <input type="hidden" name="inviteToken" value={inviteToken} />
             <input type="hidden" name="givenName" value={existingUserProfile?.givenName ?? ''} />
             <input type="hidden" name="familyName" value={existingUserProfile?.familyName ?? ''} />
@@ -291,7 +291,7 @@ export default function AuthRespondInvite({ loaderData, actionData }: Route.Comp
           </div>
         )
       ) : (
-        <Form method="post" className="space-y-6">
+        <Form method="post" className="space-y-4">
           <input type="hidden" name="inviteToken" value={inviteToken} />
 
           <div className="grid gap-4 sm:grid-cols-2">

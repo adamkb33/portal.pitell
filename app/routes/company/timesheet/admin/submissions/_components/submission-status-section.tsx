@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form } from 'react-router';
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet/types.gen';
+import type { TimesheetDayEntryDto } from '~/api/generated/types.gen';
 import {
   AlertDialog,
   AlertDialogCancel,

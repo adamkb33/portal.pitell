@@ -51,11 +51,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   destructive: 'bg-danger text-text-inverse hover:brightness-95',
   // booking client theme
   'booking-primary':
-    'border-[length:var(--border-booking-control)] border-booking-action bg-booking-action text-booking-action-contrast shadow-sm hover:bg-booking-action-hover focus-visible:ring-booking-action',
+    'border-[length:var(--border-booking-control)] border-booking-action bg-booking-action text-booking-action-contrast shadow-sm hover:bg-booking-action-hover focus-visible:ring-booking-action-text',
   'booking-secondary':
-    'border-[length:var(--border-booking-control)] border-booking-action bg-transparent text-booking-action hover:bg-booking-action-muted focus-visible:ring-booking-action',
+    'border-[length:var(--border-booking-control)] border-booking-action bg-transparent text-booking-action-text hover:bg-booking-action-muted focus-visible:ring-booking-action-text',
   'booking-ghost':
-    'border-transparent bg-transparent text-booking-text hover:bg-booking-surface-muted focus-visible:ring-booking-action',
+    'border-transparent bg-transparent text-booking-text hover:bg-booking-surface-muted focus-visible:ring-booking-action-text',
   // filled status
   success: 'bg-success text-text-inverse hover:brightness-95',
   warning: 'bg-warning text-text-inverse hover:brightness-95',
@@ -75,7 +75,7 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 const activeClasses: Partial<Record<ButtonVariant, string>> = {
   'booking-primary': 'bg-booking-action-hover text-booking-action-contrast',
-  'booking-secondary': 'bg-booking-action-muted text-booking-action',
+  'booking-secondary': 'bg-booking-action-muted text-booking-action-text',
   'booking-ghost': 'bg-booking-surface-muted text-booking-text',
 };
 

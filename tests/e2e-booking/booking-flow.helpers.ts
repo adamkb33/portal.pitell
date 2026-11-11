@@ -24,27 +24,13 @@ export async function selectServicesAndTime(page: Page, serviceNames: readonly s
 }
 
 export async function selectServices(page: Page, serviceNames: readonly string[]) {
-  // Each service group is its own collapsed accordion, so open them all before picking cards.
-  // `all()` does not auto-wait, so wait for the first group before enumerating them.
-  const groupTriggers = page.getByRole('button', { name: /\d+ tjenester?$/ });
-  await groupTriggers.first().waitFor();
-  for (const groupTrigger of await groupTriggers.all()) {
-    await groupTrigger.click();
-  }
-
   for (const serviceName of serviceNames) {
-    // The service card is the innermost element holding both the service heading and its own "Velg" button.
-    const card = page
-      .locator('div')
-      .filter({ has: page.getByRole('heading', { name: serviceName, exact: true }) })
-      .filter({ has: page.getByRole('button', { name: 'Velg', exact: true }) })
-      .last();
-    await card.getByRole('button', { name: 'Velg', exact: true }).click();
+    await page.getByRole('checkbox', { name: serviceName }).check();
   }
 }
 
 export async function pickFirstAvailableTime(page: Page) {
-  await page.getByRole('button', { name: /Fortsett til tidspunkt/ }).click();
+  await page.getByRole('button', { name: 'Velg tid', exact: true }).click();
   await page.waitForURL(/\/select-time/);
   await page.getByRole('button', { name: /Første ledige tid/ }).click();
   await page.getByRole('link', { name: 'Fortsett', exact: true }).click();
@@ -52,7 +38,8 @@ export async function pickFirstAvailableTime(page: Page) {
   await page.waitForURL(/\/(contact|overview)(?:[?/]|$)/);
 }
 
-export async function fillContactForm(page: Page, contact: GuestContact) {
+/** Fills and submits the contact form without waiting for what comes next (SMS step, overview or an error). */
+export async function submitContactForm(page: Page, contact: GuestContact) {
   await page.getByLabel('Fornavn').fill(contact.givenName);
   await page.getByLabel('Etternavn').fill(contact.familyName);
   await page.getByLabel('Mobilnummer').fill(contact.mobileNumber);
@@ -62,6 +49,11 @@ export async function fillContactForm(page: Page, contact: GuestContact) {
     await page.getByLabel('E-post').fill(contact.email);
   }
   await page.getByRole('button', { name: /Lagre og fortsett/ }).click();
+}
+
+/** Submits the contact form and waits for the SMS verification step. */
+export async function fillContactForm(page: Page, contact: GuestContact) {
+  await submitContactForm(page, contact);
   await page.waitForURL(/\/contact\/verify-mobile/);
 }
 
@@ -75,11 +67,20 @@ export async function submitVerificationCode(page: Page, code: string) {
 /** Submits a code that is expected to be rejected, and waits for the error to render. */
 export async function submitInvalidVerificationCode(page: Page, code: string) {
   await submitVerificationCode(page, code);
-  await expect(page.getByText('Ugyldig SMS-kode')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Feil kode.');
 }
 
 export async function completeGuestContact(page: Page, contact: GuestContact) {
   await fillContactForm(page, contact);
   await submitVerificationCode(page, '111111');
   await page.waitForURL(/\/overview/);
+}
+
+/** Ticks the terms box on the overview step. A customer who already accepted the current terms is not asked again. */
+export async function acceptTerms(page: Page) {
+  await expect(page.getByRole('button', { name: /Bekreft timebestilling/ })).toBeVisible();
+  const terms = page.getByRole('checkbox', { name: /Jeg godtar/ });
+  if ((await terms.count()) > 0) {
+    await terms.check();
+  }
 }

@@ -3,13 +3,19 @@ import { NavLink, data, useNavigate, useSearchParams, useSubmit } from 'react-ro
 import { useState } from 'react';
 import { Pen } from 'lucide-react';
 import type { Route } from './+types/company.admin.contacts.route';
-import { CompanyUserContactController } from '~/api/generated/base';
+import { CompanyUserContactController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/routing/route-tree';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { ServerPaginatedTable } from '~/components/table/server-side-table';
-import type { ContactDto } from '~/api/generated/base';
+import { PageCreateButton } from '~/routes/_components/page-create-button';
+import type { ContactDto } from '~/api/generated';
 import { Button, Input, Notice, TableCell, TableRow } from '~/ui';
+import type { CreateActionHandle } from '~/lib/routing/create-action';
+
+export const handle = {
+  createAction: { label: 'Ny kontakt', to: ROUTES_MAP['company.admin.contacts.create'].href },
+} satisfies CreateActionHandle;
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -129,16 +135,8 @@ export default function CompanyContactsRoute({ loaderData }: Route.ComponentProp
             className="max-w-sm"
           />
         }
-        primaryAction={
-          <Button asChild size="sm">
-            <NavLink to={ROUTES_MAP['company.admin.contacts.create'].href}>Legg til ny kontakt</NavLink>
-          </Button>
-        }
-        mobilePrimaryAction={
-          <Button asChild size="sm">
-            <NavLink to={ROUTES_MAP['company.admin.contacts.create'].href}>Legg til ny kontakt</NavLink>
-          </Button>
-        }
+        // The page's create action; on phones the bottom menu's + does it.
+        primaryAction={<PageCreateButton size="sm" />}
         renderRow={(contact) => (
           <TableRow>
             <TableCell className="font-medium">{formatName(contact)}</TableCell>

@@ -1,5 +1,5 @@
 import { addMonths, endOfWeek, format, getISOWeek, parseISO, startOfWeek, subMonths } from 'date-fns';
-import type { GetTimesheetEntriesRequest, TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { GetTimesheetEntriesRequest, TimesheetDayEntryDto } from '~/api/generated';
 import type { WeekSummary } from '../_types/timesheet.types';
 
 const WEEK_STARTS_ON = 1 as const;

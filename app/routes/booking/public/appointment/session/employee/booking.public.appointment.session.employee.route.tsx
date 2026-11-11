@@ -1,11 +1,10 @@
 import { Form, data, redirect, useNavigation } from 'react-router';
-import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import { PublicAppointmentSessionController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
-import { BookingCompanyBadge } from '~/routes/booking/public/_components/booking-company-badge';
-import { getBookingCompanySummary } from '~/routes/booking/public/_utils/booking-company.server';
 import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
+import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import {
   OVERVIEW_RETURN_VALUE,
@@ -34,10 +33,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
 
       const { session } = guardResult;
-      const companySummary = await withBookingBackendCall(
-        { request, routeId: ROUTE_ID, step: 'employee', call: 'get-company-summary', session },
-        () => getBookingCompanySummary(session.companyId, request),
-      );
       const profilesResponse = await withBookingBackendCall(
         { request, routeId: ROUTE_ID, step: 'employee', call: 'get-profiles', session },
         () =>
@@ -77,7 +72,6 @@ export async function loader({ request }: Route.LoaderArgs) {
         session,
         profiles,
         selectedProfileId: session.selectedProfileId,
-        companySummary,
         returnToOverview,
         error: null as string | null,
       });
@@ -87,7 +81,6 @@ export async function loader({ request }: Route.LoaderArgs) {
         session: null,
         profiles: [],
         selectedProfileId: null,
-        companySummary: null,
         returnToOverview,
         error: message,
       });
@@ -142,6 +135,7 @@ export default function BookingEmployeePage({ loaderData }: Route.ComponentProps
   const profiles = loaderData.profiles ?? [];
   const selectedProfileId = loaderData.selectedProfileId;
   const routes = getBookingRouteMap();
+  const companyName = useBookingCompanyName();
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== 'idle';
   const returnToOverview = loaderData.returnToOverview;
@@ -149,16 +143,7 @@ export default function BookingEmployeePage({ loaderData }: Route.ComponentProps
   const pendingDestination = navigation.location?.pathname;
 
   return (
-    <BookingStepTemplate
-      label="Velg behandler"
-      title="Hvem skal vi bestille avtalen på?"
-      description={
-        selectedProfileId
-          ? 'Du har allerede valgt en frisør. Du kan endre valget eller fortsette.'
-          : 'Velg en frisør for å fortsette med timebestilling'
-      }
-      headerMeta={<BookingCompanyBadge company={loaderData.companySummary} />}
-    >
+    <BookingStepTemplate label={companyName} title="Hvem vil du bestille hos?">
       {loaderData.error ? (
         <Notice variant="booking" tone="emphasis" title="Kunne ikke hente behandlere" message={loaderData.error} />
       ) : null}
@@ -182,12 +167,12 @@ export default function BookingEmployeePage({ loaderData }: Route.ComponentProps
       </Grid>
       <BookingFooterNav>
         <BookingLink
-          to={returnToOverview ? routes.overview : routes.contact}
+          to={returnToOverview ? routes.overview : routes.appointment}
           variant="secondary"
-          loading={isSubmitting && pendingDestination === routes.contact}
+          loading={isSubmitting && pendingDestination === routes.appointment}
           disabled={isSubmitting}
         >
-          {isSubmitting && pendingDestination === routes.contact ? 'Går tilbake...' : 'Tilbake'}
+          {isSubmitting && pendingDestination === routes.appointment ? 'Går tilbake...' : 'Tilbake'}
         </BookingLink>
         {selectedProfileId ? (
           <BookingLink

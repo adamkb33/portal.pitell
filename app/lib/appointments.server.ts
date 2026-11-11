@@ -1,7 +1,7 @@
 import { createCookie } from 'react-router';
-import { PublicAppointmentSessionController, type AppointmentSessionDto } from '~/api/generated/booking';
+import { PublicAppointmentSessionController, type AppointmentSessionDto } from '~/api/generated';
 
-const GATEWAY_URL = (process.env.VITE_API_GATEWAY_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const GATEWAY_URL = (process.env.VITE_API_GATEWAY_URL || 'http://localhost:8010').replace(/\/+$/, '');
 const BOOKING_BASE_URL = `${GATEWAY_URL}/booking-service`;
 const CREATE_SESSION_URL = `${BOOKING_BASE_URL}/public/appointment-session/create-session`;
 const GET_SESSION_URL = `${BOOKING_BASE_URL}/public/appointment-session/get-session`;

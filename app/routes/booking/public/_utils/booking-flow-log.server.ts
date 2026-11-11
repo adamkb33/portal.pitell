@@ -1,4 +1,4 @@
-import type { AppointmentSessionDto } from '~/api/generated/booking';
+import type { AppointmentSessionDto } from '~/api/generated';
 import { describeAxiosError, sanitizeForLog } from '~/lib/http-log';
 import { logger } from '~/lib/logger';
 

@@ -1,364 +1,132 @@
-import { data, Form, Link, useNavigation } from 'react-router';
+import { data } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.cancel-by-id.route';
-import { AppointmentsController, PublicAppointmentSessionController } from '~/api/generated/booking';
-import type { AppointmentDto } from '~/api/generated/booking';
+import { AppointmentsController, PublicAppointmentSessionController } from '~/api/generated';
+import type { AppointmentDto, CompanySummaryDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { redirectWithError, redirectWithInfo } from '~/lib/flash-message.server';
+import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
+import { CancelAppointmentGone, CancelAppointmentView } from '~/routes/booking/public/_components/cancel-appointment';
+import { getBookingCompanySummary } from '~/routes/booking/public/_utils/booking-company.server';
 import {
-  Button,
-  Card,
-  ConfirmDialog,
-  Container,
-  KeyValueList,
-  Notice,
-  PageHeader,
-  Panel,
-  Stack,
-  StickyFooterPageTemplate,
-  StickySummaryBar,
-  Text,
-} from '~/ui';
-import { Calendar, Clock, DollarSign, Mail, Sparkles, User, XCircle } from 'lucide-react';
-import { useState } from 'react';
+  buildAppointmentHref,
+  formatCompanyAddress,
+  getCompanyName,
+} from '~/routes/booking/public/my-appointments/_utils/my-appointments.utils';
+
+const MY_APPOINTMENTS_HREF = ROUTES_MAP['booking.public.my-appointments'].href;
+export const APPOINTMENT_GONE_MESSAGE = 'Timen er allerede avbestilt';
+export const CANCELLED_MESSAGE = 'Timen er avbestilt';
+
+type LoaderData = {
+  appointment: AppointmentDto | null;
+  company: CompanySummaryDto | null;
+  canCancel: boolean;
+  error: string | null;
+};
+
+const nothing = (error: string): LoaderData => ({ appointment: null, company: null, canCancel: false, error });
 
 function parseAppointmentId(value: string | undefined): number | null {
-  if (!value) return null;
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-  return parsed;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  const dateText = new Intl.DateTimeFormat('nb-NO', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-  const timeText = new Intl.DateTimeFormat('nb-NO', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-  return { dateText, timeText };
-}
-
-function formatDateTimeFull(value: string) {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat('nb-NO', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-}
-
-function getDurationMinutes(startIso: string, endIso: string): number {
-  const start = new Date(startIso).getTime();
-  const end = new Date(endIso).getTime();
-  return Math.max(0, Math.round((end - start) / 60000));
-}
-
-const APPOINTMENT_GONE_MESSAGE = 'Denne avtalen finnes ikke lenger. Den er sannsynligvis allerede avbestilt.';
+const isNotFound = (error: unknown) => (error as { response?: { status?: number } })?.response?.status === 404;
 
 // Returns null (rather than redirecting) when the appointment can't be found, so a stale
-// link — e.g. the browser's back button after a cancel — lands on a calm inline message
-// instead of bouncing through a "not found" flash.
+// link — e.g. the browser's back button after a cancel — lands on a calm "already cancelled" page
+// instead of bouncing through a "not found" flash. The backend answers 404 both for an
+// unknown id and for someone else's appointment, so a stranger sees the same page.
 async function loadOwnedAppointment(request: Request, appointmentId: number): Promise<AppointmentDto | null> {
   const auth = await authService.getAuth(request);
   if (!auth) {
     throw await redirectWithError(request, ROUTES_MAP['auth.sign-in'].href, 'Du må logge inn for å avbestille time.');
   }
 
-  const response = await withAuth(request, async () => {
-    return PublicAppointmentSessionController.getAppointmentById({
-      query: { appointmentId },
-    });
-  });
-  const appointment = response.data?.data;
-
-  if (!appointment) {
-    return null;
-  }
-
-  if (appointment.userId !== auth.id) {
-    throw await redirectWithError(
-      request,
-      ROUTES_MAP['booking.public.my-appointments'].href,
-      'Du kan bare avbestille egne avtaler.',
+  try {
+    const response = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentById({ query: { appointmentId } }),
     );
+    const appointment = response.data?.data;
+    return appointment && appointment.userId === auth.id ? appointment : null;
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
   }
-
-  return appointment;
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const appointmentId = parseAppointmentId(params.appointmentId);
   if (!appointmentId) {
-    return redirectWithError(request, ROUTES_MAP['booking.public.my-appointments'].href, 'Ugyldig avtale-ID.');
+    return redirectWithError(request, MY_APPOINTMENTS_HREF, 'Ugyldig avtale-ID.');
   }
 
   try {
     const appointment = await loadOwnedAppointment(request, appointmentId);
     if (!appointment) {
-      return data(
-        {
-          appointment: null,
-          canCancel: false,
-          duration: 0,
-          totalPrice: 0,
-          error: APPOINTMENT_GONE_MESSAGE,
-        },
-        { status: 404 },
-      );
+      return data(nothing(APPOINTMENT_GONE_MESSAGE), { status: 404 });
     }
 
-    const totalPrice = appointment.groupedServiceGroups.reduce(
-      (sum, group) => sum + group.services.reduce((inner, service) => inner + service.price, 0),
-      0,
-    );
-    const duration = getDurationMinutes(appointment.startTime, appointment.endTime);
-    const startsAt = new Date(appointment.startTime).getTime();
-
-    return data({
+    const companyId = appointment.groupedServiceGroups[0]?.companyId;
+    return data<LoaderData>({
       appointment,
-      canCancel: startsAt > Date.now(),
-      duration,
-      totalPrice,
-      error: null as string | null,
+      company: companyId ? await getBookingCompanySummary(companyId, request) : null,
+      canCancel: new Date(appointment.startTime).getTime() > Date.now(),
+      error: null,
     });
   } catch (error) {
     if (error instanceof Response) throw error;
-    const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente avtalen.');
-    return data(
-      {
-        appointment: null,
-        canCancel: false,
-        duration: 0,
-        totalPrice: 0,
-        error: message,
-      },
-      { status: status ?? 400 },
-    );
+    const { status } = resolveErrorPayload(error, 'Kunne ikke hente timen');
+    return data(nothing('Kunne ikke hente timen'), { status: status ?? 400 });
   }
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
   const appointmentId = parseAppointmentId(params.appointmentId);
   if (!appointmentId) {
-    return redirectWithError(request, ROUTES_MAP['booking.public.my-appointments'].href, 'Ugyldig avtale-ID.');
+    return redirectWithError(request, MY_APPOINTMENTS_HREF, 'Ugyldig avtale-ID.');
   }
 
   try {
     const appointment = await loadOwnedAppointment(request, appointmentId);
     if (!appointment) {
-      return redirectWithError(request, ROUTES_MAP['booking.public.my-appointments'].href, APPOINTMENT_GONE_MESSAGE);
+      return redirectWithError(request, MY_APPOINTMENTS_HREF, APPOINTMENT_GONE_MESSAGE);
     }
 
-    await withAuth(request, async () => {
-      return AppointmentsController.cancelMyAppointment({
-        path: { appointmentId },
-      });
-    });
+    await withAuth(request, () => AppointmentsController.cancelMyAppointment({ path: { appointmentId } }));
 
-    return redirectWithInfo(
-      request,
-      ROUTES_MAP['booking.public.my-appointments'].href,
-      'Avbestillingen er registrert.',
-    );
+    return redirectWithSuccess(request, MY_APPOINTMENTS_HREF, CANCELLED_MESSAGE);
   } catch (error) {
     if (error instanceof Response) throw error;
-    const { message } = resolveErrorPayload(error, 'Kunne ikke avbestille avtalen.');
-    return redirectWithError(request, ROUTES_MAP['booking.public.my-appointments'].href, message);
+    const { message } = resolveErrorPayload(error, 'Kunne ikke avbestille timen. Prøv igjen.');
+    return redirectWithError(request, MY_APPOINTMENTS_HREF, message);
   }
 }
 
+/** Avbestill time from "Mine bookinger": "Behold timen" goes back to the appointment's own page. */
 export default function BookingPublicAppointmentCancelByIdRoute({ loaderData }: Route.ComponentProps) {
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state !== 'idle';
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const { appointment, company, canCancel, error } = loaderData;
 
-  if (loaderData.error || !loaderData.appointment) {
+  if (error || !appointment) {
     return (
-      <Container size="lg">
-        <PageHeader label="Avbestilling" title="Avbestill time" description="Vi fant ikke avtalen." />
-        <Stack space="lg">
-          <Notice
-            variant="booking"
-            tone="muted"
-            title="Fant ikke avtalen"
-            message={loaderData.error ?? 'Vi fant ikke en gyldig avtale for avbestilling.'}
-          />
-          <Button asChild>
-            <Link to={ROUTES_MAP['booking.public.my-appointments'].href}>Gå til mine bookinger</Link>
-          </Button>
-        </Stack>
-      </Container>
+      <CancelAppointmentGone
+        title={error ?? APPOINTMENT_GONE_MESSAGE}
+        href={MY_APPOINTMENTS_HREF}
+        linkLabel="Mine bookinger"
+      />
     );
   }
 
-  const appointment = loaderData.appointment;
-  const starts = formatDateTime(appointment.startTime);
-  const startsFull = formatDateTimeFull(appointment.startTime);
-  const services = appointment.groupedServiceGroups.flatMap((group) => group.services);
-  const canCancel = loaderData.canCancel === true;
-
   return (
-    <StickyFooterPageTemplate
-      footer={
-        <StickySummaryBar
-          title="Avbestill"
-          items={[
-            { label: 'Dato', value: startsFull },
-            {
-              label: 'Kontaktinformasjon',
-              value: `${appointment.user.givenName} ${appointment.user.familyName}`.trim() || '—',
-            },
-          ]}
-          primaryAction={
-            <Button
-              type="button"
-              variant="destructive"
-              size="lg"
-              fullWidth
-              disabled={!canCancel || isSubmitting}
-              onClick={() => setIsDeleteOpen(true)}
-            >
-              Avbestill
-            </Button>
-          }
-        />
-      }
-    >
-      <Container size="lg">
-        <Stack space="xl">
-          <PageHeader
-            label="Avbestilling"
-            title="Avbestill time"
-            description={
-              canCancel
-                ? 'Kontroller opplysningene under før du avbestiller.'
-                : 'Avtalen har allerede startet og kan ikke avbestilles her.'
-            }
-          />
-
-          <Card variant="emphasis" className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-surface">
-                <XCircle className="size-5 text-text-primary" strokeWidth={2.5} />
-              </div>
-              <div>
-                <Text as="p" variant="label">
-                  Avbestillingsforespørsel
-                </Text>
-                <Text as="p" variant="body-sm" className="text-text-secondary">
-                  Avtale #{appointment.id}
-                </Text>
-              </div>
-            </div>
-            <KeyValueList
-              items={[
-                { label: 'Dato', value: starts.dateText, icon: <Calendar className="size-4" /> },
-                { label: 'Tid', value: `kl. ${starts.timeText}`, icon: <Clock className="size-4" /> },
-                { label: 'Varighet', value: `${loaderData.duration} min`, icon: <Clock className="size-4" /> },
-                { label: 'Pris', value: `${loaderData.totalPrice} kr`, icon: <Sparkles className="size-4" /> },
-              ]}
-            />
-          </Card>
-
-          {!canCancel ? (
-            <Notice
-              variant="booking"
-              tone="muted"
-              title="Avbestilling ikke tilgjengelig"
-              message="Denne avtalen kan ikke avbestilles fordi tidspunktet allerede har startet."
-            />
-          ) : null}
-
-          <Stack space="lg">
-            <Panel title="Kontaktinformasjon">
-              <KeyValueList
-                layout="stacked"
-                items={[
-                  {
-                    label: 'Navn',
-                    value: `${appointment.user.givenName} ${appointment.user.familyName}`.trim() || '—',
-                    icon: <User className="size-4" />,
-                  },
-                  ...(appointment.user.email
-                    ? [{ label: 'E-post', value: appointment.user.email, icon: <Mail className="size-4" /> }]
-                    : []),
-                ]}
-              />
-            </Panel>
-
-            <Panel title="Tidspunkt">
-              <KeyValueList
-                layout="stacked"
-                items={[
-                  { label: 'Dato', value: starts.dateText, icon: <Calendar className="size-4" /> },
-                  { label: 'Tid', value: `kl. ${starts.timeText}`, icon: <Clock className="size-4" /> },
-                  { label: 'Varighet', value: `${loaderData.duration} min`, icon: <Clock className="size-4" /> },
-                  { label: 'Pris', value: `${loaderData.totalPrice} kr`, icon: <DollarSign className="size-4" /> },
-                ]}
-              />
-            </Panel>
-
-            <Panel title="Tjenester">
-              {services.length ? (
-                <div className="divide-y divide-border">
-                  {services.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between gap-3 py-3">
-                      <span className="text-sm font-medium text-text-primary md:text-base">{service.name}</span>
-                      <div className="flex shrink-0 items-center gap-3 text-xs text-text-secondary md:text-sm">
-                        <span className="flex items-center gap-1">
-                          <Clock className="size-3 md:size-3.5" />
-                          {service.duration} min
-                        </span>
-                        <span className="flex items-center gap-1 font-semibold text-text-primary">
-                          {service.price} kr
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Text as="p" variant="body-sm" className="text-text-secondary">
-                  Ingen tjenester funnet.
-                </Text>
-              )}
-            </Panel>
-          </Stack>
-        </Stack>
-      </Container>
-
-      <ConfirmDialog
-        title="Avbestill time"
-        description="Er du sikker på at du vil avbestille timen? Avbestillingen kan ikke angres."
-        open={isDeleteOpen}
-        onOpenChange={(open) => {
-          if (!isSubmitting) setIsDeleteOpen(open);
-        }}
-        cancelAction={
-          <Button type="button" variant="outline" disabled={isSubmitting}>
-            Avbryt
-          </Button>
-        }
-        confirmAction={
-          <Form method="post" className="w-full sm:w-auto">
-            <Button
-              type="submit"
-              variant="destructive"
-              size="md"
-              fullWidth
-              loading={isSubmitting}
-              disabled={!canCancel || isSubmitting}
-            >
-              Ja, avbestill
-            </Button>
-          </Form>
-        }
-      />
-    </StickyFooterPageTemplate>
+    <CancelAppointmentView
+      appointment={appointment}
+      companyName={company ? getCompanyName(company) : undefined}
+      addressText={formatCompanyAddress(company)}
+      canCancel={canCancel}
+      backHref={buildAppointmentHref(appointment.id)}
+      startedLinkLabel="Til timen"
+    />
   );
 }

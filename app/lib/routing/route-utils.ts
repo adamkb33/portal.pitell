@@ -1,4 +1,4 @@
-import type { UserContextDto } from '~/api/generated/base';
+import type { UserContextDto } from '~/api/generated';
 import { Access, CompanyRole, RoutePlaceMent, type ApiRoute, type RouteBranch } from './route-types';
 
 export type UserNavigation = Record<RoutePlaceMent, RouteBranch[]>;
@@ -39,13 +39,14 @@ export function buildRoutesMap(routeTree: RouteBranch[]): Record<string, { id: s
   return map;
 }
 
-type CompanyProduct = 'BOOKING' | 'EVENT' | 'OFFER' | 'TIMESHEET';
+type CompanyProduct = 'BOOKING' | 'EVENT' | 'OFFER' | 'MARKETING' | 'TIMESHEET';
 
 function extractProductFromRoute(routeId: string): CompanyProduct | null {
   const routeParts = routeId.split('.');
   if (routeParts.includes('booking')) return 'BOOKING';
   if (routeParts.includes('event')) return 'EVENT';
   if (routeParts.includes('offer')) return 'OFFER';
+  if (routeParts.includes('marketing')) return 'MARKETING';
   if (routeParts.includes('timesheet')) return 'TIMESHEET';
   return null;
 }
@@ -103,7 +104,7 @@ export function createNavigationForTree(
       return false;
     }
 
-    if (branch.id === 'user.company-context' && !hasCompanyMembership) {
+    if (branch.id === 'user.company-context' && (userContext?.companies?.length ?? 0) < 2) {
       return false;
     }
 

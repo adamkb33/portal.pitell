@@ -3,7 +3,7 @@ import { Link, Form, useNavigation, redirect } from 'react-router';
 import { data } from 'react-router';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { SocialButtonRow } from '../_components/social-button-row';
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { Route } from './+types/auth.sign-in.route';
 import { authService } from '~/lib/auth-service';
@@ -59,6 +59,9 @@ export async function action({ request }: Route.ActionArgs) {
   const password = String(formData.get('password') || '');
   const redirectUrl = String(formData.get('redirectUrl') || '');
   const returnTo = getSafeReturnTo(String(formData.get('returnTo') || ''));
+  // The booking flow has its own sign-in form that posts here; failures send the customer back to that form.
+  const signInHref =
+    getSafeReturnTo(String(formData.get('retryTo') || '')) ?? buildSignInHref(redirectUrl || undefined, returnTo);
   const isGoogleLogin = provider === 'GOOGLE';
 
   logger.info('[auth.sign-in] Action started', {
@@ -74,11 +77,7 @@ export async function action({ request }: Route.ActionArgs) {
     logger.warn('[auth.sign-in] Missing Google idToken', {
       redirectUrl: redirectUrl || null,
     });
-    return redirectWithError(
-      request,
-      buildSignInHref(redirectUrl || undefined, returnTo),
-      'Kunne ikke logge inn med Google. Prøv igjen.',
-    );
+    return redirectWithError(request, signInHref, 'Kunne ikke logge inn med Google. Prøv igjen.');
   }
 
   try {
@@ -191,7 +190,7 @@ export async function action({ request }: Route.ActionArgs) {
       emailOrMobile: redactIdentifier(emailOrMobile),
       nextStep: payload?.nextStep ?? null,
     });
-    return redirectWithWarning(request, ROUTES_MAP['auth.sign-in'].href, 'Kunne ikke logge inn. Prøv igjen.');
+    return redirectWithWarning(request, signInHref, 'Kunne ikke logge inn. Prøv igjen.');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke logge inn. Prøv igjen.');
     logger.error('[auth.sign-in] Sign-in failed', {
@@ -201,7 +200,7 @@ export async function action({ request }: Route.ActionArgs) {
       status: 400,
       error,
     });
-    return redirectWithError(request, buildSignInHref(redirectUrl || undefined, returnTo), message);
+    return redirectWithError(request, signInHref, message);
   }
 }
 

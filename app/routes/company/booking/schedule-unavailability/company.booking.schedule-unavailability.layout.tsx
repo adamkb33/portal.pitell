@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router';
 import type { Route } from './+types/company.booking.schedule-unavailability.layout';
-import { CompanyUserBookingProfileController } from '~/api/generated/booking';
+import { CompanyUserBookingProfileController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithInfo } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

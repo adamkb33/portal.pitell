@@ -1,6 +1,8 @@
 import axios, { type CreateAxiosDefaults } from 'axios';
 
 import { logger } from '~/lib/logger';
+import { isBackendDown } from '~/lib/api-error';
+import { reportBackendDown } from '~/lib/backend-status';
 import { describeAxiosError, describeAxiosRequest, describeAxiosResponse } from '~/lib/http-log';
 
 export function createLoggedAxios(serviceName: string, defaults?: CreateAxiosDefaults) {
@@ -24,6 +26,7 @@ export function createLoggedAxios(serviceName: string, defaults?: CreateAxiosDef
     },
     (error) => {
       logger.error(`[api:${serviceName}] Request failed`, describeAxiosError(error));
+      if (isBackendDown(error)) reportBackendDown();
       return Promise.reject(error);
     },
   );

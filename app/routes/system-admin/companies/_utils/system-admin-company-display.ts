@@ -1,4 +1,4 @@
-import type { SystemAdminCompanyDto } from '~/api/generated/base';
+import type { SystemAdminCompanyDto } from '~/api/generated';
 
 export const DEFAULT_COMPANY_PAGE_SIZE = 10;
 export const DEFAULT_COMPANY_OPTION_SIZE = 100;

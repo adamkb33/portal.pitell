@@ -1,6 +1,6 @@
 import { redirect } from 'react-router';
-import type { AppointmentSessionDto } from '~/api/generated/booking';
-import { PublicAppointmentSessionController } from '~/api/generated/booking';
+import type { AppointmentSessionDto } from '~/api/generated';
+import { PublicAppointmentSessionController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { AppointmentSessionService } from '../_services/booking.appointment-session.service.server';
 import { withBookingBackendCall } from './booking-flow-log.server';
@@ -20,7 +20,8 @@ export async function requireBookingSession(request: Request): Promise<GuardResu
 
   if (sessionResult.status === 'stale-cookie') {
     const clearSessionCookie = await AppointmentSessionService.delete(request);
-    return redirect(routes.appointment, {
+    // Gone or expired: drop the cookie and let the session route start a fresh session for the same company.
+    return redirect(routes.session, {
       headers: {
         'Set-Cookie': clearSessionCookie,
       },

@@ -20,7 +20,7 @@ describe('withAuth against the real generated client (no mocks)', () => {
 
   it("does not leak a previous request's Authorization header onto a later unauthenticated request", async () => {
     const { accessTokenCookie } = await import('~/routes/auth/_features/auth.cookies.server');
-    const { client: bookingClient } = await import('~/api/generated/booking/client.gen');
+    const { client: bookingClient } = await import('~/api/generated/client.gen');
     const { withAuth } = await import('~/api/utils/with-auth');
 
     vi.mocked(accessTokenCookie.parse).mockResolvedValueOnce('user-a-token');

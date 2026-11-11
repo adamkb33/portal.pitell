@@ -1,20 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Form, useNavigate, useNavigation, useSubmit } from 'react-router';
+import { Form, useNavigation, useSubmit } from 'react-router';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { fileToBase64 } from '~/lib/file.utils';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { ImagesField, type ImageField } from '~/routes/company/_components/images-field';
-import {
-  Button,
-  CompanyFormPageTemplate,
-  FormField,
-  Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Text,
-  cn,
-} from '~/ui';
+import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { Button, CompanyFormPageTemplate, FormField, Label, Popover, PopoverContent, PopoverTrigger, cn } from '~/ui';
 
 export type ServiceOption = {
   id: number;
@@ -41,15 +32,25 @@ type ServiceFormPageProps = {
 };
 
 export function ServiceFormPage({ mode, values, serviceGroups, actionData }: ServiceFormPageProps) {
-  const navigate = useNavigate();
   const navigation = useNavigation();
   const submit = useSubmit();
-  const isSubmitting = navigation.state === 'submitting';
+  const isSaving = navigation.state === 'submitting' && navigation.formData?.get('intent') !== 'delete';
   const isEdit = mode === 'edit';
   const currentValues = actionData?.values ? { ...values, ...actionData.values, images: values.images } : values;
   const [serviceGroupId, setServiceGroupId] = useState(String(currentValues.serviceGroupId));
   const [images, setImages] = useState<ImageField[]>(currentValues.images);
   const [isServiceGroupPopoverOpen, setIsServiceGroupPopoverOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const isDeleting = navigation.state !== 'idle' && navigation.formData?.get('intent') === 'delete';
+
+  const handleDeleteConfirm = () => {
+    if (!currentValues.id) return;
+    const formData = new FormData();
+    formData.append('intent', 'delete');
+    formData.append('id', String(currentValues.id));
+    submit(formData, { method: 'post' });
+    setIsDeleteDialogOpen(false);
+  };
 
   useEffect(() => {
     setServiceGroupId(String(currentValues.serviceGroupId));
@@ -88,23 +89,8 @@ export function ServiceFormPage({ mode, values, serviceGroups, actionData }: Ser
 
   return (
     <CompanyFormPageTemplate
-      title={isEdit ? 'Rediger tjeneste' : 'Ny tjeneste'}
-      description="Bruk samme kompakte ruteside for tjenestedata som resten av bookingadministrasjonen."
-      backLink={{ to: ROUTES_MAP['company.booking.admin.services'].href, label: 'Tilbake til tjenester' }}
-      footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(ROUTES_MAP['company.booking.admin.services'].href)}
-          >
-            Avbryt
-          </Button>
-          <Button type="submit" form="service-form" loading={isSubmitting}>
-            {isEdit ? 'Lagre endringer' : 'Opprett tjeneste'}
-          </Button>
-        </>
-      }
+      title={isEdit ? currentValues.name || 'Rediger tjeneste' : 'Ny tjeneste'}
+      submit={{ form: 'service-form', loading: isSaving }}
     >
       <Form id="service-form" method="post" onSubmit={handleSubmit} className="space-y-3">
         <input type="hidden" name="intent" value={isEdit ? 'update' : 'create'} />
@@ -115,21 +101,21 @@ export function ServiceFormPage({ mode, values, serviceGroups, actionData }: Ser
             label="Navn"
             name="name"
             defaultValue={currentValues.name}
-            helperText="Dette navnet vises for kunder og ansatte i bookingløpet."
-            placeholder="Skriv inn navn"
+            placeholder="F.eks. Hårklipp"
+            required
           />
 
           <div className="flex flex-col gap-2">
-            <Label>Tjenestegruppe</Label>
+            <Label>Gruppe</Label>
             <Popover open={isServiceGroupPopoverOpen} onOpenChange={setIsServiceGroupPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 w-full justify-between bg-background font-normal"
+                  className="h-11 w-full justify-between border-field-border bg-background font-normal sm:h-10"
                 >
                   <span className={cn(!selectedServiceGroup && 'text-text-secondary')}>
-                    {selectedServiceGroup?.name ?? 'Velg tjenestegruppe'}
+                    {selectedServiceGroup?.name ?? 'Velg gruppe'}
                   </span>
                   <ChevronsUpDown className="h-4 w-4 opacity-60" />
                 </Button>
@@ -160,42 +146,58 @@ export function ServiceFormPage({ mode, values, serviceGroups, actionData }: Ser
                 </div>
               </PopoverContent>
             </Popover>
-            <Text as="p" variant="caption" className="text-text-secondary">
-              Knyt tjenesten til riktig gruppe for filtrering og oversikt.
-            </Text>
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        {/* Two short numbers: side by side on phones too. */}
+        <div className="grid grid-cols-2 gap-3">
           <FormField
-            label="Pris"
+            label="Pris (kr)"
             name="price"
             type="number"
             min={0}
             defaultValue={String(currentValues.price)}
-            helperText="Oppgis i kroner og brukes direkte i bookingoversikten."
             placeholder="0"
           />
 
           <FormField
-            label="Varighet"
+            label="Varighet (min)"
             name="duration"
             type="number"
             min={1}
             defaultValue={String(currentValues.duration)}
-            helperText="Antall minutter som blokkeres i kalenderen."
             placeholder="30"
           />
         </div>
 
         <div className="space-y-3">
           <Label>Bilder</Label>
-          <Text as="p" variant="body-sm" className="text-text-secondary">
-            Administrer bilder på samme side. Endringer lagres sammen med resten av tjenesten.
-          </Text>
           <ImagesField images={images} onChange={setImages} />
         </div>
       </Form>
+
+      {/* Delete lives here, not in the list: rare and destructive, so a quiet red text button at the bottom. */}
+      {isEdit && currentValues.id ? (
+        <div className="flex justify-end border-t border-border pt-2">
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold text-danger-text transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-interactive disabled:opacity-50 lg:min-h-10"
+          >
+            Slett tjeneste
+          </button>
+        </div>
+      ) : null}
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title={`Slett ${currentValues.name || 'tjenesten'}?`}
+        description="Dette kan ikke angres."
+        confirmText="Slett tjeneste"
+      />
     </CompanyFormPageTemplate>
   );
 }

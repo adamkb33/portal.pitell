@@ -7,26 +7,47 @@
   --color-booking-surface-subtle: var(--color-surface-variant-1);
   --color-booking-surface-strong: var(--color-surface-variant-2);
   --color-booking-border: var(--color-border);
-  --color-booking-border-strong: color-mix(in oklab, var(--color-border) 72%, var(--color-interactive));
+  --color-booking-field-border: var(--color-field-border);
+  --color-booking-border-strong: color-mix(in oklab, var(--color-border) 72%, var(--color-booking-indigo));
 
   --color-booking-text: var(--color-text-primary);
   --color-booking-text-muted: var(--color-text-secondary);
   --color-booking-text-inverse: var(--color-text-inverse);
 
-  --color-booking-action: var(--color-interactive);
-  --color-booking-action-hover: var(--color-interactive-hover);
-  --color-booking-action-muted: color-mix(in oklab, var(--color-interactive) 10%, var(--color-surface));
-  --color-booking-action-ring: color-mix(in oklab, var(--color-interactive) 35%, transparent);
+  /* Booking palette: indigo (primary action), violet (secondary), magenta (highlight, ~10% of the UI).
+     Neutrals above and the confirm/danger status colours stay fixed. White text passes AA on all three. */
+  --color-booking-indigo: #4338ca;
+  --color-booking-violet: #6d4fd6;
+  --color-booking-magenta: #be185d;
+
+  --color-booking-action: var(--color-booking-indigo);
+  --color-booking-action-hover: color-mix(in oklab, var(--color-booking-indigo) 84%, black);
+  --color-booking-action-muted: color-mix(in oklab, var(--color-booking-indigo) 10%, var(--color-surface));
+  --color-booking-action-ring: color-mix(in oklab, var(--color-booking-indigo) 35%, transparent);
   --color-booking-action-contrast: var(--color-text-inverse);
+  /* Action colour used as text on page/raised surfaces. Themes with a light action colour override it to pass AA. */
+  --color-booking-action-text: var(--color-booking-action);
+  --color-booking-danger-text: #b42318;
+  /* The one destructive action (Avbestill timen): white text 6.5:1. */
+  --color-booking-danger: #b42318;
+  --color-booking-danger-hover: #912018;
+  --color-booking-danger-contrast: var(--color-text-inverse);
   --color-booking-confirm: #047857;
   --color-booking-confirm-hover: #065f46;
   --color-booking-confirm-contrast: var(--color-text-inverse);
-  --color-booking-accent: var(--color-secondary);
-  --color-booking-accent-muted: color-mix(in oklab, var(--color-secondary) 12%, var(--color-surface));
+  --color-booking-accent: var(--color-booking-violet);
+  --color-booking-accent-muted: color-mix(in oklab, var(--color-booking-violet) 12%, var(--color-surface));
+  --color-booking-highlight: var(--color-booking-magenta);
+  --color-booking-highlight-muted: color-mix(in oklab, var(--color-booking-magenta) 10%, var(--color-surface));
+  --color-booking-highlight-contrast: var(--color-text-inverse);
 
-  --color-booking-appointment-ongoing-surface: color-mix(in oklab, var(--color-interactive) 10%, var(--color-surface));
-  --color-booking-appointment-ongoing-chip: color-mix(in oklab, var(--color-interactive) 16%, var(--color-background));
-  --color-booking-appointment-recent-surface: color-mix(in oklab, var(--color-secondary) 12%, var(--color-surface));
+  --color-booking-appointment-ongoing-surface: var(--color-booking-action-muted);
+  --color-booking-appointment-ongoing-chip: color-mix(
+    in oklab,
+    var(--color-booking-indigo) 16%,
+    var(--color-background)
+  );
+  --color-booking-appointment-recent-surface: var(--color-booking-accent-muted);
 
   /* Booking shape and interaction aliases */
   --radius-booking-control: var(--radius-control);

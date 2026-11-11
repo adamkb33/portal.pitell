@@ -1,5 +1,5 @@
 import type { BadgeVariant } from '~/ui';
-import type { OfferDto } from '~/api/generated/offer';
+import type { OfferDto } from '~/api/generated';
 
 export const OFFER_STATUS_OPTIONS: Array<OfferDto['status']> = ['DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'CANCELLED'];
 

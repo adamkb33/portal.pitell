@@ -1,6 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.users.details.route';
-import { Base } from '~/api/generated/base';
+import { Base } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';

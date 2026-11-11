@@ -1,479 +1,302 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Form, NavLink, useNavigation } from 'react-router';
-import { Briefcase, CalendarDays, Image as ImageIcon, PencilLine } from 'lucide-react';
-import type { BookingProfileDto, DailyScheduleDto, GroupedServiceGroupDto } from '~/api/generated/booking';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { ServicesSelector } from '../../_components/services-selector';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  CompanyPageTemplate,
-  Input,
-  Label,
-  Notice,
-  Text,
-  Textarea,
-} from '~/ui';
-
-const DAY_LABELS: Record<DailyScheduleDto['dayOfWeek'], string> = {
-  MONDAY: 'Mandag',
-  TUESDAY: 'Tirsdag',
-  WEDNESDAY: 'Onsdag',
-  THURSDAY: 'Torsdag',
-  FRIDAY: 'Fredag',
-  SATURDAY: 'Lørdag',
-  SUNDAY: 'Søndag',
-};
-
-const DAY_ORDER: DailyScheduleDto['dayOfWeek'][] = [
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-  'SATURDAY',
-  'SUNDAY',
-];
+import { useEffect, useRef, useState } from 'react';
+import { Form, useActionData, useNavigation } from 'react-router';
+import { Upload } from 'lucide-react';
+import type { BookingProfileDto, DailyScheduleDto, GroupedServiceGroupDto } from '~/api/generated';
+import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { BOOKING_AREAS } from '../../_utils/booking-areas';
+import { Button, Checkbox, CompanyFormPageTemplate, Label, Notice, Textarea, categoryTone, cn } from '~/ui';
 
 type BookingProfileFormProps = {
   mode: 'create' | 'edit';
+  section?: 'profile' | 'services' | 'schedule';
   bookingProfile: BookingProfileDto | null;
   groupedServiceGroups: GroupedServiceGroupDto[];
   loaderError: string | null;
 };
 
+const DAYS: [DailyScheduleDto['dayOfWeek'], string][] = [
+  ['MONDAY', 'Mandag'],
+  ['TUESDAY', 'Tirsdag'],
+  ['WEDNESDAY', 'Onsdag'],
+  ['THURSDAY', 'Torsdag'],
+  ['FRIDAY', 'Fredag'],
+  ['SATURDAY', 'Lørdag'],
+  ['SUNDAY', 'Søndag'],
+];
+
 export function BookingProfileForm({
   mode,
+  section = 'profile',
   bookingProfile,
   groupedServiceGroups,
   loaderError,
 }: BookingProfileFormProps) {
   const navigation = useNavigation();
-  const isSubmitting = navigation.state === 'submitting';
-  const isEdit = mode === 'edit';
-
-  const initialSelectedServiceIds = useMemo(
-    () => bookingProfile?.services?.flatMap((group) => group.services.map((service) => service.id)) ?? [],
-    [bookingProfile],
-  );
-  const initialSchedules = useMemo(() => bookingProfile?.dailySchedule ?? [], [bookingProfile]);
-
-  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>(initialSelectedServiceIds);
-  const [dailySchedules, setDailySchedules] = useState<DailyScheduleDto[]>(initialSchedules);
-  const [serviceSearch, setServiceSearch] = useState('');
+  const actionData = useActionData<{ fieldErrors?: Record<string, string> }>();
+  const fieldErrors = actionData?.fieldErrors ?? {};
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(bookingProfile?.image?.url ?? null);
-
-  useEffect(() => {
-    setSelectedServiceIds(initialSelectedServiceIds);
-  }, [initialSelectedServiceIds]);
-
-  useEffect(() => {
-    setDailySchedules(initialSchedules);
-  }, [initialSchedules]);
-
-  useEffect(() => {
-    if (!selectedImageFile) {
-      setImagePreviewUrl(removeImage ? null : (bookingProfile?.image?.url ?? null));
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(selectedImageFile);
-    setImagePreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedImageFile, removeImage, bookingProfile?.image?.url]);
-
-  const filteredServiceGroups = useMemo(() => {
-    if (!serviceSearch.trim()) {
-      return groupedServiceGroups;
-    }
-
-    const searchLower = serviceSearch.toLowerCase();
-    return groupedServiceGroups
-      .map((group) => ({
-        ...group,
-        services: group.services.filter((service) => service.name.toLowerCase().includes(searchLower)),
-      }))
-      .filter((group) => group.services.length > 0);
-  }, [groupedServiceGroups, serviceSearch]);
-
-  const profileName =
-    bookingProfile?.familyName && bookingProfile?.givenName
-      ? `${bookingProfile.familyName} ${bookingProfile.givenName}`
-      : 'Bookingprofil';
-
-  return (
-    <CompanyPageTemplate
-      title={isEdit ? 'Rediger bookingprofil' : 'Opprett bookingprofil'}
-      description="Bruk en dedikert ruteside for å oppdatere profil, tjenester og arbeidstider uten modal eller accordion-form."
-      routeLinks={
-        <>
-          <Button asChild variant="outline" size="sm">
-            <NavLink to={ROUTES_MAP['company.booking.profile'].href}>Tilbake til bookingprofil</NavLink>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <NavLink to={ROUTES_MAP['company.booking.schedule-unavailability'].href}>Mitt fravik</NavLink>
-          </Button>
-        </>
-      }
-      hero={
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card variant="default" size="sm">
-            <CardContent className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Profilstatus
-                  </Text>
-                  <Text as="p" variant="heading-md">
-                    {isEdit ? 'Oppdatering' : 'Oppretting'}
-                  </Text>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                  <PencilLine className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card variant="default" size="sm">
-            <CardContent className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Valgte tjenester
-                  </Text>
-                  <Text as="p" variant="heading-md">
-                    {selectedServiceIds.length}
-                  </Text>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary/10">
-                  <Briefcase className="h-5 w-5 text-secondary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card variant="default" size="sm">
-            <CardContent className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Arbeidsdager
-                  </Text>
-                  <Text as="p" variant="heading-md">
-                    {dailySchedules.length}
-                  </Text>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      }
-    >
-      <Form method="post" encType="multipart/form-data" className="space-y-3">
-        {loaderError ? <Notice tone="emphasis" title="Kunne ikke hente data" message={loaderError} /> : null}
-
-        <Accordion type="multiple" defaultValue={['profile', 'services', 'schedule']} className="space-y-2">
-          <AccordionItem value="profile">
-            <AccordionTrigger>
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-surface">
-                  <ImageIcon className="h-4 w-4 text-text-secondary" />
-                </div>
-                <div className="space-y-0.5">
-                  <Text as="p" variant="heading-sm">
-                    Profil
-                  </Text>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Beskrivelse og profilbilde
-                  </Text>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-2">
-                <div className="space-y-3 border-b border-border pb-4">
-                  <div className="mb-2 space-y-0.5">
-                    <Text as="p" variant="label" className="text-text-primary">
-                      Profilbilde
-                    </Text>
-                    <Text as="p" variant="body-sm" className="text-text-secondary">
-                      Last opp eller fjern bildet som vises i bookingprofilen.
-                    </Text>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface">
-                      {imagePreviewUrl ? (
-                        <img src={imagePreviewUrl} alt={profileName} className="h-full w-full object-cover" />
-                      ) : (
-                        <ImageIcon className="h-6 w-6 text-text-secondary" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Input
-                        id="imageFile"
-                        name="imageFile"
-                        type="file"
-                        accept="image/*"
-                        className="text-sm"
-                        onChange={(event) => {
-                          const file = event.currentTarget.files?.[0] ?? null;
-                          setSelectedImageFile(file);
-                          if (file) {
-                            setRemoveImage(false);
-                          }
-                        }}
-                      />
-
-                      {bookingProfile?.image?.id ? (
-                        <label className="flex items-center gap-2 text-xs text-text-secondary">
-                          <Checkbox
-                            checked={removeImage}
-                            onCheckedChange={(checked) => {
-                              setRemoveImage(checked);
-                              if (checked) {
-                                setSelectedImageFile(null);
-                              }
-                            }}
-                          />
-                          Fjern eksisterende profilbilde ved lagring
-                        </label>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="mb-2 space-y-0.5">
-                    <Text as="p" variant="label" className="text-text-primary">
-                      Beskrivelse
-                    </Text>
-                    <Text as="p" variant="body-sm" className="text-text-secondary">
-                      Gi kundene et kort inntrykk av hva du tilbyr.
-                    </Text>
-                  </div>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    size="sm"
-                    defaultValue={bookingProfile?.description ?? ''}
-                    placeholder="Fortell kunder om dine spesialiteter, arbeidsområder eller andre relevante detaljer."
-                  />
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="services">
-            <AccordionTrigger>
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-surface">
-                  <Briefcase className="h-4 w-4 text-text-secondary" />
-                </div>
-                <div className="space-y-0.5">
-                  <Text as="p" variant="heading-sm">
-                    Tjenester
-                  </Text>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    {selectedServiceIds.length} valgt
-                  </Text>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3">
-                <div className="mb-2 space-y-0.5">
-                  <Text as="p" variant="label" className="text-text-primary">
-                    Tjenestevalg
-                  </Text>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Velg tjenestene som skal vises i bookingprofilen.
-                  </Text>
-                </div>
-                <ServicesSelector
-                  compact
-                  serviceGroups={filteredServiceGroups}
-                  selectedServiceIds={selectedServiceIds}
-                  onSelectService={(serviceId) =>
-                    setSelectedServiceIds((current) =>
-                      current.includes(serviceId) ? current : [...current, serviceId],
-                    )
-                  }
-                  onDeselectService={(serviceId) =>
-                    setSelectedServiceIds((current) => current.filter((currentId) => currentId !== serviceId))
-                  }
-                  onSearchChange={setServiceSearch}
-                  initialSearch={serviceSearch}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="schedule">
-            <AccordionTrigger>
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-surface">
-                  <CalendarDays className="h-4 w-4 text-text-secondary" />
-                </div>
-                <div className="space-y-0.5">
-                  <Text as="p" variant="heading-sm">
-                    Arbeidstider
-                  </Text>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    {dailySchedules.length} aktive dager
-                  </Text>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3">
-                <div className="mb-2 space-y-0.5">
-                  <Text as="p" variant="label" className="text-text-primary">
-                    Tilgjengelighet
-                  </Text>
-                  <Text as="p" variant="body-sm" className="text-text-secondary">
-                    Sett opp hvilke dager og tider som skal kunne bookes.
-                  </Text>
-                </div>
-                <DailyScheduleEditor schedules={dailySchedules} onChange={setDailySchedules} />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-
-        {selectedServiceIds.map((serviceId) => (
-          <input key={serviceId} type="hidden" name="services[]" value={serviceId} />
-        ))}
-        <input type="hidden" name="dailySchedules" value={JSON.stringify(dailySchedules)} />
-        <input type="hidden" name="existingImageId" value={bookingProfile?.image?.id ?? ''} />
-        <input type="hidden" name="removeImage" value={removeImage ? 'true' : 'false'} />
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button asChild variant="outline">
-            <NavLink to={ROUTES_MAP['company.booking.profile'].href}>Avbryt</NavLink>
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Lagrer...' : isEdit ? 'Lagre endringer' : 'Opprett bookingprofil'}
-          </Button>
-        </div>
-      </Form>
-    </CompanyPageTemplate>
+  const [imagePreview, setImagePreview] = useState(bookingProfile?.image?.url ?? null);
+  const [activeDays, setActiveDays] = useState(
+    () => new Set(bookingProfile?.dailySchedule.map((day) => day.dayOfWeek) ?? []),
   );
-}
+  const [scheduleTimes, setScheduleTimes] = useState<Record<string, { start: string; end: string }>>(() =>
+    Object.fromEntries(
+      DAYS.map(([day]) => {
+        const schedule = bookingProfile?.dailySchedule.find((value) => value.dayOfWeek === day);
+        return [
+          day,
+          { start: schedule?.startTime.slice(0, 5) ?? '09:00', end: schedule?.endTime.slice(0, 5) ?? '17:00' },
+        ];
+      }),
+    ),
+  );
+  const selectedServices = new Set(
+    bookingProfile?.services.flatMap((group) => group.services.map((service) => service.id)) ?? [],
+  );
+  const openDayCount = activeDays.size;
+  const weeklyHours = DAYS.reduce((total, [day]) => {
+    const schedule = bookingProfile?.dailySchedule.find((value) => value.dayOfWeek === day);
+    if (!activeDays.has(day) || !schedule) return total;
+    const [startHour, startMinute] = schedule.startTime.split(':').map(Number);
+    const [endHour, endMinute] = schedule.endTime.split(':').map(Number);
+    return total + Math.max(0, endHour * 60 + endMinute - (startHour * 60 + startMinute)) / 60;
+  }, 0);
+  const profileTone = categoryTone(BOOKING_AREAS.find((area) => area.key === 'profile')!.tone);
+  const initials = [bookingProfile?.familyName, bookingProfile?.givenName]
+    .map((name) => name?.charAt(0) ?? '')
+    .join('');
+  const title =
+    mode === 'create'
+      ? 'Opprett bookingprofil'
+      : { profile: 'Rediger profil', services: 'Rediger tjenester', schedule: 'Rediger arbeidstider' }[section];
 
-function DailyScheduleEditor({
-  schedules,
-  onChange,
-}: {
-  schedules: DailyScheduleDto[];
-  onChange: (nextSchedules: DailyScheduleDto[]) => void;
-}) {
-  const activeDays = useMemo(() => new Set(schedules.map((schedule) => schedule.dayOfWeek)), [schedules]);
-
-  const setStandardHours = () => {
-    onChange([
-      { id: 0, dayOfWeek: 'MONDAY', startTime: '09:00:00', endTime: '17:00:00' },
-      { id: 0, dayOfWeek: 'TUESDAY', startTime: '09:00:00', endTime: '17:00:00' },
-      { id: 0, dayOfWeek: 'WEDNESDAY', startTime: '09:00:00', endTime: '17:00:00' },
-      { id: 0, dayOfWeek: 'THURSDAY', startTime: '09:00:00', endTime: '17:00:00' },
-      { id: 0, dayOfWeek: 'FRIDAY', startTime: '09:00:00', endTime: '17:00:00' },
-    ]);
-  };
-
-  const toggleDay = (dayOfWeek: DailyScheduleDto['dayOfWeek']) => {
-    if (activeDays.has(dayOfWeek)) {
-      onChange(schedules.filter((schedule) => schedule.dayOfWeek !== dayOfWeek));
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreview(removeImage ? null : (bookingProfile?.image?.url ?? null));
       return;
     }
-
-    onChange([...schedules, { id: 0, dayOfWeek, startTime: '09:00:00', endTime: '17:00:00' }]);
-  };
-
-  const updateTime = (dayOfWeek: DailyScheduleDto['dayOfWeek'], field: 'startTime' | 'endTime', value: string) => {
-    onChange(
-      schedules.map((schedule) =>
-        schedule.dayOfWeek === dayOfWeek
-          ? {
-              ...schedule,
-              [field]: value.length === 5 ? `${value}:00` : value,
-            }
-          : schedule,
-      ),
-    );
-  };
-
-  const clearAll = () => onChange([]);
+    const url = URL.createObjectURL(imageFile);
+    setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile, removeImage, bookingProfile?.image?.url]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="button" variant="outline" size="sm" onClick={setStandardHours}>
-          Sett standardtimer
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={clearAll} disabled={schedules.length === 0}>
-          Fjern alle
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-        {DAY_ORDER.map((dayOfWeek) => {
-          const schedule = schedules.find((current) => current.dayOfWeek === dayOfWeek);
-          const checked = activeDays.has(dayOfWeek);
-          const startTime = schedule?.startTime.slice(0, 5) ?? '09:00';
-          const endTime = schedule?.endTime.slice(0, 5) ?? '17:00';
-
-          return (
-            <div key={dayOfWeek} className="rounded-md border border-border bg-background p-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                  <Checkbox checked={checked} onCheckedChange={() => toggleDay(dayOfWeek)} />
-                  {DAY_LABELS[dayOfWeek]}
-                </label>
-                <Text as="p" variant="body-sm" className="text-text-secondary">
-                  {checked ? 'Aktiv' : 'Ikke aktiv'}
-                </Text>
+    <CompanyFormPageTemplate
+      title={title}
+      notices={
+        loaderError ? <Notice tone="emphasis" title="Kunne ikke hente bookingprofil" message={loaderError} /> : null
+      }
+      submit={{
+        form: 'booking-profile-form',
+        loading: navigation.state === 'submitting',
+        disabled: Boolean(loaderError),
+      }}
+    >
+      <Form
+        id="booking-profile-form"
+        method="post"
+        encType={section === 'profile' ? 'multipart/form-data' : 'application/x-www-form-urlencoded'}
+        className="space-y-5"
+      >
+        {section === 'profile' ? (
+          <>
+            <h2 className="text-base font-semibold">Profil</h2>
+            <div className="space-y-2">
+              <Label htmlFor="imageFile">Profilbilde (valgfritt)</Label>
+              <div className="flex flex-wrap items-center gap-4">
+                <span
+                  className={cn(
+                    'flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full text-lg font-semibold',
+                    profileTone.tint,
+                    profileTone.ink,
+                  )}
+                >
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Profilbilde" className="size-full object-cover" />
+                  ) : (
+                    <span aria-hidden>{initials}</span>
+                  )}
+                </span>
+                <input
+                  ref={imageInput}
+                  id="imageFile"
+                  name="imageFile"
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0] ?? null;
+                    setImageFile(file);
+                    if (file) setRemoveImage(false);
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={() => imageInput.current?.click()}>
+                  <Upload className="size-4" aria-hidden />
+                  Last opp bilde
+                </Button>
+                {imagePreview ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-danger-text"
+                    onClick={() => {
+                      setRemoveImage(true);
+                      setImageFile(null);
+                      if (imageInput.current) imageInput.current.value = '';
+                    }}
+                  >
+                    Fjern bilde
+                  </Button>
+                ) : null}
               </div>
-
-              {checked ? (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor={`${dayOfWeek}-start`}>Fra</Label>
-                    <Input
-                      id={`${dayOfWeek}-start`}
-                      type="time"
-                      className="h-9 text-sm"
-                      value={startTime}
-                      onChange={(event) => updateTime(dayOfWeek, 'startTime', event.currentTarget.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`${dayOfWeek}-end`}>Til</Label>
-                    <Input
-                      id={`${dayOfWeek}-end`}
-                      type="time"
-                      className="h-9 text-sm"
-                      value={endTime}
-                      onChange={(event) => updateTime(dayOfWeek, 'endTime', event.currentTarget.value)}
-                    />
-                  </div>
-                </div>
-              ) : null}
             </div>
-          );
-        })}
-      </div>
-    </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Beskrivelse (valgfritt)</Label>
+              <Textarea id="description" name="description" defaultValue={bookingProfile?.description ?? ''} />
+            </div>
+            <input type="hidden" name="removeImage" value={String(removeImage)} />
+          </>
+        ) : section === 'services' ? (
+          <>
+            <h2 className="text-base font-semibold">Tjenester</h2>
+            <div>
+              {groupedServiceGroups.length === 0 ? (
+                <p className="py-4 text-sm text-text-secondary">Ingen tjenester</p>
+              ) : null}
+              {groupedServiceGroups.map((group, index) => {
+                const tone = categoryTone(index);
+                return (
+                  <fieldset key={group.id}>
+                    <legend
+                      className={cn(
+                        'flex w-full items-center gap-2 border-y border-border px-4 py-2 text-xs font-semibold',
+                        tone.tint,
+                      )}
+                    >
+                      <span className={cn('size-2 rounded-full', tone.dot)} aria-hidden />
+                      {group.name}
+                    </legend>
+                    <div className="divide-y divide-border">
+                      {group.services.map((service) => (
+                        <label key={service.id} className="flex min-h-15 items-center gap-3 px-4 py-2">
+                          <Checkbox
+                            name="services[]"
+                            value={service.id}
+                            defaultChecked={selectedServices.has(service.id)}
+                            className="size-5 shrink-0 accent-interactive"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold">{service.name}</span>
+                            <span className="block text-sm text-text-secondary">ca. {service.duration} min</span>
+                          </span>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums">ca. {service.price} kr</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Arbeidstider</h2>
+                <p className="mt-1 text-sm text-text-secondary">Åpningstidene kundene kan bestille</p>
+              </div>
+              <span className="shrink-0 text-sm text-text-secondary">{openDayCount} dager åpne</span>
+            </div>
+            <div className="divide-y divide-border">
+              {DAYS.map(([day, label]) => {
+                const schedule = bookingProfile?.dailySchedule.find((value) => value.dayOfWeek === day);
+                const active = activeDays.has(day);
+                const error = fieldErrors[day];
+                return (
+                  <div
+                    key={day}
+                    className={cn(
+                      'grid grid-cols-2 items-center gap-x-3 gap-y-2 py-3 md:grid-cols-[10rem_1fr_1fr] md:gap-x-4',
+                      !active && 'text-text-secondary',
+                    )}
+                  >
+                    <label className="col-span-2 flex min-h-11 items-center gap-3 text-sm font-semibold md:col-span-1 md:pt-6">
+                      <Checkbox
+                        name="days"
+                        value={day}
+                        checked={active}
+                        className="size-5 accent-interactive"
+                        onCheckedChange={(checked) =>
+                          setActiveDays((current) => {
+                            const next = new Set(current);
+                            if (checked) next.add(day);
+                            else next.delete(day);
+                            return next;
+                          })
+                        }
+                      />
+                      {label}
+                      {!active ? (
+                        <span className="ml-auto text-xs font-normal text-text-placeholder md:hidden">Stengt</span>
+                      ) : null}
+                    </label>
+                    {active ? (
+                      <div className="col-span-2 space-y-1.5 md:col-span-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <Label className="text-sm font-semibold text-text-primary">Fra</Label>
+                          <Label className="text-sm font-semibold text-text-primary">Til</Label>
+                        </div>
+                        <StartEndTimeSelector
+                          startName={`${day}-start`}
+                          endName={`${day}-end`}
+                          startValue={scheduleTimes[day]?.start ?? '09:00'}
+                          endValue={scheduleTimes[day]?.end ?? '17:00'}
+                          onStartChange={(next) =>
+                            setScheduleTimes((current) => ({
+                              ...current,
+                              [day]: { ...current[day], start: next },
+                            }))
+                          }
+                          onEndChange={(next) =>
+                            setScheduleTimes((current) => ({
+                              ...current,
+                              [day]: { ...current[day], end: next },
+                            }))
+                          }
+                          startPlaceholder="Fra"
+                          endPlaceholder="Til"
+                          startLabel={`${label} — Fra`}
+                          endLabel={`${label} — Til`}
+                          className="grid grid-cols-2 gap-3"
+                        />
+                      </div>
+                    ) : (
+                      <span className="hidden text-sm text-text-placeholder md:block">Stengt</span>
+                    )}
+                    {error ? (
+                      <p id={`${day}-error`} className="col-span-2 text-sm text-danger-text md:col-start-2">
+                        {error}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-pink-50 px-3 py-2.5 text-sm">
+              <span>
+                <span className="font-semibold text-pink-800">Ukesplan</span>
+                <span className="text-text-secondary">
+                  {' '}
+                  · {weeklyHours % 1 === 0 ? weeklyHours : weeklyHours.toFixed(1)} timer
+                </span>
+              </span>
+              <span className="text-text-secondary">{openDayCount ? `${openDayCount} dager` : 'Ingen dager'}</span>
+            </div>
+          </>
+        )}
+      </Form>
+    </CompanyFormPageTemplate>
   );
 }

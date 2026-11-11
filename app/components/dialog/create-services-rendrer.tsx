@@ -1,4 +1,4 @@
-import type { GroupedServiceGroupDto } from '~/api/generated/booking';
+import type { GroupedServiceGroupDto } from '~/api/generated';
 import type { FormFieldRenderProps } from '~/components/dialog/form-dialog';
 import { Button } from '~/ui';
 

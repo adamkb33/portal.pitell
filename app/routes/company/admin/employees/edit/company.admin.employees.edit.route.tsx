@@ -1,12 +1,16 @@
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { data, redirect } from 'react-router';
 import type { Route } from './+types/company.admin.employees.edit.route';
 import { CompanyRole } from '~/api/clients/types';
-import { AdminCompanyController, AdminCompanyUserController, type CompanyUserDto } from '~/api/generated/base';
+import { AdminCompanyController, AdminCompanyUserController, type CompanyUserDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithInfo, setFlashMessage } from '~/lib/flash-message.server';
 import { EmployeeFormPage, type EmployeeFormValues } from '../_components/employee-form-page';
+
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);

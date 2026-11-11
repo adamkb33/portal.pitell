@@ -1,184 +1,101 @@
-import { Form, NavLink, data, redirect } from 'react-router';
+import { data } from 'react-router';
+import { format } from 'date-fns';
 import type { Route } from './+types/company.booking.schedule.availabilities.edit.route';
-import { Booking } from '~/api/generated/booking';
+import { Booking } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { setFlashMessage } from '~/lib/flash-message.server';
+import { redirectWithError, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, Card, CardContent, CardHead, CompanyPageTemplate, Notice, Text } from '~/ui';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { Calendar } from '~/ui';
-import { Popover, PopoverContent, PopoverTrigger } from '~/ui';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Notice } from '~/ui';
+import { AvailabilityFormPage } from '../_components/availability-form-page';
 
-function isPastInterval(endTime: string): boolean {
-  const end = new Date(endTime);
-  if (Number.isNaN(end.getTime())) return false;
-  return end.getTime() < Date.now();
-}
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 5). */
+export const handle: FormPageHandle = { formPage: true };
+
+const TIME_ZONE = 'Europe/Oslo';
+const LIST_HREF = () => ROUTES_MAP['company.booking.schedule.availabilities'].href;
+
+const isPast = (endTime: string) => new Date(endTime).getTime() < Date.now();
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const id = Number(url.searchParams.get('id'));
-
+  const id = Number(new URL(request.url).searchParams.get('id'));
   if (!Number.isFinite(id) || id <= 0) {
-    const flashCookie = await setFlashMessage(request, { type: 'error', text: 'Ugyldig tidsrom-id' });
-    return redirect(ROUTES_MAP['company.booking.schedule.availabilities'].href, {
-      headers: { 'Set-Cookie': flashCookie },
-    });
+    return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
   }
 
   try {
     const response = await withAuth(request, async () => Booking.getAvailability({ path: { id } }));
     const availability = response.data?.data;
-
-    if (!availability) {
-      throw new Error('Fant ikke tidsrommet');
-    }
-    if (isPastInterval(availability.endTime)) {
-      const flashCookie = await setFlashMessage(request, {
-        type: 'error',
-        text: 'Tidligere bookbar tid kan ikke redigeres',
-      });
-      return redirect(ROUTES_MAP['company.booking.schedule'].href, { headers: { 'Set-Cookie': flashCookie } });
+    if (!availability) return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
+    if (isPast(availability.endTime)) {
+      return redirectWithError(request, LIST_HREF(), 'Tidligere bookbar tid kan ikke endres');
     }
 
-    return data({ availability, error: null as string | null });
+    const start = new Date(availability.startTime);
+    return data({
+      values: {
+        id: availability.id,
+        date: format(start, 'yyyy-MM-dd'),
+        startTime: format(start, 'HH:mm'),
+        endTime: format(new Date(availability.endTime), 'HH:mm'),
+      },
+      error: null as string | null,
+    });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente bookbar tid');
-    return data({ availability: null, error: message }, { status: status ?? 400 });
+    return data({ values: null, error: message }, { status: status ?? 400 });
   }
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const timezone = 'Europe/Oslo';
   const id = Number(formData.get('id'));
-  const date = String(formData.get('date') ?? '');
-  const startTime = String(formData.get('startTime') ?? '');
-  const endTime = String(formData.get('endTime') ?? '');
-
-  if (!Number.isFinite(id) || id <= 0 || !date || !startTime || !endTime) {
-    const flashCookie = await setFlashMessage(request, { type: 'error', text: 'Ugyldige felt' });
-    return redirect(request.url, { headers: { 'Set-Cookie': flashCookie } });
-  }
-
-  if (startTime >= endTime) {
-    const flashCookie = await setFlashMessage(request, { type: 'error', text: 'Sluttid må være etter starttid' });
-    return redirect(request.url, { headers: { 'Set-Cookie': flashCookie } });
+  if (!Number.isFinite(id) || id <= 0) {
+    return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
   }
 
   try {
-    const availabilityResponse = await withAuth(request, async () => Booking.getAvailability({ path: { id } }));
-    const availability = availabilityResponse.data?.data;
-    if (!availability) {
-      const flashCookie = await setFlashMessage(request, { type: 'error', text: 'Fant ikke tidsrommet' });
-      return redirect(ROUTES_MAP['company.booking.schedule'].href, { headers: { 'Set-Cookie': flashCookie } });
+    const current = (await withAuth(request, async () => Booking.getAvailability({ path: { id } }))).data?.data;
+    if (!current) return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
+    if (isPast(current.endTime)) {
+      return redirectWithError(request, LIST_HREF(), 'Tidligere bookbar tid kan ikke endres');
     }
-    if (isPastInterval(availability.endTime)) {
-      const flashCookie = await setFlashMessage(request, {
-        type: 'error',
-        text: 'Tidligere bookbar tid kan ikke redigeres',
-      });
-      return redirect(ROUTES_MAP['company.booking.schedule'].href, { headers: { 'Set-Cookie': flashCookie } });
+
+    if (formData.get('intent') === 'delete') {
+      await withAuth(request, async () => Booking.deleteAvailability({ path: { id } }));
+      return redirectWithSuccess(request, LIST_HREF(), 'Bookbar tid slettet');
+    }
+
+    const date = String(formData.get('date') ?? '');
+    const startTime = String(formData.get('startTime') ?? '');
+    const endTime = String(formData.get('endTime') ?? '');
+    if (!date || !startTime || !endTime || startTime >= endTime) {
+      const flash = await setFlashMessage(request, { type: 'error', text: 'Til må være etter fra.' });
+      return data(null, { status: 400, headers: { 'Set-Cookie': flash } });
     }
 
     await withAuth(request, async () =>
       Booking.updateAvailability({
         path: { id },
         body: {
-          startTime: formatLocalDateTimeInTimeZone(date, startTime, timezone),
-          endTime: formatLocalDateTimeInTimeZone(date, endTime, timezone),
+          startTime: formatLocalDateTimeInTimeZone(date, startTime, TIME_ZONE),
+          endTime: formatLocalDateTimeInTimeZone(date, endTime, TIME_ZONE),
         },
       }),
     );
-
-    const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Bookbar tid oppdatert' });
-    return redirect(ROUTES_MAP['company.booking.schedule'].href, { headers: { 'Set-Cookie': flashCookie } });
+    return redirectWithSuccess(request, LIST_HREF(), 'Bookbar tid lagret');
   } catch (error) {
-    const { message } = resolveErrorPayload(error, 'Kunne ikke oppdatere bookbar tid');
-    const flashCookie = await setFlashMessage(request, { type: 'error', text: message });
-    return redirect(request.url, { headers: { 'Set-Cookie': flashCookie } });
+    const { message } = resolveErrorPayload(error, 'Kunne ikke lagre bookbar tid');
+    const flash = await setFlashMessage(request, { type: 'error', text: message });
+    return data(null, { status: 400, headers: { 'Set-Cookie': flash } });
   }
 }
 
 export default function CompanyBookingScheduleAvailabilitiesEditPage({ loaderData }: Route.ComponentProps) {
-  const availability = loaderData.availability;
-  const [startTime, setStartTime] = useState(
-    availability ? format(new Date(availability.startTime), 'HH:mm') : '15:00',
-  );
-  const [endTime, setEndTime] = useState(availability ? format(new Date(availability.endTime), 'HH:mm') : '19:00');
-  const [dateValue, setDateValue] = useState(
-    availability ? format(new Date(availability.startTime), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-  );
-  const [isDateOpen, setIsDateOpen] = useState(false);
-
-  return (
-    <CompanyPageTemplate
-      title="Rediger bookbar tid"
-      routeLinks={
-        <Button asChild variant="outline" size="sm">
-          <NavLink to={ROUTES_MAP['company.booking.schedule'].href}>Tilbake til ukeplan</NavLink>
-        </Button>
-      }
-    >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente bookbar tid" message={loaderData.error} />
-      ) : null}
-
-      {availability ? (
-        <Card variant="default" size="sm">
-          <CardHead heading="Oppdater intervall" />
-          <CardContent>
-            <Form method="post" className="grid grid-cols-1 gap-2 md:grid-cols-4">
-              <input type="hidden" name="id" value={availability.id} />
-              <div>
-                <input name="date" type="hidden" value={dateValue} />
-                <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className="h-9 w-full justify-between px-2 text-xs">
-                      <span>{dateValue}</span>
-                      <CalendarIcon className="h-3.5 w-3.5 text-text-secondary" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={new Date(`${dateValue}T00:00:00`)}
-                      onSelect={(next) => {
-                        if (!next) return;
-                        setDateValue(format(next, 'yyyy-MM-dd'));
-                        setIsDateOpen(false);
-                      }}
-                      numberOfMonths={1}
-                      className="rounded-md border"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <StartEndTimeSelector
-                startValue={startTime}
-                endValue={endTime}
-                onStartChange={setStartTime}
-                onEndChange={setEndTime}
-                zIndex={60}
-              />
-
-              <Button type="submit" size="sm" className="h-9">
-                Oppdater
-              </Button>
-            </Form>
-
-            <Text as="p" variant="body-sm" className="mt-3 text-text-secondary">
-              ID vises ikke i UI. Endringen brukes kun på valgt tidsintervall.
-            </Text>
-          </CardContent>
-        </Card>
-      ) : null}
-    </CompanyPageTemplate>
-  );
+  if (!loaderData.values) {
+    return <Notice tone="emphasis" title="Kunne ikke hente bookbar tid" message={loaderData.error ?? ''} />;
+  }
+  return <AvailabilityFormPage mode="edit" values={loaderData.values} />;
 }

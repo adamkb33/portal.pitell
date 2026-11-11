@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   Booking: {
     cancelAppointmentSessionContactReplacement: mocks.cancelContactReplacement,
   },

@@ -1,14 +1,20 @@
-import { data, redirect } from 'react-router';
+import type { FormPageHandle } from '~/lib/routing/create-action';
+import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
+import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.services.edit.route';
-import { CompanyUserServiceGroupController, ServiceController, type ServiceDto } from '~/api/generated/booking';
-import type { Delete, Upload } from '~/api/generated/booking/types.gen';
+import { CompanyUserServiceGroupController, ServiceController, type ServiceDto } from '~/api/generated';
+import type { Delete, Upload } from '~/api/generated/types.gen';
 import { withAuth } from '~/api/utils/with-auth';
-import { redirectWithInfo, setFlashMessage } from '~/lib/flash-message.server';
+import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ServiceFormPage, type ServiceFormValues } from '../_components/service-form-page';
 
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
+
 export async function loader({ request }: Route.LoaderArgs) {
+  await requireBookingAdmin({ request });
   const url = new URL(request.url);
   const id = Number(url.searchParams.get('id'));
 
@@ -124,8 +130,24 @@ function extractImageActionsFromFormData(formData: FormData): Array<Delete | Upl
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const id = Number(formData.get('id'));
+
+  if (formData.get('intent') === 'delete') {
+    const servicesHref = ROUTES_MAP['company.booking.admin.services'].href;
+    if (!Number.isFinite(id) || id <= 0) {
+      return redirectWithError(request, servicesHref, 'Fant ikke tjenesten du prøvde å slette.');
+    }
+    try {
+      await withAuth(request, () => ServiceController.deleteService({ path: { id } }));
+      return redirectWithSuccess(request, servicesHref, 'Tjeneste slettet');
+    } catch (error) {
+      const { message } = resolveErrorPayload(error, 'Kunne ikke slette tjeneste');
+      return redirectWithError(request, `${ROUTES_MAP['company.booking.admin.services.edit'].href}?id=${id}`, message);
+    }
+  }
+
   const values = {
     id,
     name: String(formData.get('name') ?? '').trim(),
@@ -158,7 +180,7 @@ export async function action({ request }: Route.ActionArgs) {
       });
     });
 
-    return redirect(ROUTES_MAP['company.booking.admin.services'].href);
+    return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste lagret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke oppdatere tjeneste');
     const flashCookie = await setFlashMessage(request, { type: 'error', text: message });

@@ -1,4 +1,4 @@
-import type { AppointmentDto } from '~/api/generated/booking';
+import type { AppointmentDto } from '~/api/generated';
 
 export const isAppointmentCompleted = (appointment: Pick<AppointmentDto, 'startTime'>, now: Date = new Date()) => {
   return new Date(appointment.startTime) < now;
@@ -26,6 +26,19 @@ export const getTotalDuration = (appointment: AppointmentDto) => {
   return `${total} min`;
 };
 
-export const getTotalServiceCount = (appointment: AppointmentDto) => {
+/** Numeric totals for display. Price and duration are estimates, so format them with the estimate helpers. */
+export const getAppointmentTotals = (appointment: AppointmentDto) => {
+  const services = appointment.groupedServiceGroups?.flatMap((group) => group.services ?? []) ?? [];
+  return {
+    services,
+    duration: services.reduce((sum, service) => sum + (service.duration ?? 0), 0),
+    price: services.reduce((sum, service) => sum + (service.price ?? 0), 0),
+  };
+};
+
+export const isAppointmentInProgress = (appointment: Pick<AppointmentDto, 'startTime' | 'endTime'>, now: Date) =>
+  new Date(appointment.startTime) <= now && now <= new Date(appointment.endTime);
+
+export const getTotalServiceCount =(appointment: AppointmentDto) => {
   return appointment.groupedServiceGroups?.reduce((sum, group) => sum + (group.services?.length ?? 0), 0) ?? 0;
 };

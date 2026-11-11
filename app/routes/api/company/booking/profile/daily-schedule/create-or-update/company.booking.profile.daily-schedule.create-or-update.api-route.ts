@@ -1,6 +1,6 @@
 // app/routes/api/company/booking/profile/daily-schedule/create-or-update.api-route.ts
 import { type ActionFunctionArgs } from 'react-router';
-import { DailyScheduleController } from '~/api/generated/booking';
+import { DailyScheduleController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { withAuth } from '~/api/utils/with-auth';

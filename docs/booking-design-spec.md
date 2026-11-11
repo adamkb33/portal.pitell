@@ -26,6 +26,15 @@ Phase 1 is foundation only:
 - `booking-action-hover`
 - `booking-action-contrast`
 
+   Palette (booking only, defined in `app/styles/booking-tokens.css`):
+
+   - Neutrals ~60%: page `booking-surface`, cards `booking-surface-raised`, ink `booking-text`.
+   - Indigo `booking-action` ~30%: primary buttons, selection, links.
+   - Violet `booking-accent`: secondary elements such as the loyalty stub.
+   - Magenta `booking-highlight` ~10%: rewards and "next up" highlights only.
+   - Status colours stay fixed and keep their meaning: green confirm, red danger. Never use them as decoration.
+   - Do not use `interactive`/`blue-*`/`teal-*` classes in booking routes; use the `booking-*` tokens.
+
 2. Prefer shared UI primitives for layout and hierarchy:
 
 - `PageHeader`

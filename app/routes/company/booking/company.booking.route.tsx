@@ -1,719 +1,159 @@
+import { authService } from '~/lib/auth-service';
 import type { Route } from './+types/company.booking.route';
-import { CompanyUserBookingController } from '~/api/generated/booking';
-import { NavLink } from 'react-router';
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Users,
-  Award,
-  Clock,
-  Activity,
-  Package,
-  UserCheck,
-  MousePointer,
-  BarChart3,
-  Target,
-  Image,
-  AlertCircle,
-  CalendarClock,
-  User,
-  Briefcase,
-} from 'lucide-react';
+import { AuthController, Booking } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
-import { resolveErrorPayload } from '~/lib/api-error';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-  Button,
-  Card,
-  CardContent,
-  CompanyEmptyState,
-  CompanyPageTemplate,
-  KpiCard,
-  Text,
-  cn,
-} from '~/ui';
+import { CalendarDays, ChevronRight, ListChecks } from 'lucide-react';
+import { Link, useRouteLoaderData } from 'react-router';
+import type { loader as rootLoader } from '~/routes/root.layout';
+import type { loader as bookingLayoutLoader } from './company.booking.layout';
+import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
+import { hasBranch } from '~/lib/routing/has-branch';
+import { CompanyPageTemplate, categoryTone, cn } from '~/ui';
+import { BOOKING_AREAS, type BookingArea } from './_utils/booking-areas';
+import { KeyDestinationCard } from './_components/key-destination-card';
+import { countTodayAndUpcomingAppointments } from './_utils/appointment-counts.server';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const [metricsResponse] = await withAuth(request, async () => {
-      return Promise.all([await CompanyUserBookingController.getCompanyBookingMetrics()]);
-    });
+    const session = await authService.getUserSession(request);
+    const response = await withAuth(request, () => AuthController.getPermissions());
+    const permissions = response.data?.data;
+    const canAdminister = Boolean(
+      session.user.companyId &&
+        permissions?.companyId === session.user.companyId &&
+        permissions.flags?.canAccessBooking &&
+        permissions.companyRoles?.includes('ADMIN'),
+    );
 
-    if (!metricsResponse.data) {
-      throw Error('Det skjedde en feil, kontakt support');
-    }
+    // Admins see the loyalty program's real state on its row; without it the row keeps its fixed line.
+    const loyalty = canAdminister
+      ? await withAuth(request, () => Booking.getLoyaltyRule())
+          .then((loyaltyResponse) => loyaltyResponse.data?.data ?? null)
+          .catch(() => null)
+      : null;
 
-    return {
-      metrics: metricsResponse.data.data,
-    };
-  } catch (error: any) {
-    const { message } = resolveErrorPayload(error, 'Kunne ikke hente nøkkeltall');
-    return { error: message };
+    // The key destinations' numbers: today's avtaler (Kalender) and the upcoming ones (Timebestillinger).
+    const { todayCount, upcomingCount } = await countTodayAndUpcomingAppointments(request);
+
+    return { canAdminister, loyalty, todayCount, upcomingCount };
+  } catch {
+    return { canAdminister: false, loyalty: null, todayCount: null, upcomingCount: null };
   }
 }
 
+/**
+ * The booking domain's Oversikt (ui-rules: page type Oversikt; blueprint map: references/booking-domain.md).
+ * The key destinations, Kalender and Timebestillinger, come first as full-colour cards with one live number each;
+ * the other areas follow as one row per area, in the area's fixed colour.
+ */
 export default function CompanyBookingPage({ loaderData }: Route.ComponentProps) {
-  const { metrics, error } = loaderData;
+  const rootData = useRouteLoaderData<typeof rootLoader>('routes/root.layout');
+  const bookingData = useRouteLoaderData<typeof bookingLayoutLoader>('routes/company/booking/company.booking.layout');
+  const branches = rootData?.userNavigation?.[RoutePlaceMent.SIDEBAR] ?? [];
+  const info = bookingData?.bookingInfo;
 
-  if (!metrics) {
-    return (
-      <CompanyPageTemplate
-        title="Booking"
-        description="Nøkkeltall, aktivitetsoversikt og profilinnsikt for booking-domenet."
-      >
-        <CompanyEmptyState
-          icon={<Calendar className="h-6 w-6" />}
-          title="Kunne ikke hente bookingoversikten"
-          description={error ?? 'Det oppstod en feil ved lasting av bookingnøkkeltall.'}
-        />
-      </CompanyPageTemplate>
-    );
-  }
+  // A page the menu doesn't list itself (e.g. Bookbar tid under Kalender) is open to whoever may open its parent.
+  const canOpen = (id: string) => hasBranch(branches, id) || hasBranch(branches, id.slice(0, id.lastIndexOf('.')));
 
-  const { summary, profiles } = metrics;
+  const visibleAreas = BOOKING_AREAS.flatMap((area) => {
+    if (area.adminOnly && !loaderData.canAdminister) return [];
+    const opens = area.pages.find(canOpen);
+    return opens ? [{ area, href: ROUTES_MAP[opens].href }] : [];
+  });
+  // "Kalender og timer" is shown as the two key cards instead of a row.
+  const everyone = visibleAreas.filter(({ area }) => !area.adminOnly && area.key !== 'workday');
+  const showKeyCards = visibleAreas.some(({ area }) => area.key === 'workday');
+  const admin = visibleAreas.filter(({ area }) => area.adminOnly);
+
+  // Real state where we have it; otherwise the area's fixed line.
+  const { loyalty } = loaderData;
+  const lineFor = (area: BookingArea) => {
+    if (area.key === 'services' && info) {
+      return `${info.servicesAmount} ${info.servicesAmount === 1 ? 'tjeneste' : 'tjenester'} · ${info.serviceGroupsAmount} ${info.serviceGroupsAmount === 1 ? 'gruppe' : 'grupper'}`;
+    }
+    if (area.key === 'loyalty' && loyalty) {
+      return loyalty.enabled ? `Hvert ${loyalty.visitsRequired}. besøk er gratis` : 'Av';
+    }
+    return area.line;
+  };
 
   return (
-    <CompanyPageTemplate
-      title="Booking"
-      description="Nøkkeltall, aktivitetsoversikt og profilinnsikt for booking-domenet. Samme kompakte sideoppsett skal kunne gjenbrukes på tvers av company-ruter."
-      routeLinks={
-        <Button asChild variant="outline" size="sm">
-          <NavLink to={ROUTES_MAP['company.booking.appointments'].href}>Timebestillinger</NavLink>
-        </Button>
-      }
-      hero={
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <KpiCard
-            label="Omsetning Denne Måneden"
-            value={formatCurrency(summary.revenue.revenueThisMonth)}
-            icon={<DollarSign className="h-6 w-6 text-primary" />}
-            tone="info"
-            compare={
-              <div
-                className={cn(
-                  'flex items-center gap-1',
-                  summary.revenue.monthOverMonthChangePercent >= 0 ? 'text-secondary' : 'text-destructive',
-                )}
-              >
-                {summary.revenue.monthOverMonthChangePercent >= 0 ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <TrendingDown className="h-4 w-4" />
-                )}
-                {Math.abs(summary.revenue.monthOverMonthChangePercent).toFixed(2)}% fra forrige måned
-              </div>
-            }
-          />
+    <CompanyPageTemplate title="Booking">
+      <nav aria-label="Booking" className="space-y-4">
+        {showKeyCards ? (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <KeyDestinationCard
+              href={ROUTES_MAP['company.booking.schedule'].href}
+              label="Kalender"
+              icon={CalendarDays}
+              tone="teal"
+              count={loaderData.todayCount}
+              countLabel={loaderData.todayCount === 1 ? 'avtale i dag' : 'avtaler i dag'}
+            />
+            <KeyDestinationCard
+              href={ROUTES_MAP['company.booking.appointments'].href}
+              label="Timebestillinger"
+              icon={ListChecks}
+              tone="cyan"
+              count={loaderData.upcomingCount}
+              countLabel="kommende"
+            />
+          </div>
+        ) : null}
+        {everyone.length ? (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
+            {everyone.map(({ area, href }) => (
+              <li key={area.key}>
+                <AreaRow area={area} href={href} line={lineFor(area)} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
-          <KpiCard
-            label="Timer Denne Måneden"
-            value={`${profiles.reduce((sum, p) => sum + p.totalHoursThisMonth, 0).toFixed(1)}t`}
-            icon={<Clock className="h-6 w-6 text-secondary" />}
-            tone="success"
-            compare={`${summary.bookings.appointmentsThisMonth} avtaler`}
-          />
-
-          <KpiCard
-            label="Unike Kunder"
-            value={summary.customers.uniqueCustomersThisMonth}
-            icon={<Users className="h-6 w-6 text-text-primary" />}
-            tone="primary"
-            compare={`${summary.customers.returningCustomers} gjengangere`}
-          />
-        </div>
-      }
-    >
-      <Accordion type="multiple" defaultValue={[]}>
-        {/* Revenue & Financial Section */}
-        <AccordionItem value="revenue">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background">
-                <DollarSign className="h-5 w-5 text-text-secondary" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-text-primary">Omsetning & Økonomi</h3>
-                <p className="text-sm text-text-secondary">Inntekter, trender og prognoser</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-6">
-              {/* Revenue Overview */}
-              <SectionBlock title="Omsetningsoversikt" icon={<BarChart3 className="h-4 w-4 text-primary" />}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MetricBox
-                    label="I Dag"
-                    value={formatCurrency(summary.revenue.revenueToday)}
-                    icon={<Calendar className="h-4 w-4" />}
-                    variant="info"
-                  />
-                  <MetricBox
-                    label="Denne Måneden"
-                    value={formatCurrency(summary.revenue.revenueThisMonth)}
-                    icon={<TrendingUp className="h-4 w-4" />}
-                    variant="success"
-                  />
-                  <MetricBox
-                    label="Forrige Måned"
-                    value={formatCurrency(summary.revenue.revenueLastMonth)}
-                    icon={<Clock className="h-4 w-4" />}
-                    variant="neutral"
-                  />
-                  <MetricBox
-                    label="Prognose"
-                    value={formatCurrency(summary.revenue.projectedRevenue)}
-                    icon={<Target className="h-4 w-4" />}
-                    variant="info"
-                  />
-                </div>
-              </SectionBlock>
-
-              {/* Revenue by Service Group */}
-              <SectionBlock title="Omsetning per Tjenestegruppe" icon={<Package className="h-4 w-4 text-secondary" />}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {summary.revenue.revenueByServiceGroup.map((group) => (
-                    <div key={group.groupId} className="flex items-center justify-between rounded-lg bg-background p-4">
-                      <div>
-                        <p className="font-medium text-text-primary">{group.groupName}</p>
-                        <p className="text-xs text-text-secondary">{group.appointmentCount} avtaler</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-text-primary">{formatCurrency(group.totalRevenue)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionBlock>
-
-              {/* Average Appointment Value */}
-              <div className="rounded-md border border-border bg-background p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface">
-                      <Award className="h-5 w-5 text-text-secondary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-text-secondary">Gjennomsnittlig Avtaleverdi</p>
-                      <p className="text-2xl font-bold text-text-primary">
-                        {formatCurrency(summary.revenue.averageAppointmentValue)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Booking Activity Section */}
-        <AccordionItem value="bookings">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background">
-                <Calendar className="h-5 w-5 text-text-secondary" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-text-primary">Bestillingsaktivitet</h3>
-                <p className="text-sm text-text-secondary">Avtaler, trender og topptider</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-6">
-              {/* Booking Stats */}
-              <SectionBlock title="Avtalestatistikk" icon={<Activity className="h-4 w-4 text-secondary" />}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MetricBox
-                    label="I Dag"
-                    value={summary.bookings.appointmentsToday}
-                    icon={<Calendar className="h-4 w-4" />}
-                    variant="info"
-                  />
-                  <MetricBox
-                    label="Kommende 7 Dager"
-                    value={summary.bookings.upcomingSevenDays}
-                    icon={<CalendarClock className="h-4 w-4" />}
-                    variant="warning"
-                  />
-                  <MetricBox
-                    label="Denne Måneden"
-                    value={summary.bookings.appointmentsThisMonth}
-                    icon={<TrendingUp className="h-4 w-4" />}
-                    variant="success"
-                  />
-                  <MetricBox
-                    label="Endring M/M"
-                    value={`${summary.bookings.monthOverMonthChangePercent >= 0 ? '+' : ''}${summary.bookings.monthOverMonthChangePercent.toFixed(2)}%`}
-                    icon={
-                      summary.bookings.monthOverMonthChangePercent >= 0 ? (
-                        <TrendingUp className="h-4 w-4" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4" />
-                      )
-                    }
-                    variant={summary.bookings.monthOverMonthChangePercent >= 0 ? 'success' : 'error'}
-                  />
-                </div>
-              </SectionBlock>
-
-              {/* Peak Booking Times */}
-              <SectionBlock title="Topptider for Bestillinger" icon={<Clock className="h-4 w-4 text-chart-3" />}>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {summary.bookings.peakBookingTimes.slice(0, 6).map((peak, idx) => (
-                    <div key={idx} className="rounded-lg bg-background p-3">
-                      <p className="text-sm font-medium text-text-primary">{peak.dayOfWeek}</p>
-                      <p className="text-xs text-text-secondary">Kl. {peak.hour}:00</p>
-                      <p className="mt-1 text-lg font-bold text-text-primary">{peak.bookingCount} avtaler</p>
-                    </div>
-                  ))}
-                </div>
-              </SectionBlock>
-
-              {/* 30-Day Trend */}
-              <SectionBlock title="30-Dagers Trend" icon={<BarChart3 className="h-4 w-4 text-primary" />}>
-                <div className="h-24 flex items-end gap-1">
-                  {summary.bookings.trendLast30Days.map((day, idx) => {
-                    const maxCount = Math.max(...summary.bookings.trendLast30Days.map((d) => d.count));
-                    const height = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
-                    return (
-                      <div
-                        key={idx}
-                        className="flex-1 rounded-t bg-border transition-colors hover:bg-surface"
-                        style={{ height: `${height}%` }}
-                        title={`${day.date}: ${day.count} avtaler`}
-                      />
-                    );
-                  })}
-                </div>
-              </SectionBlock>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Service Performance Section */}
-        <AccordionItem value="services">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background">
-                <Package className="h-5 w-5 text-text-secondary" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-text-primary">Tjenesteytelse</h3>
-                <p className="text-sm text-text-secondary">Populære tjenester og optimaliseringsmuligheter</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-6">
-              {/* Service Overview */}
-              <SectionBlock title="Tjenesteoversikt" icon={<Package className="h-4 w-4 text-chart-5" />}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MetricBox
-                    label="Aktive Tjenester"
-                    value={summary.services.totalActiveServices}
-                    icon={<Package className="h-4 w-4" />}
-                    variant="success"
-                  />
-                  <MetricBox
-                    label="Tjenestegrupper"
-                    value={summary.services.totalServiceGroups}
-                    icon={<Briefcase className="h-4 w-4" />}
-                    variant="info"
-                  />
-                  <MetricBox
-                    label="Uten Bilder"
-                    value={summary.services.servicesWithoutImages}
-                    icon={<Image className="h-4 w-4" />}
-                    variant={summary.services.servicesWithoutImages > 0 ? 'warning' : 'success'}
-                  />
-                  <MetricBox
-                    label="Aldri Bestilt"
-                    value={summary.services.neverBookedServices.length}
-                    icon={<AlertCircle className="h-4 w-4" />}
-                    variant={summary.services.neverBookedServices.length > 0 ? 'warning' : 'success'}
-                  />
-                </div>
-              </SectionBlock>
-
-              {/* Most Popular Services */}
-              <SectionBlock title="Mest Populære Tjenester" icon={<Award className="h-4 w-4 text-secondary" />}>
-                <div className="space-y-2">
-                  {summary.services.mostPopularServices.map((service, idx) => (
-                    <div
-                      key={service.serviceId}
-                      className="flex items-center justify-between rounded-lg bg-background p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded bg-surface">
-                          <span className="text-sm font-bold text-text-primary">#{idx + 1}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-text-primary">{service.serviceName}</p>
-                          <p className="text-xs text-text-secondary">{service.groupName}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-text-primary">{formatCurrency(service.totalRevenue)}</p>
-                        <p className="text-xs text-text-secondary">{service.bookingCount} bestillinger</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionBlock>
-
-              {/* Never Booked Services */}
-              {summary.services.neverBookedServices.length > 0 && (
-                <SectionBlock
-                  title="Tjenester Uten Bestillinger"
-                  icon={<AlertCircle className="h-4 w-4 text-destructive" />}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {summary.services.neverBookedServices.map((service) => (
-                      <div
-                        key={service.serviceId}
-                        className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-text-primary">{service.serviceName}</p>
-                          <p className="text-xs text-text-secondary">{service.groupName}</p>
-                        </div>
-                        <p className="text-sm font-semibold text-text-secondary">{formatCurrency(service.price)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </SectionBlock>
-              )}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Customer Insights Section */}
-        <AccordionItem value="customers">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background">
-                <Users className="h-5 w-5 text-text-secondary" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-text-primary">Kundeinnsikt</h3>
-                <p className="text-sm text-text-secondary">Kundeanalyse og engasjement</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-6">
-              <SectionBlock title="Kundeoversikt" icon={<Users className="h-4 w-4" />}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MetricBox
-                    label="Totalt Unike"
-                    value={summary.customers.totalUniqueCustomers}
-                    icon={<Users className="h-4 w-4" />}
-                    variant="info"
-                  />
-                  <MetricBox
-                    label="Nye Denne Måneden"
-                    value={summary.customers.uniqueCustomersThisMonth}
-                    icon={<UserCheck className="h-4 w-4" />}
-                    variant="success"
-                  />
-                  <MetricBox
-                    label="Gjengangere"
-                    value={summary.customers.returningCustomers}
-                    icon={<Award className="h-4 w-4" />}
-                    variant="success"
-                  />
-                  <MetricBox
-                    label="Gj.snitt Avtaler"
-                    value={summary.customers.averageAppointmentsPerCustomer.toFixed(1)}
-                    icon={<BarChart3 className="h-4 w-4" />}
-                    variant="neutral"
-                  />
-                </div>
-              </SectionBlock>
-
-              <div className="rounded-lg border border-border bg-background p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface">
-                      <CalendarClock className="h-5 w-5 text-text-secondary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-text-secondary">Kunder med Kommende Avtaler</p>
-                      <p className="text-2xl font-bold text-text-primary">
-                        {summary.customers.customersWithUpcomingAppointments}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Session Analytics Section */}
-        <AccordionItem value="sessions">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background">
-                <MousePointer className="h-5 w-5 text-text-secondary" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-text-primary">Øktanalyse</h3>
-                <p className="text-sm text-text-secondary">Brukerøkter og konverteringsrater</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <SectionBlock title="Øktoversikt" icon={<Activity className="h-4 w-4 text-primary" />}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricBox
-                  label="Aktive Økter"
-                  value={summary.sessions.activeSessions}
-                  icon={<Activity className="h-4 w-4" />}
-                  variant="info"
-                />
-                <MetricBox
-                  label="Fullførte (30d)"
-                  value={summary.sessions.completedSessionsLast30Days}
-                  icon={<Award className="h-4 w-4" />}
-                  variant="success"
-                />
-                <MetricBox
-                  label="Forlatte (30d)"
-                  value={summary.sessions.abandonedSessionsLast30Days}
-                  icon={<AlertCircle className="h-4 w-4" />}
-                  variant="warning"
-                />
-                <MetricBox
-                  label="Konvertering"
-                  value={`${summary.sessions.sessionToBookingConversionRate}%`}
-                  icon={<Target className="h-4 w-4" />}
-                  variant="success"
-                />
-              </div>
-            </SectionBlock>
-
-            <div className="mt-6 rounded-lg bg-background p-4">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-text-secondary" />
-                <div>
-                  <p className="text-sm text-text-secondary">Gjennomsnittlig Økttid</p>
-                  <p className="text-xl font-bold text-text-primary">
-                    {(summary.sessions.averageSessionDurationMinutes / 60).toFixed(2)} timer
-                  </p>
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Profile Breakdown Section */}
-        <AccordionItem value="profiles">
-          <AccordionTrigger>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-chart-5/10 flex items-center justify-center">
-                <User className="h-5 w-5 text-chart-5" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Profilanalyse</h3>
-                <p className="text-sm text-muted-foreground">Ytelse per ansatt</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-4">
-              {profiles.map((profile) => (
-                <Card key={profile.profileId} variant="ghost">
-                  <CardContent className="pt-6">
-                    {/* Profile Header */}
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        {profile.profileImageUrl ? (
-                          <img
-                            src={profile.profileImageUrl}
-                            alt={profile.profileName}
-                            className="h-16 w-16 rounded-full object-cover"
-                          />
-                        ) : (
-                          <User className="h-8 w-8 text-primary" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-foreground">{profile.profileName}</h4>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-sm text-muted-foreground">
-                            {profile.totalHoursThisMonth}t denne måneden
-                          </span>
-                          {!profile.hasSchedule && (
-                            <span className="text-xs text-destructive flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" />
-                              Ingen timeplan
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Profile Metrics */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="p-3 rounded-lg bg-muted/30">
-                        <p className="text-xs text-muted-foreground mb-1">Omsetning</p>
-                        <p className="text-lg font-bold text-foreground">{formatCurrency(profile.revenueThisMonth)}</p>
-                        <p
-                          className={`text-xs mt-1 ${profile.revenueThisMonth - profile.revenueLastMonth >= 0 ? 'text-secondary' : 'text-destructive'}`}
-                        >
-                          {profile.revenueThisMonth > profile.revenueLastMonth ? '+' : ''}
-                          {formatCurrency(profile.revenueThisMonth - profile.revenueLastMonth)}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30">
-                        <p className="text-xs text-muted-foreground mb-1">Avtaler</p>
-                        <p className="text-lg font-bold text-foreground">{profile.appointmentsThisMonth}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Kommende: {profile.upcomingSevenDays}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30">
-                        <p className="text-xs text-muted-foreground mb-1">Gj.snitt Verdi</p>
-                        <p className="text-lg font-bold text-foreground">
-                          {formatCurrency(profile.averageAppointmentValue)}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30">
-                        <p className="text-xs text-muted-foreground mb-1">Kunder</p>
-                        <p className="text-lg font-bold text-foreground">{profile.uniqueCustomersThisMonth}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {profile.returningCustomerCount} gjengangere
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Projected Revenue */}
-                    <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Anslått Månedsomsetning</span>
-                        <span className="text-lg font-bold text-primary">
-                          {formatCurrency(profile.projectedRevenue)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Upcoming Unavailability */}
-                    {profile.upcomingUnavailability.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-foreground mb-2">Kommende Fravær</p>
-                        <div className="space-y-1">
-                          {profile.upcomingUnavailability.map((unavail, idx) => (
-                            <div key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
-                              <CalendarClock className="h-3 w-3" />
-                              <span>
-                                {formatDateTime(unavail.startTime)} - {formatDateTime(unavail.endTime)}
-                              </span>
-                              {unavail.reason && <span className="text-foreground">({unavail.reason})</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+        {admin.length ? (
+          <section
+            aria-labelledby="booking-setup"
+            className="overflow-hidden rounded-xl border border-border bg-background"
+          >
+            <h2
+              id="booking-setup"
+              className="flex items-center justify-between gap-3 border-b border-border bg-slate-100 px-4 py-1.5 text-xs font-semibold text-text-primary sm:px-5"
+            >
+              Oppsett
+              <span className="font-normal text-text-secondary">Admin</span>
+            </h2>
+            <ul className="divide-y divide-border">
+              {admin.map(({ area, href }) => (
+                <li key={area.key}>
+                  <AreaRow area={area} href={href} line={lineFor(area)} />
+                </li>
               ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            </ul>
+          </section>
+        ) : null}
+      </nav>
     </CompanyPageTemplate>
   );
 }
 
-// ============================================
-// UTILITY COMPONENTS
-// ============================================
-
-type MetricBoxProps = {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  variant: 'success' | 'error' | 'warning' | 'info' | 'neutral';
-};
-
-type SectionBlockProps = {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-};
-
-function SectionBlock({ title, icon, children }: SectionBlockProps) {
-  return (
-    <section className="space-y-4">
-      <div className="inline-flex items-center gap-2 rounded-sm bg-surface px-3 py-2">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-sm bg-background">{icon}</span>
-        <h4 className="text-sm font-semibold text-text-primary">{title}</h4>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function MetricBox({ label, value, icon, variant }: MetricBoxProps) {
-  const variantStyles = {
-    success: {
-      panel: 'bg-surface',
-      icon: 'bg-background text-text-secondary',
-    },
-    error: {
-      panel: 'bg-surface',
-      icon: 'bg-background text-destructive',
-    },
-    warning: {
-      panel: 'bg-surface',
-      icon: 'bg-background text-text-secondary',
-    },
-    info: {
-      panel: 'bg-surface',
-      icon: 'bg-background text-text-secondary',
-    },
-    neutral: {
-      panel: 'bg-surface',
-      icon: 'bg-background text-text-secondary',
-    },
-  };
+/** One area: its colored tile, name and one muted line; the whole row opens the area. */
+function AreaRow({ area, href, line }: { area: BookingArea; href: string; line: string }) {
+  const tone = categoryTone(area.tone);
+  const Icon = area.icon;
 
   return (
-    <div className={cn('space-y-2 rounded-md p-4', variantStyles[variant].panel)}>
-      <div className={cn('inline-flex h-8 w-8 items-center justify-center rounded-sm', variantStyles[variant].icon)}>
-        {icon}
-      </div>
-      <p className="text-xs text-text-secondary">{label}</p>
-      <p className="text-2xl font-bold text-text-primary">{value}</p>
-    </div>
+    <Link
+      to={href}
+      className="flex h-15 items-center gap-3 px-4 transition-colors hover:bg-surface-variant-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive sm:px-5"
+    >
+      <span aria-hidden className={cn('grid size-9 shrink-0 place-items-center rounded-[10px]', tone.tint, tone.ink)}>
+        <Icon className="size-5" strokeWidth={1.8} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-text-primary">{area.label}</span>
+        <span className="block truncate text-sm text-text-secondary">{line}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
+    </Link>
   );
-}
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('nb-NO', {
-    style: 'currency',
-    currency: 'NOK',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('nb-NO', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
 }

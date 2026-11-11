@@ -1,4 +1,4 @@
-import type { GetTimesheetEntriesRequest, TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { GetTimesheetEntriesRequest, TimesheetDayEntryDto } from '~/api/generated';
 import { serializeQueryParams } from '~/lib/query';
 import type { TimesheetStatus } from './status';
 

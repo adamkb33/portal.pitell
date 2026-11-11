@@ -18,18 +18,18 @@
   --color-byzantium-600: #702963;
 
   /* ─── Template brand (blue) + neutral slate scale ─ */
-  --color-blue-700: #1d4ed8;
-  --color-blue-600: #2563eb;
-  --color-blue-500: #3b82f6;
-  --color-blue-50: #eff6ff;
-  --color-page: #f0f4f8; /* template --bg-body */
+  --color-blue-700: #1c43b0;
+  --color-blue-600: #2455d6;
+  --color-blue-500: #4f78e8;
+  --color-blue-50: #e1eafe;
+  --color-page: #e8edf5; /* template --bg-body */
   --color-pure-white: #ffffff; /* template --bg-card */
-  --color-slate-900: #1e293b; /* template --t-base */
-  --color-slate-500: #64748b; /* template --t-muted */
+  --color-slate-900: #162238; /* template --t-base */
+  --color-slate-500: #475569; /* template --t-muted */
   --color-slate-400: #94a3b8; /* template --t-light */
   --color-slate-100: #f1f5f9; /* template --bg-muted */
   --color-slate-50: #f8fafc; /* template --bg-hover */
-  --color-border-slate: #e4e8ef; /* template --border */
+  --color-border-slate: #c8d2e2; /* template --border */
 
   /* ─── Status palette (template) ───────────────── */
   --color-success: #10b981;
@@ -48,13 +48,48 @@
   --color-teal-soft: #f0fdfa;
   --color-orange: #f97316;
   --color-orange-soft: #fff7ed;
+  /* Danger as text on white or danger-soft (passes AA; --color-danger is for fills). */
+  --color-danger-text: #b42318;
+
+  /* ─── Category colors (Fargenivå B) ──────────────
+     Tell groups, people and sections apart. Dot = strong, text/icon = ink, background = tint.
+     Blue, green, red and amber are left out on purpose: they already mean action and status. */
+  --color-category-teal: var(--color-teal);
+  --color-category-teal-ink: #0f766e;
+  --color-category-teal-tint: color-mix(in oklab, var(--color-category-teal) 14%, var(--color-pure-white));
+  --color-category-purple: var(--color-purple);
+  --color-category-purple-ink: #6d28d9;
+  --color-category-purple-tint: color-mix(in oklab, var(--color-category-purple) 14%, var(--color-pure-white));
+  --color-category-pink: var(--color-pink);
+  --color-category-pink-ink: #be185d;
+  --color-category-pink-tint: color-mix(in oklab, var(--color-category-pink) 14%, var(--color-pure-white));
+  --color-category-orange: var(--color-orange);
+  --color-category-orange-ink: #c2410c;
+  --color-category-orange-tint: color-mix(in oklab, var(--color-category-orange) 14%, var(--color-pure-white));
+  --color-category-sky: var(--color-info);
+  --color-category-sky-ink: #0369a1;
+  --color-category-sky-tint: color-mix(in oklab, var(--color-category-sky) 14%, var(--color-pure-white));
+  /* Key destinations on a domain's overview (full-colour cards, white text ≥ 5.3:1 on the light end). */
+  --color-category-teal-deep: #0d5e57;
+  --color-category-cyan: #0891b2;
+  --color-category-cyan-ink: #0e7490;
+  --color-category-cyan-deep: #155e75;
+  --color-category-plum: var(--color-byzantium-600);
+  --color-category-plum-ink: var(--color-byzantium-600);
+  --color-category-plum-tint: color-mix(in oklab, var(--color-category-plum) 12%, var(--color-pure-white));
 
   /* ─── Semantic Color Aliases ──────────────────── */
   --color-background: var(--color-pure-white);
   --color-surface: var(--color-page);
   --color-border: var(--color-border-slate);
+  /* Form field outlines and placeholders need more contrast than card borders (WCAG 1.4.11 needs 3:1 for a field's
+     outline, 1.4.3 needs 4.5:1 for placeholder text). Cards keep the lighter --color-border. */
+  --color-field-border: #8592a6; /* 3.15:1 on white */
+  --color-text-placeholder: #64748b; /* 4.76:1 on white */
   --color-overlay-surface: var(--color-pure-white);
   --color-overlay-border: var(--color-border-slate);
+  /* Dims the page behind a panel that drops over it (the bell's panel on phones). */
+  --color-scrim: rgb(15 23 42 / 0.35);
   --color-text-primary: var(--color-slate-900);
   --color-text-secondary: var(--color-slate-500);
   --color-text-disabled: var(--color-slate-400);
@@ -88,6 +123,39 @@
   --color-chip-surface-hover: color-mix(in oklab, var(--color-surface) 54%, var(--color-background));
   --color-chip-surface-active: color-mix(in oklab, var(--color-tertiary) 14%, var(--color-surface));
   --color-chip-surface-active-hover: color-mix(in oklab, var(--color-tertiary) 20%, var(--color-surface));
+
+  /* The final "book it" button (Ny time, like the customer booking flow's confirm): white text 5.5:1. */
+  --color-confirm: #047857;
+  --color-confirm-hover: #065f46;
+
+  /* The colour the company page background fades to at the bottom; the desktop footer uses it too, so there's no seam. */
+  --color-page-wash-bottom: color-mix(in oklab, var(--color-interactive) 7%, var(--color-surface));
+
+  /* On a full-colour card (key destinations): a soft white fill for the icon tile, and quiet white text. */
+  --color-on-colour-soft: color-mix(in oklab, var(--color-pure-white) 15%, transparent);
+  --color-on-colour-muted: color-mix(in oklab, var(--color-pure-white) 85%, transparent);
+
+  /* App chrome: the navy sidebar and phone menu. Use these classes there instead of re-mapping the page tokens. */
+  --color-chrome: #13213a;
+  --color-chrome-hover: color-mix(in oklab, var(--color-pure-white) 6%, var(--color-chrome));
+  --color-chrome-active: color-mix(in oklab, var(--color-pure-white) 9%, var(--color-chrome));
+  --color-chrome-raised: #263f69;
+  --color-chrome-border: #31405b;
+  --color-chrome-text: #e8edf7; /* 13.7:1 on chrome */
+  --color-chrome-text-muted: #b5c1d4; /* 8.8:1 on chrome */
+  --color-chrome-accent: #a9c1ff;
+
+  /* On the primary-blue bars (phone top bar, company card): text, quiet text, hover and decoration. */
+  --color-on-brand: var(--color-text-inverse);
+  --color-on-brand-muted: #dbe5ff; /* 5.0:1 on interactive */
+  --color-on-brand-hover: color-mix(in oklab, var(--color-pure-white) 15%, var(--color-interactive));
+  --color-on-brand-decoration: color-mix(in oklab, var(--color-pure-white) 7%, transparent);
+
+  /* Marketing channels: accents and quiet surfaces shared by the list and editor. */
+  --color-marketing-email: var(--color-interactive);
+  --color-marketing-email-soft: color-mix(in oklab, var(--color-marketing-email) 7%, var(--color-background));
+  --color-marketing-sms: var(--color-tertiary);
+  --color-marketing-sms-soft: color-mix(in oklab, var(--color-marketing-sms) 7%, var(--color-background));
 
   /* ─── Flash Message Colors ───────────────────── */
   --color-flash-error-bg: #fef2f2;
@@ -247,4 +315,6 @@
   --app-content-padding-block-mobile: var(--space-sm);
   --app-content-padding-block-desktop: var(--space-xl);
   --booking-step-min-height: auto;
+  /* One content width for every public booking page, so the flow does not jump between widths on desktop. */
+  --booking-content-width: 56rem;
 }

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
 import { FileText, Pencil } from 'lucide-react';
 import { Link } from 'react-router';
 import { TIMESHEET_SUBMITTED_STATUS_LABELS, TIMESHEET_SUBMITTED_STATUS_VARIANTS } from '../../_utils';
