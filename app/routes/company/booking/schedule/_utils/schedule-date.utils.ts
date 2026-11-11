@@ -39,12 +39,14 @@ export function toSafeScheduleDate(rawDate: string | null): string {
   const earliestWeekStart = getEarliestScheduleWeekStart(today);
   const latestWeekStart = getLatestScheduleWeekStart(today);
   const parsed = rawDate ? new Date(`${rawDate}T00:00:00`) : today;
-  const requestedWeekStart = Number.isNaN(parsed.getTime()) ? currentWeekStart : toWeekStart(parsed);
+  const requestedDate = !rawDate || Number.isNaN(parsed.getTime()) ? currentWeekStart : parsed;
+  const requestedWeekStart = toWeekStart(requestedDate);
   const clamped =
     requestedWeekStart < earliestWeekStart
       ? earliestWeekStart
       : requestedWeekStart > latestWeekStart
         ? latestWeekStart
         : requestedWeekStart;
-  return format(clamped, 'yyyy-MM-dd');
+  const safeDate = requestedWeekStart.getTime() === clamped.getTime() ? requestedDate : clamped;
+  return format(safeDate, 'yyyy-MM-dd');
 }

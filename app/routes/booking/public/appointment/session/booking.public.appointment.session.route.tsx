@@ -1,7 +1,7 @@
 import type { Route } from './+types/booking.public.appointment.session.route';
 import { Loader2 } from 'lucide-react';
 import { redirect } from 'react-router';
-import { AppointmentsController, type AppointmentSessionDto } from '~/api/generated/booking';
+import { AppointmentsController, type AppointmentSessionDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import {
   parseBookingContext,

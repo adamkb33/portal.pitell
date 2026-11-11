@@ -1,46 +1,48 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { data, useNavigate, useSearchParams, useSubmit } from 'react-router';
-import { BellRing, Eye, Inbox } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { data, Link, useLocation } from 'react-router';
+import { BellOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Route } from './+types/company.notifications.route';
-import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated/notification';
+import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { serializeQueryParams } from '~/lib/query';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { ServerPaginatedTable } from '~/components/table/server-side-table';
-import { Badge, CompanyPageTemplate, Notice } from '~/ui';
-import { NotificationsFilterCard } from './_components/notifications-filter-card';
-import { NotificationCardRow } from './_components/notification-card-row';
-import { NotificationTableRow } from './_components/notification-table-row';
-import { NotificationPaginationService } from './_utils/pagination-service';
-import { parseNotificationListRequest } from './_utils/query';
-import { parseIsoDate, toIsoDate } from '../timesheet/_utils';
-import type { CalendarDateRange } from '~/ui';
+import { Button, CompanyPageTemplate, Notice, SegmentedLinks } from '~/ui';
+import { NotificationRow } from './_components/notification-row';
+import { groupNotificationsByDay, notificationClock } from './_utils/notification-display';
+import {
+  parseNotificationListRequest,
+  SHOW_PARAM,
+  SHOW_UNREAD,
+  UNREAD_COUNT_REQUEST,
+  type NotificationListFilters,
+} from './_utils/query';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const { filters, requestPayload } = parseNotificationListRequest(url);
+  const { filters, requestPayload } = parseNotificationListRequest(new URL(request.url));
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserInAppNotificationController.getInAppNotifications({
-        query: {
-          request: requestPayload,
-        },
-        paramsSerializer: (params) => serializeQueryParams(params.request),
-      }),
+    const [listResponse, unreadResponse] = await withAuth(request, () =>
+      Promise.all([
+        CompanyUserInAppNotificationController.getInAppNotifications({
+          query: { request: requestPayload },
+          paramsSerializer: (params) => serializeQueryParams(params.request),
+        }),
+        CompanyUserInAppNotificationController.getInAppNotifications({
+          query: { request: UNREAD_COUNT_REQUEST },
+          paramsSerializer: (params) => serializeQueryParams(params.request),
+        }),
+      ]),
     );
-
-    const pageData = response.data?.data;
+    const pageData = listResponse.data?.data;
 
     return data({
       notifications: pageData?.content ?? [],
       pagination: {
         page: pageData?.page ?? filters.page,
-        size: pageData?.size ?? filters.size,
         totalElements: pageData?.totalElements ?? 0,
         totalPages: pageData?.totalPages ?? 1,
       },
+      unreadCount: unreadResponse.data?.data?.totalElements ?? 0,
       filters,
       error: null as string | null,
     });
@@ -48,189 +50,165 @@ export async function loader({ request }: Route.LoaderArgs) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke hente varsler');
     return data({
       notifications: [] as InAppNotificationDto[],
-      pagination: {
-        page: filters.page,
-        size: filters.size,
-        totalElements: 0,
-        totalPages: 1,
-      },
+      pagination: { page: filters.page, totalElements: 0, totalPages: 1 },
+      unreadCount: 0,
       filters,
       error: message,
     });
   }
 }
 
-export function getAppointmentNotificationHref(
-  notification: Pick<InAppNotificationDto, 'sourceRefType' | 'sourceRefId'>,
-): string | null {
-  if (notification.sourceRefType !== 'APPOINTMENT') {
-    return null;
-  }
-
-  const sourceRefId = notification.sourceRefId?.trim();
-  if (!sourceRefId || !/^\d+$/.test(sourceRefId)) {
-    return null;
-  }
-
-  return ROUTES_MAP['company.booking.appointments.detail'].href.replace(':appointmentId', sourceRefId);
-}
-
+/**
+ * Varsler (Liste): Alle | Uleste, the notifications grouped by the day they arrived, a count and paging. Every row
+ * opens the notification's own page. Nothing to create here, so no create button (approved sketch 2026-11-10).
+ */
 export default function CompanyNotificationsRoute({ loaderData }: Route.ComponentProps) {
-  const { notifications, pagination, filters, error } = loaderData;
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const submit = useSubmit();
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [fromDate, setFromDate] = useState(filters.fromDate ?? '');
-  const [toDate, setToDate] = useState(filters.toDate ?? '');
-  const [readFilter, setReadFilter] = useState(filters.read);
-  const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>({
-    from: parseIsoDate(filters.fromDate),
-    to: parseIsoDate(filters.toDate),
-  });
-
-  const paginationService = useMemo(
-    () => new NotificationPaginationService(searchParams, navigate),
-    [searchParams, navigate],
-  );
-
-  useEffect(() => {
-    setFromDate(filters.fromDate ?? '');
-    setToDate(filters.toDate ?? '');
-    setReadFilter(filters.read);
-    setDateRange({
-      from: parseIsoDate(filters.fromDate),
-      to: parseIsoDate(filters.toDate),
-    });
-  }, [filters.fromDate, filters.toDate, filters.read]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  const isViewed = (notification: InAppNotificationDto) => notification.readAt != null;
-
-  const openNotificationRoute = (notification: InAppNotificationDto) => {
-    const appointmentHref = getAppointmentNotificationHref(notification);
-    if (appointmentHref) {
-      navigate(appointmentHref);
-      return;
-    }
-
-    const href = ROUTES_MAP['company.notifications.view'].href.replace(':id', notification.id.toString());
-    const search = searchParams.toString();
-
-    navigate(`${href}${search ? `?${search}` : ''}`);
-  };
-
-  const submitDebounced = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(() => {
-      if (!formRef.current) {
-        return;
-      }
-      submit(formRef.current, { replace: true, preventScrollReset: true });
-    }, 1000);
-  };
-
-  const handleRangeSelect = (nextRange: CalendarDateRange | undefined) => {
-    setDateRange(nextRange);
-    setFromDate(toIsoDate(nextRange?.from));
-    setToDate(toIsoDate(nextRange?.to));
-    submitDebounced();
-  };
-
-  const handleReadFilterChange = (value: 'all' | 'read' | 'unread') => {
-    setReadFilter(value);
-    submitDebounced();
-  };
-
-  const summary = useMemo(() => {
-    return notifications.reduce(
-      (acc, notification) => {
-        acc.total += 1;
-        if (isViewed(notification)) {
-          acc.read += 1;
-        } else {
-          acc.unread += 1;
-        }
-        return acc;
-      },
-      { total: 0, read: 0, unread: 0 },
-    );
-  }, [notifications]);
+  const { notifications, pagination, unreadCount, filters, error } = loaderData;
+  const [now] = useState(() => new Date());
+  const groups = groupNotificationsByDay(notifications, now);
 
   return (
-    <CompanyPageTemplate
-      title="In-app varsler"
-      label="Varsler"
-      description="Varsler og lenker fra systemet."
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="primary" size="md">
-            <Inbox className="h-3.5 w-3.5" />
-            {summary.total} totalt
-          </Badge>
-          <Badge variant="warning" size="md">
-            <BellRing className="h-3.5 w-3.5" />
-            {summary.unread} uleste
-          </Badge>
-          <Badge variant="success" size="md">
-            <Eye className="h-3.5 w-3.5" />
-            {summary.read} leste
-          </Badge>
-        </div>
-      }
-    >
-      <NotificationsFilterCard
-        formRef={formRef}
-        fromDate={fromDate}
-        toDate={toDate}
-        dateRange={dateRange}
-        readFilter={readFilter}
-        pageSize={pagination.size}
-        resetHref="/company/notifications"
-        onRangeSelect={handleRangeSelect}
-        onReadFilterChange={handleReadFilterChange}
-      />
-
+    <CompanyPageTemplate title="Varsler">
       {error ? (
         <Notice tone="emphasis" title="Kunne ikke hente varsler" message={error} />
       ) : (
-        <ServerPaginatedTable<InAppNotificationDto>
-          items={notifications}
-          columns={[{ header: 'Tidspunkt' }, { header: 'Varsel' }, { header: 'Status' }]}
-          pagination={pagination}
-          onPageChange={paginationService.handlePageChange}
-          onPageSizeChange={paginationService.handlePageSizeChange}
-          emptyMessage="Ingen varsler funnet for valgte filtre."
-          getRowKey={(notification) => notification.id}
-          renderMobileCard={(notification) => (
-            <NotificationCardRow
-              notification={notification}
-              isViewed={isViewed(notification)}
-              appointmentHref={getAppointmentNotificationHref(notification)}
-              onOpen={openNotificationRoute}
+        <section
+          aria-label="Varsler"
+          className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-background"
+        >
+          <div className="border-b border-border p-4 sm:p-5">
+            <ShowSwitch unreadOnly={filters.unreadOnly} unreadCount={unreadCount} />
+          </div>
+
+          {groups.map((group) => (
+            <section key={group.key} aria-label={group.label}>
+              <h3 className="flex items-center justify-between gap-3 border-b border-border bg-slate-100 px-4 py-1.5 text-xs font-semibold text-text-primary sm:px-5">
+                <span className="first-letter:uppercase">{group.label}</span>
+                <span className="font-normal text-text-secondary">
+                  {group.items.length} {group.items.length === 1 ? 'varsel' : 'varsler'}
+                </span>
+              </h3>
+              <ul className="divide-y divide-border border-b border-border">
+                {group.items.map((notification) => (
+                  <li key={notification.id}>
+                    <NotificationRow notification={notification} time={notificationClock(notification.createdAt)} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+
+          {notifications.length === 0 ? <EmptyState unreadOnly={filters.unreadOnly} /> : null}
+
+          {pagination.totalElements > 0 ? (
+            <Footer
+              filters={filters}
+              page={pagination.page}
+              total={pagination.totalElements}
+              pages={pagination.totalPages}
             />
-          )}
-          renderRow={(notification) => (
-            <NotificationTableRow
-              notification={notification}
-              isViewed={isViewed(notification)}
-              appointmentHref={getAppointmentNotificationHref(notification)}
-              onOpen={openNotificationRoute}
-            />
-          )}
-        />
+          ) : null}
+        </section>
       )}
     </CompanyPageTemplate>
+  );
+}
+
+function ShowSwitch({ unreadOnly, unreadCount }: { unreadOnly: boolean; unreadCount: number }) {
+  const { pathname } = useLocation();
+  return (
+    <SegmentedLinks
+      label="Vis varsler"
+      items={[
+        { key: 'alle', label: 'Alle', to: pathname, active: !unreadOnly },
+        {
+          key: SHOW_UNREAD,
+          label: 'Uleste',
+          to: `${pathname}?${SHOW_PARAM}=${SHOW_UNREAD}`,
+          active: unreadOnly,
+          count: unreadCount,
+        },
+      ]}
+    />
+  );
+}
+
+function EmptyState({ unreadOnly }: { unreadOnly: boolean }) {
+  const { pathname } = useLocation();
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-interactive">
+        <BellOff className="size-7" aria-hidden />
+      </span>
+      <p className="text-base font-semibold text-text-primary">
+        {unreadOnly ? 'Ingen uleste varsler' : 'Ingen varsler'}
+      </p>
+      {unreadOnly ? (
+        <Button asChild variant="outline">
+          <Link to={pathname}>Vis alle</Link>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function Footer({
+  filters,
+  page,
+  total,
+  pages,
+}: {
+  filters: NotificationListFilters;
+  page: number;
+  total: number;
+  pages: number;
+}) {
+  const { pathname } = useLocation();
+  const pageHref = (target: number) => {
+    const params = new URLSearchParams();
+    if (filters.unreadOnly) params.set(SHOW_PARAM, SHOW_UNREAD);
+    if (target > 0) params.set('page', String(target));
+    const search = params.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  };
+  const hasPrevious = page > 0;
+  const hasNext = page + 1 < pages;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-text-secondary sm:px-5">
+      <span>
+        {total.toLocaleString('nb-NO')} {total === 1 ? 'varsel' : 'varsler'}
+      </span>
+      {pages > 1 ? (
+        <div className="flex items-center gap-2">
+          <span>
+            Side {page + 1} av {pages}
+          </span>
+          <PageLink to={hasPrevious ? pageHref(page - 1) : null} label="Forrige side">
+            <ChevronLeft className="size-4" />
+          </PageLink>
+          <PageLink to={hasNext ? pageHref(page + 1) : null} label="Neste side">
+            <ChevronRight className="size-4" />
+          </PageLink>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PageLink({ to, label, children }: { to: string | null; label: string; children: ReactNode }) {
+  if (!to) {
+    return (
+      <Button variant="outline" size="icon" aria-label={label} disabled>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <Button asChild variant="outline" size="icon">
+      <Link to={to} aria-label={label} preventScrollReset>
+        {children}
+      </Link>
+    </Button>
   );
 }

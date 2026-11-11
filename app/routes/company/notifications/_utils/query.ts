@@ -1,63 +1,44 @@
-import type { GetInAppNotificationsRequest, InAppNotificationDto } from '~/api/generated/notification';
-import { formatDateBoundaryInTimeZone } from '~/lib/query';
+import type { GetInAppNotificationsRequest } from '~/api/generated';
 
-export type NotificationReadFilter = 'all' | 'read' | 'unread';
+/** Alle | Uleste lives in the URL (`?vis=uleste`), like every list filter. */
+export const SHOW_PARAM = 'vis';
+export const SHOW_UNREAD = 'uleste';
+export const NOTIFICATIONS_PAGE_SIZE = 20;
 
-export type InAppNotificationFilters = {
+export type NotificationListFilters = {
   page: number;
-  size: number;
-  fromDate?: string;
-  toDate?: string;
-  read: NotificationReadFilter;
+  unreadOnly: boolean;
 };
 
 export function parseNotificationListRequest(url: URL): {
-  filters: InAppNotificationFilters;
+  filters: NotificationListFilters;
   requestPayload: GetInAppNotificationsRequest;
 } {
-  const page = parseInteger(url.searchParams.get('page'), 0);
-  const size = parseInteger(url.searchParams.get('size'), 10);
-  const fromDate = url.searchParams.get('fromDate') || undefined;
-  const toDate = url.searchParams.get('toDate') || undefined;
-  const read = parseReadFilter(url.searchParams.get('read'));
-
-  const requestPayload: GetInAppNotificationsRequest = {
-    page,
-    size,
-    sortBy: 'createdAt',
-    sortDirection: 'DESC',
-    ...(fromDate ? { fromDateTime: formatDateBoundaryInTimeZone(fromDate, 'start') } : {}),
-    ...(toDate ? { toDateTime: formatDateBoundaryInTimeZone(toDate, 'end') } : {}),
-    ...(read === 'read' ? { read: true } : {}),
-    ...(read === 'unread' ? { read: false } : {}),
-  };
+  const page = parsePage(url.searchParams.get('page'));
+  const unreadOnly = url.searchParams.get(SHOW_PARAM) === SHOW_UNREAD;
 
   return {
-    filters: {
+    filters: { page, unreadOnly },
+    requestPayload: {
       page,
-      size,
-      fromDate,
-      toDate,
-      read,
+      size: NOTIFICATIONS_PAGE_SIZE,
+      sortBy: 'createdAt',
+      sortDirection: 'DESC',
+      ...(unreadOnly ? { read: false } : {}),
     },
-    requestPayload,
   };
 }
 
-export function getNotificationHeadline(notification: InAppNotificationDto) {
-  return notification.subject?.trim() || 'Varsel uten emne';
-}
+/** Counts the unread ones: one row is enough, the total says how many. */
+export const UNREAD_COUNT_REQUEST: GetInAppNotificationsRequest = {
+  page: 0,
+  size: 1,
+  sortBy: 'createdAt',
+  sortDirection: 'DESC',
+  read: false,
+};
 
-function parseInteger(value: string | null, fallback: number) {
-  if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
-function parseReadFilter(value: string | null): NotificationReadFilter {
-  if (value === 'read' || value === 'unread') {
-    return value;
-  }
-
-  return 'all';
+function parsePage(value: string | null): number {
+  const parsed = value ? Number.parseInt(value, 10) : 0;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }

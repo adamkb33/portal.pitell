@@ -1,5 +1,5 @@
 import { data, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
-import type { ApiError, ApiMessage } from '~/api/generated/base/types.gen';
+import type { ApiError, ApiMessage } from '~/api/generated/types.gen';
 import { withAuth } from '~/api/utils/with-auth';
 import { logger } from '~/lib/logger';
 import { describeAxiosError, sanitizeForLog } from '~/lib/http-log';

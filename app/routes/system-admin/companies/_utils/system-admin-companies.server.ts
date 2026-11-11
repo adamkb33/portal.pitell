@@ -1,4 +1,4 @@
-import { Base, type PaginatedResponseSystemAdminCompanyDto, type SystemAdminCompanyDto } from '~/api/generated/base';
+import { Base, type PaginatedResponseSystemAdminCompanyDto, type SystemAdminCompanyDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import {
   DEFAULT_COMPANY_OPTION_SIZE,

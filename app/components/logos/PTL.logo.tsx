@@ -23,14 +23,15 @@ const sizeMap: Record<LogoSize, { icon: string; wordmark: string; tagline: strin
 function getTone(onDark: boolean) {
   return onDark
     ? {
-        frame: 'border-navbar-border bg-navbar-accent/60',
-        svgFrame: 'fill-navbar-accent/60 stroke-navbar-border',
-        primary: 'text-navbar-text',
-        secondary: 'text-primary',
-        tertiary: 'text-navbar-text-muted',
-        node: 'fill-accent',
-        rail: 'stroke-primary',
-        chip: 'bg-navbar-icon-bg',
+        // On the navy chrome (sidebar, phone menu).
+        frame: 'border-chrome-border bg-chrome-raised/60',
+        svgFrame: 'fill-chrome-raised/60 stroke-chrome-border',
+        primary: 'text-chrome-text',
+        secondary: 'text-chrome-text',
+        tertiary: 'text-chrome-text-muted',
+        node: 'fill-chrome-accent',
+        rail: 'stroke-chrome-accent',
+        chip: 'bg-chrome-accent',
       }
     : {
         frame: 'border-border bg-surface',

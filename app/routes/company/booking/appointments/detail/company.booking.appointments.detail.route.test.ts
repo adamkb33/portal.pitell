@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   redirectWithSuccess: vi.fn(),
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   CompanyUserAppointmentController: {
     getAppointmentById1: mocks.getAppointmentById1,
     deleteAppointment: mocks.deleteAppointment,
@@ -29,7 +29,7 @@ vi.mock('~/lib/flash-message.server', () => ({
   redirectWithSuccess: mocks.redirectWithSuccess,
 }));
 
-import { action, loader, parseAppointmentRouteId } from './company.booking.appointments.detail.route';
+import { action, handle, loader, parseAppointmentRouteId } from './company.booking.appointments.detail.route';
 
 function createRequest(url = 'https://portal.pitell.no/company/booking/appointments/123', init?: RequestInit) {
   return new Request(url, init);
@@ -98,7 +98,22 @@ describe('company booking appointment detail route', () => {
     } as never);
 
     expect(mocks.getAppointmentById1).toHaveBeenCalledWith({ path: { id: 123 } });
-    expect(readDataResponse(result)).toEqual({ appointment, error: null });
+    expect(readDataResponse(result)).toEqual({
+      appointment,
+      canMarkNoShow: false,
+      from: null,
+      returnTo: null,
+      error: null,
+    });
+  });
+
+  it('returns to the schedule when opened from the calendar', () => {
+    expect(
+      handle.up?.({
+        from: 'kalender',
+        returnTo: '/company/booking/schedule?date=2026-11-10',
+      }),
+    ).toEqual({ label: 'Kalender', href: '/company/booking/schedule', search: '?date=2026-11-10' });
   });
 
   it('returns a validation message for invalid route params without calling the API', async () => {

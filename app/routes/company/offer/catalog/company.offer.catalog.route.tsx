@@ -1,7 +1,7 @@
 import { Form, Link, data } from 'react-router';
 import { Briefcase, Plus, Trash2 } from 'lucide-react';
 import type { Route } from './+types/company.offer.catalog.route';
-import { Offer, type OfferCatalogItemDto } from '~/api/generated/offer';
+import { Offer, type OfferCatalogItemDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

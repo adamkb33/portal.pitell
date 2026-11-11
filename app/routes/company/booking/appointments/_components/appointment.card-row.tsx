@@ -8,7 +8,7 @@ import {
   getTotalPrice,
   isAppointmentCompleted,
 } from '../_utils/appointments.utils';
-import type { AppointmentDto } from '~/api/generated/booking';
+import type { AppointmentDto } from '~/api/generated';
 import { Badge, Button, cn } from '~/ui';
 
 type AppointmentCardRowProps = {
@@ -98,7 +98,14 @@ export function AppointmentCardRow({
             <div className="inline-flex items-center justify-end gap-1 rounded-full border border-border bg-surface-variant-3 px-2 py-1 text-xs">
               <Wallet className="h-3 w-3 text-text-secondary" />
               <span className="text-text-secondary">Pris</span>
-              <span className="font-semibold text-text-primary">{getTotalPrice(appointment)}</span>
+              {appointment.loyaltyFreeVisit ? (
+                <>
+                  <span className="font-semibold text-success">Gratis</span>
+                  <span className="text-text-secondary line-through">{getTotalPrice(appointment)}</span>
+                </>
+              ) : (
+                <span className="font-semibold text-text-primary">{getTotalPrice(appointment)}</span>
+              )}
             </div>
           </div>
         </button>

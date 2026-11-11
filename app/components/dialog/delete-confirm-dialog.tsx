@@ -18,7 +18,8 @@ export function DeleteConfirmDialog({
   onConfirm,
   title = 'Er du sikker?',
   description = 'Denne handlingen kan ikke angres.',
-  cancelText = 'Avbryt',
+  // Outcome labels (NN/g): the safe choice says what it keeps.
+  cancelText = 'Behold',
   confirmText = 'Slett',
   confirmDisabled = false,
   children,

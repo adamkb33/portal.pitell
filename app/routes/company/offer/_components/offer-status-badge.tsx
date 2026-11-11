@@ -1,4 +1,4 @@
-import type { OfferDto } from '~/api/generated/offer';
+import type { OfferDto } from '~/api/generated';
 import { Badge } from '~/ui';
 import { OFFER_STATUS_BADGE_VARIANTS, OFFER_STATUS_LABELS } from '../_utils';
 

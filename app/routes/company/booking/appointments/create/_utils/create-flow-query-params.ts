@@ -5,6 +5,8 @@ type CreateFlowQueryState = {
   givenName: string;
   familyName: string;
   serviceIds: number[];
+  /** How many of each service when more than one (`antall=15:2`); a missing id means 1. */
+  quantities: Record<number, number>;
   startTime: string;
 };
 
@@ -25,6 +27,22 @@ export const parseServiceIdsParam = (value: string | null): number[] => {
     .filter((id) => Number.isInteger(id) && id > 0);
 };
 
+/** "15:2,16:3" → { 15: 2, 16: 3 }; only quantities from 2 to 10 are kept. */
+export const parseQuantitiesParam = (value: string | null): Record<number, number> => {
+  const quantities: Record<number, number> = {};
+  for (const part of (value ?? '').split(',')) {
+    const [id, count] = part.split(':').map(Number);
+    if (Number.isInteger(id) && id > 0 && Number.isInteger(count) && count >= 2 && count <= 10) quantities[id] = count;
+  }
+  return quantities;
+};
+
+export const serializeQuantitiesParam = (quantities: Record<number, number>, serviceIds: number[]): string =>
+  serviceIds
+    .filter((id) => (quantities[id] ?? 1) > 1)
+    .map((id) => `${id}:${quantities[id]}`)
+    .join(',');
+
 export const serializeServiceIdsParam = (serviceIds: number[]): string => {
   return serviceIds.filter((id) => Number.isInteger(id) && id > 0).join(',');
 };
@@ -37,6 +55,7 @@ export const parseCreateFlowQueryState = (searchParams: URLSearchParams): Create
     givenName: searchParams.get('givenName') ?? '',
     familyName: searchParams.get('familyName') ?? '',
     serviceIds: parseServiceIdsParam(searchParams.get('serviceIds')),
+    quantities: parseQuantitiesParam(searchParams.get('antall')),
     startTime: searchParams.get('startTime') ?? '',
   };
 };
@@ -72,6 +91,7 @@ export const withCreateFlowQueryState = (
 
   const serviceIdsValue = serializeServiceIdsParam(merged.serviceIds);
   setQueryParam(next, 'serviceIds', serviceIdsValue || null);
+  setQueryParam(next, 'antall', serializeQuantitiesParam(merged.quantities, merged.serviceIds) || null);
 
   return next;
 };

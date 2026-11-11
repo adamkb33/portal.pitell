@@ -1,277 +1,176 @@
-import { data, Link, useNavigate, useNavigation, useSearchParams } from 'react-router';
+import { data, Link, useNavigation, useSearchParams } from 'react-router';
 import type { Route } from './+types/booking.public.my-appointments.route';
-import {
-  ArrowLeft,
-  Calendar,
-  CalendarClock,
-  CalendarPlus,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  CircleDot,
-  Clock,
-  ExternalLink,
-  MapPin,
-  Sparkles,
-} from 'lucide-react';
-import { AppointmentsController, type MyAppointmentDto } from '~/api/generated/booking';
+import { CalendarClock, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Gift, MapPin } from 'lucide-react';
+import { AppointmentsController, type LoyaltyCardDto, type MyAppointmentDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { getBookingRouteHref } from '~/routes/booking/public/_utils/booking.route-map';
+import { BookingLink } from '~/routes/booking/public/_components/booking-link';
+import { Container as BookingContainer, Notice, PageHeader as BookingPageHeader, Stack } from '~/ui';
 import {
-  Badge,
-  Button,
-  Card as BookingCard,
-  Container as BookingContainer,
-  Notice,
-  PageHeader as BookingPageHeader,
-  Panel as BookingSection,
-  Stack,
-} from '~/ui';
-const UPCOMING_BADGE_CLASS = 'border-border bg-muted text-foreground';
-const COMPLETED_BADGE_CLASS = 'border-secondary/30 bg-secondary/15 text-foreground';
-const APPOINTMENTS_PAGE_SIZE = 5;
+  buildAppointmentHref,
+  buildCalendarPayload,
+  buildCancelHref,
+  buildGoogleMapsUrl,
+  buildLoyaltyHref,
+  buildNewBookingHref,
+  flattenServiceNames,
+  formatDateParts,
+  describeLoyaltyProgress,
+  getCompanyName,
+} from './_utils/my-appointments.utils';
 
-type AppointmentPageSection = 'upcoming' | 'completed';
+const PAST_PREVIEW_SIZE = 5;
+const HISTORY_PAGE_SIZE = 10;
+const LATER_PREVIEW_SIZE = 5;
+
+const sectionTitleClass = 'text-sm font-semibold text-booking-text-muted';
+const rowListClass = 'mt-2 overflow-hidden rounded-2xl border border-booking-border bg-booking-surface-raised';
+const heroPanelClass =
+  'rounded-2xl bg-[color-mix(in_oklab,var(--color-booking-text)_78%,var(--color-booking-action))] p-4 text-booking-surface-raised';
+const heroButtonClass =
+  'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-2 text-sm font-medium transition-colors';
+const heroPrimaryButtonClass = `${heroButtonClass} bg-booking-surface-raised text-booking-text hover:bg-booking-surface-raised/90`;
+const heroSecondaryButtonClass = `${heroButtonClass} bg-booking-surface-raised/10 text-booking-surface-raised hover:bg-booking-surface-raised/20`;
 
 const getSafePage = (value: string | null): number => {
   const page = Number(value || '0');
   return Number.isNaN(page) || page < 0 ? 0 : Math.floor(page);
 };
 
-const formatDurationMinutes = (startIso: string, endIso: string): number => {
-  const start = new Date(startIso).getTime();
-  const end = new Date(endIso).getTime();
-  return Math.max(0, Math.round((end - start) / 60000));
+const formatCountdown = (iso: string): string => {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date(iso)) - startOfDay(new Date())) / 86_400_000);
+  if (days <= 0) return 'I dag';
+  if (days === 1) return 'I morgen';
+  return `Om ${days} dager`;
 };
 
-const formatDateParts = (iso: string) => {
-  const date = new Date(iso);
-  return {
-    dayName: new Intl.DateTimeFormat('nb-NO', { weekday: 'long' }).format(date),
-    date: new Intl.DateTimeFormat('nb-NO', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    }).format(date),
-    time: new Intl.DateTimeFormat('nb-NO', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date),
-  };
-};
+// Each company keeps one colour from the brand palette so its rows are easy to tell apart.
+const companyTints = [
+  'bg-booking-surface-raised text-booking-action-text',
+  'bg-booking-surface-raised text-booking-accent',
+  'bg-booking-surface-raised text-booking-highlight',
+] as const;
 
-const getGroupedServices = (appointment?: MyAppointmentDto) => appointment?.groupedServiceGroups ?? [];
+const FreeBadge = () => (
+  <span className="inline-flex items-center gap-1 rounded-full bg-booking-highlight px-2 py-0.5 text-xs font-medium text-booking-highlight-contrast">
+    <Gift className="size-3" aria-hidden />
+    Gratis
+  </span>
+);
 
-const flattenServiceNames = (appointment?: MyAppointmentDto) =>
-  getGroupedServices(appointment).flatMap((group) => group.services.map((service) => service.name).filter(Boolean));
-
-const buildCalendarPayload = (appointment?: MyAppointmentDto) => {
-  if (!appointment) return null;
-
-  const startDate = new Date(appointment.startTime);
-  const endDate = new Date(appointment.endTime);
-  const formatIcsDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-  const companyName = appointment.company.name?.trim() || 'bedrift';
-  const summary = `Avtale hos ${companyName}`;
-  const serviceNames = flattenServiceNames(appointment);
-  const description = serviceNames.length ? `Tjenester: ${serviceNames.join(', ')}` : '';
-  const uid = `${appointment.id}-${appointment.startTime}`;
-
-  const icsContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Pitell//Booking//NO',
-    'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTAMP:${formatIcsDate(new Date())}`,
-    `DTSTART:${formatIcsDate(startDate)}`,
-    `DTEND:${formatIcsDate(endDate)}`,
-    `SUMMARY:${summary}`,
-    description ? `DESCRIPTION:${description}` : null,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ]
-    .filter(Boolean)
-    .join('\r\n');
-
-  const href = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
-  const filename = `${companyName}-appointment.ics`.replace(/\s+/g, '-').toLowerCase();
-  const googleDates = `${formatIcsDate(startDate)}/${formatIcsDate(endDate)}`;
-  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-    summary,
-  )}&dates=${encodeURIComponent(googleDates)}&details=${encodeURIComponent(description)}`;
-
-  return { href, filename, googleUrl };
-};
-
-const buildGoogleMapsUrl = (appointment?: MyAppointmentDto) => {
-  if (!appointment) return null;
-
-  const address = appointment.company.businessAddress ?? appointment.company.postalAddress;
-  if (!address) return null;
-
-  const query = [...(address.addressLines ?? []), address.postalCode, address.city, address.country]
-    .filter(Boolean)
-    .join(' ');
-
-  if (!query) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-};
-
-const buildCancelHref = (appointment?: MyAppointmentDto): string | null => {
-  if (!appointment) return null;
-  return ROUTES_MAP['booking.public.appointment.cancel-by-id'].href.replace(':appointmentId', String(appointment.id));
-};
-
-type AppointmentPaginationProps = {
-  page: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  itemCount: number;
-  previousHref: string;
-  nextHref: string;
-  isLoading: boolean;
-};
-
-function AppointmentPagination({
-  page,
-  pageSize,
-  totalElements,
-  totalPages,
-  hasPrevious,
-  hasNext,
-  itemCount,
-  previousHref,
-  nextHref,
-  isLoading,
-}: AppointmentPaginationProps) {
-  if (totalElements === 0) return null;
-
-  const pageCount = Math.max(totalPages, 1);
-  const startItem = page * pageSize + 1;
-  const endItem = Math.min(page * pageSize + itemCount, totalElements);
-  const hasMultiplePages = pageCount > 1;
+function AppointmentRow({ appointment, isFree = false }: { appointment: MyAppointmentDto; isFree?: boolean }) {
+  const date = formatDateParts(appointment.startTime);
+  const services = flattenServiceNames(appointment).join(', ');
+  const companyName = getCompanyName(appointment.company);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-card-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-muted-foreground">
-        Viser <span className="font-semibold text-card-text">{startItem}</span>-
-        <span className="font-semibold text-card-text">{endItem}</span> av{' '}
-        <span className="font-semibold text-card-text">{totalElements}</span>
-        <span className="ml-2 text-xs">
-          Side {page + 1} av {pageCount}
+    <Link
+      to={buildAppointmentHref(appointment.id)}
+      className="flex min-h-16 items-center gap-4 border-t border-booking-border px-4 py-3 transition-colors first:border-t-0 even:bg-booking-action-muted hover:bg-booking-surface-subtle active:bg-booking-surface-strong"
+    >
+      <span
+        className={`flex size-10 shrink-0 items-center justify-center rounded-xl border border-booking-border text-xs font-semibold ${companyTints[appointment.company.id % companyTints.length]}`}
+      >
+        {companyName.slice(0, 2).toUpperCase()}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium text-booking-text">{companyName}</span>
+        <span className="block truncate text-sm text-booking-text-muted">
+          {date.shortDate} · {date.time}
+          {services ? ` · ${services}` : ''}
         </span>
-      </p>
-      {hasMultiplePages && (
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          {hasPrevious && !isLoading ? (
-            <Button asChild variant="outline" size="sm">
-              <Link to={previousHref}>
-                <ChevronLeft className="size-4" />
-                Forrige
-              </Link>
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" size="sm" disabled>
-              <ChevronLeft className="size-4" />
-              Forrige
-            </Button>
-          )}
-          {hasNext && !isLoading ? (
-            <Button asChild variant="outline" size="sm">
-              <Link to={nextHref}>
-                Neste
-                <ChevronRight className="size-4" />
-              </Link>
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" size="sm" disabled>
-              Neste
-              <ChevronRight className="size-4" />
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+      </span>
+      {isFree && <FreeBadge />}
+      <ChevronRight className="size-5 shrink-0 text-booking-text-muted" aria-hidden />
+    </Link>
+  );
+}
+
+// Coupon-style ticket: coloured stub with the stamp count, torn off from the body by a dashed edge.
+function LoyaltyTicket({ card }: { card: LoyaltyCardDto }) {
+  const hasReward = card.nextVisitIsFree;
+
+  return (
+    <Link
+      to={buildLoyaltyHref(card.companyId)}
+      className="relative flex overflow-hidden rounded-2xl border border-booking-border bg-booking-surface-raised"
+    >
+      <span
+        className={`flex w-16 shrink-0 flex-col items-center justify-center gap-0.5 py-4 font-semibold ${hasReward ? 'bg-booking-highlight text-booking-highlight-contrast' : 'bg-booking-accent text-booking-action-contrast'}`}
+      >
+        <Gift className="size-5" aria-hidden />
+        <span className="text-sm">{hasReward ? 'Gratis' : `${card.visitsInCycle}/${card.visitsRequired - 1}`}</span>
+      </span>
+      <span className="min-w-0 flex-1 border-l-2 border-dashed border-booking-border px-4 py-3">
+        <span className="block truncate font-semibold text-booking-text">
+          {card.companyName?.trim() || `Bedrift #${card.companyId}`}
+        </span>
+        <span className="block text-sm text-booking-text-muted">{describeLoyaltyProgress(card)}</span>
+      </span>
+      <ChevronRight className="my-auto mr-3 size-5 shrink-0 text-booking-text-muted" aria-hidden />
+      <span className="absolute -top-2 left-[calc(4rem-0.5rem)] size-4 rounded-full bg-booking-surface" aria-hidden />
+      <span
+        className="absolute -bottom-2 left-[calc(4rem-0.5rem)] size-4 rounded-full bg-booking-surface"
+        aria-hidden
+      />
+    </Link>
   );
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   await authService.requireAuth(request, ROUTES_MAP['auth.sign-in'].href);
 
-  try {
-    const url = new URL(request.url);
-    const safeUpcomingPage = getSafePage(url.searchParams.get('upcomingPage'));
-    const safeCompletedPage = getSafePage(url.searchParams.get('completedPage'));
+  const url = new URL(request.url);
+  const showAllHistory = url.searchParams.get('historikk') === 'alle';
+  const historyPage = showAllHistory ? getSafePage(url.searchParams.get('side')) : 0;
 
-    const [nearestResult, upcomingResult, completedResult] = await withAuth(request, async () => {
+  try {
+    const [nearestResult, upcomingResult, completedResult, loyaltyResult] = await withAuth(request, async () => {
       return Promise.allSettled([
         AppointmentsController.getMyNearestAppointment(),
-        AppointmentsController.getMyUpcomingAppointments({
-          query: {
-            page: safeUpcomingPage,
-            size: APPOINTMENTS_PAGE_SIZE,
-          },
-        }),
+        AppointmentsController.getMyUpcomingAppointments({ query: { page: 0, size: LATER_PREVIEW_SIZE + 1 } }),
         AppointmentsController.getMyCompletedAppointments({
-          query: {
-            page: safeCompletedPage,
-            size: APPOINTMENTS_PAGE_SIZE,
-          },
+          query: { page: historyPage, size: showAllHistory ? HISTORY_PAGE_SIZE : PAST_PREVIEW_SIZE },
         }),
+        AppointmentsController.getMyLoyaltyCards(),
       ]);
     });
 
     const nearestAppointment = nearestResult.status === 'fulfilled' ? (nearestResult.value.data?.data ?? null) : null;
     const upcomingPayload = upcomingResult.status === 'fulfilled' ? upcomingResult.value.data?.data : undefined;
     const completedPayload = completedResult.status === 'fulfilled' ? completedResult.value.data?.data : undefined;
+    const loyaltyCards = loyaltyResult.status === 'fulfilled' ? (loyaltyResult.value.data?.data ?? []) : [];
 
     return data({
+      showAllHistory,
       nearestAppointment,
-      upcomingAppointments: upcomingPayload?.content ?? [],
-      upcomingTotalElements: upcomingPayload?.totalElements ?? 0,
-      upcomingPage: upcomingPayload?.page ?? safeUpcomingPage,
-      upcomingSize: upcomingPayload?.size ?? APPOINTMENTS_PAGE_SIZE,
-      upcomingTotalPages: upcomingPayload?.totalPages ?? 0,
-      upcomingHasNext: upcomingPayload?.hasNext ?? false,
-      upcomingHasPrevious: upcomingPayload?.hasPrevious ?? false,
+      laterAppointments: (upcomingPayload?.content ?? [])
+        .filter((appointment) => appointment.id !== nearestAppointment?.id)
+        .slice(0, LATER_PREVIEW_SIZE),
       completedAppointments: completedPayload?.content ?? [],
       completedTotalElements: completedPayload?.totalElements ?? 0,
-      completedPage: completedPayload?.page ?? safeCompletedPage,
-      completedSize: completedPayload?.size ?? APPOINTMENTS_PAGE_SIZE,
-      completedTotalPages: completedPayload?.totalPages ?? 0,
+      completedPage: completedPayload?.page ?? historyPage,
       completedHasNext: completedPayload?.hasNext ?? false,
       completedHasPrevious: completedPayload?.hasPrevious ?? false,
+      loyaltyCards,
       error: null as string | null,
     });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente dine bookinger akkurat nå.');
     return data(
       {
+        showAllHistory,
         nearestAppointment: null as MyAppointmentDto | null,
-        upcomingAppointments: [] as MyAppointmentDto[],
-        upcomingTotalElements: 0,
-        upcomingPage: 0,
-        upcomingSize: APPOINTMENTS_PAGE_SIZE,
-        upcomingTotalPages: 0,
-        upcomingHasNext: false,
-        upcomingHasPrevious: false,
+        laterAppointments: [] as MyAppointmentDto[],
         completedAppointments: [] as MyAppointmentDto[],
         completedTotalElements: 0,
         completedPage: 0,
-        completedSize: APPOINTMENTS_PAGE_SIZE,
-        completedTotalPages: 0,
         completedHasNext: false,
         completedHasPrevious: false,
+        loyaltyCards: [] as LoyaltyCardDto[],
         error: message,
       },
       { status: status ?? 400 },
@@ -280,417 +179,222 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function BookingPublicMyAppointmentsRoute({ loaderData }: Route.ComponentProps) {
-  const navigate = useNavigate();
   const navigation = useNavigation();
   const [searchParams] = useSearchParams();
-  const nearestAppointment = loaderData.nearestAppointment ?? null;
-  const upcomingAppointments = loaderData.upcomingAppointments ?? [];
-  const completedAppointments = loaderData.completedAppointments ?? [];
+
+  const { nearestAppointment, laterAppointments, completedAppointments, loyaltyCards, showAllHistory } = loaderData;
+  const freeAppointmentIds = new Set(loyaltyCards.flatMap((card) => card.upcomingFreeAppointmentIds));
   const isLoading = navigation.state !== 'idle';
-  const upcomingPage = loaderData.upcomingPage ?? 0;
-  const upcomingPageSize = loaderData.upcomingSize ?? 24;
-  const upcomingTotalPages = loaderData.upcomingTotalPages ?? 0;
-  const upcomingHasNext = loaderData.upcomingHasNext ?? false;
-  const upcomingHasPrevious = loaderData.upcomingHasPrevious ?? false;
-  const upcomingTotalElements = loaderData.upcomingTotalElements ?? 0;
-  const completedPage = loaderData.completedPage ?? 0;
-  const completedPageSize = loaderData.completedSize ?? 24;
-  const completedTotalPages = loaderData.completedTotalPages ?? 0;
-  const completedHasNext = loaderData.completedHasNext ?? false;
-  const completedHasPrevious = loaderData.completedHasPrevious ?? false;
-  const completedTotalElements = loaderData.completedTotalElements ?? 0;
-  const buildSectionPageHref = (section: AppointmentPageSection, nextPage: number) => {
+  const lastVisited = completedAppointments[0];
+  const hasAnyBooking = Boolean(nearestAppointment) || laterAppointments.length > 0 || completedAppointments.length > 0;
+
+  const buildHistoryHref = (page: number) => {
     const params = new URLSearchParams(searchParams);
-    params.delete('upcomingSize');
-    params.delete('completedSize');
-    if (section === 'upcoming') {
-      params.set('upcomingPage', String(Math.max(0, nextPage)));
-      if (!params.get('completedPage')) params.set('completedPage', String(completedPage));
-    } else {
-      params.set('completedPage', String(Math.max(0, nextPage)));
-      if (!params.get('upcomingPage')) params.set('upcomingPage', String(upcomingPage));
-    }
+    params.set('historikk', 'alle');
+    params.set('side', String(Math.max(0, page)));
     return `?${params.toString()}`;
   };
 
-  const buildNewBookingHref = (appointment?: MyAppointmentDto | null): string | null => {
-    const companyId = appointment?.company.id;
-    if (!companyId) return null;
+  const nearestDate = nearestAppointment ? formatDateParts(nearestAppointment.startTime) : null;
+  const nearestMapsUrl = buildGoogleMapsUrl(nearestAppointment?.company);
+  const nearestCalendar = nearestAppointment
+    ? buildCalendarPayload(nearestAppointment, nearestAppointment.company.name)
+    : null;
+  const nearestServices = nearestAppointment ? flattenServiceNames(nearestAppointment).join(', ') : '';
+  const lastVisitedBookHref = buildNewBookingHref(lastVisited?.company.id);
 
-    const params = new URLSearchParams({ companyId: String(companyId) });
-    return `${getBookingRouteHref('session')}?${params.toString()}`;
-  };
-
-  const nearestUpcomingAppointment = nearestAppointment;
-  const nearestUpcomingDate = nearestUpcomingAppointment ? formatDateParts(nearestUpcomingAppointment.startTime) : null;
-  const nearestUpcomingDuration = nearestUpcomingAppointment
-    ? formatDurationMinutes(nearestUpcomingAppointment.startTime, nearestUpcomingAppointment.endTime)
-    : 0;
-  const nearestCalendarPayload = buildCalendarPayload(nearestUpcomingAppointment ?? undefined);
-  const nearestMapsUrl = buildGoogleMapsUrl(nearestUpcomingAppointment ?? undefined);
-  const nearestCancelHref = buildCancelHref(nearestUpcomingAppointment ?? undefined);
-  const nearestNewBookingHref = buildNewBookingHref(nearestUpcomingAppointment);
-  const fallbackBookingHref =
-    buildNewBookingHref(nearestUpcomingAppointment) ??
-    buildNewBookingHref(upcomingAppointments[0]) ??
-    buildNewBookingHref(completedAppointments[0]) ??
-    ROUTES_MAP['booking.public.appointment'].href;
-  const expiredAppointments = completedAppointments;
-
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate(fallbackBookingHref);
-  };
+  const pastRows = completedAppointments.map((appointment) => (
+    <AppointmentRow key={appointment.id} appointment={appointment} />
+  ));
 
   return (
-    <BookingContainer aria-busy={isLoading || undefined} className={isLoading ? 'pointer-events-none' : undefined}>
+    <BookingContainer
+      gutter="none"
+      className={isLoading ? 'pointer-events-none' : undefined}
+      aria-busy={isLoading || undefined}
+    >
       <Stack space="md">
-        <div>
-          <Button type="button" variant="booking-secondary" size="sm" className="gap-2" onClick={handleBack}>
-            <ArrowLeft className="size-4" />
-            Tilbake
-          </Button>
-        </div>
-        <BookingPageHeader title="Mine bookinger" description="Her kan du se dine bookinger." />
+        <BookingPageHeader title="Mine bookinger" />
         {loaderData.error && (
           <Notice variant="booking" tone="emphasis" title="Kunne ikke hente bookinger" message={loaderData.error} />
         )}
 
-        {nearestUpcomingAppointment && (
-          <BookingCard variant="emphasis" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-full bg-primary shadow-sm">
-                  <CalendarClock className="size-6 text-primary-foreground" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary md:text-sm">Neste time</p>
-                  <p className="text-sm text-muted-foreground md:text-base">
-                    {nearestUpcomingAppointment.company.name?.trim() ||
-                      `Bedrift #${nearestUpcomingAppointment.company.id}`}
-                  </p>
-                </div>
+        {showAllHistory ? (
+          <section className="space-y-2">
+            <BookingLink to="?" variant="inline" className="gap-1">
+              <ChevronLeft className="size-4" />
+              Tilbake til oversikten
+            </BookingLink>
+            <h2 className={sectionTitleClass}>Tidligere timer ({loaderData.completedTotalElements})</h2>
+            <div className={rowListClass}>{pastRows}</div>
+            {(loaderData.completedHasPrevious || loaderData.completedHasNext) && (
+              <div className="flex justify-between gap-2 pt-2">
+                {loaderData.completedHasPrevious ? (
+                  <BookingLink to={buildHistoryHref(loaderData.completedPage - 1)} variant="outline" size="sm">
+                    <ChevronLeft className="size-4" />
+                    Forrige
+                  </BookingLink>
+                ) : (
+                  <span />
+                )}
+                {loaderData.completedHasNext && (
+                  <BookingLink to={buildHistoryHref(loaderData.completedPage + 1)} variant="outline" size="sm">
+                    Neste
+                    <ChevronRight className="size-4" />
+                  </BookingLink>
+                )}
               </div>
-
-              {nearestUpcomingDate && (
-                <div className="space-y-2 rounded-lg bg-background p-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-5 text-primary md:size-6" />
-                    <div>
-                      <p className="text-xs font-medium capitalize text-muted-foreground md:text-sm">
-                        {nearestUpcomingDate.dayName}
-                      </p>
-                      <p className="text-lg font-bold text-card-text md:text-xl">{nearestUpcomingDate.date}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 border-t border-card-border pt-2">
-                    <Clock className="size-5 text-primary md:size-6" />
-                    <div className="flex flex-1 items-baseline justify-between gap-3">
-                      <p className="text-lg font-bold text-card-text md:text-xl">kl. {nearestUpcomingDate.time}</p>
-                      <p className="text-sm font-semibold text-muted-foreground">{nearestUpcomingDuration} min</p>
-                    </div>
-                  </div>
+            )}
+          </section>
+        ) : (
+          <>
+            {nearestAppointment && nearestDate ? (
+              <section className={heroPanelClass} aria-label="Din neste time">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2">
+                    <span className="rounded-full bg-booking-highlight px-3 py-1 text-sm font-medium text-booking-highlight-contrast">
+                      {formatCountdown(nearestAppointment.startTime)}
+                    </span>
+                    {freeAppointmentIds.has(nearestAppointment.id) && <FreeBadge />}
+                  </span>
+                  <span className="text-sm text-booking-surface-raised/70">
+                    {nearestDate.time}–{formatDateParts(nearestAppointment.endTime).time}
+                  </span>
                 </div>
-              )}
-
-              {getGroupedServices(nearestUpcomingAppointment).length > 0 && (
-                <div className="space-y-2">
-                  {getGroupedServices(nearestUpcomingAppointment).map((group) => (
-                    <div key={group.id} className="space-y-2 border-b border-card-border pb-3 last:border-b-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {group.name}
-                      </p>
-                      <div className="space-y-1.5">
-                        {group.services.map((service) => (
-                          <div key={service.id} className="flex items-center gap-2">
-                            <Sparkles className="size-4 text-primary" />
-                            <span className="text-sm font-medium text-card-text md:text-base">{service.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(nearestNewBookingHref || nearestCalendarPayload || nearestMapsUrl || nearestCancelHref) && (
-                <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                  {nearestNewBookingHref && (
-                    <Button asChild fullWidth>
-                      <Link to={nearestNewBookingHref}>
-                        <CalendarPlus className="size-5" />
-                        Book ny time
-                      </Link>
-                    </Button>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">{nearestDate.longDate}</h2>
+                <p className="mt-1 text-lg text-booking-surface-raised/90">
+                  {getCompanyName(nearestAppointment.company)}
+                  {nearestServices ? ` · ${nearestServices}` : ''}
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {nearestCalendar && (
+                    <a
+                      href={nearestCalendar.href}
+                      download={nearestCalendar.filename}
+                      className={heroPrimaryButtonClass}
+                    >
+                      <CalendarClock className="size-4" aria-hidden />
+                      Legg i kalender
+                    </a>
                   )}
                   {nearestMapsUrl && (
-                    <Button asChild variant="outline" fullWidth>
-                      <a href={nearestMapsUrl} target="_blank" rel="noreferrer">
-                        <MapPin className="size-5" />
-                        Google Maps
-                      </a>
-                    </Button>
+                    <a href={nearestMapsUrl} target="_blank" rel="noreferrer" className={heroSecondaryButtonClass}>
+                      <MapPin className="size-4" aria-hidden />
+                      Veibeskrivelse
+                    </a>
                   )}
-                  {nearestCancelHref && (
-                    <Button asChild variant="destructive" fullWidth>
-                      <Link to={nearestCancelHref}>Avbestill</Link>
-                    </Button>
-                  )}
-                  {nearestCalendarPayload ? (
-                    <>
-                      <Button asChild variant="outline" fullWidth>
-                        <a href={nearestCalendarPayload.googleUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="size-5" />
-                          Google Kalender
-                        </a>
-                      </Button>
-                      <Button asChild variant="outline" fullWidth>
-                        <a href={nearestCalendarPayload.href} download={nearestCalendarPayload.filename}>
-                          <Calendar className="size-5" />
-                          Last ned kalenderfil
-                        </a>
-                      </Button>
-                    </>
-                  ) : null}
                 </div>
-              )}
-            </div>
-          </BookingCard>
+                <div className="mt-3 flex items-center justify-between gap-4 text-sm">
+                  <Link
+                    to={buildAppointmentHref(nearestAppointment.id)}
+                    className="inline-flex items-center gap-1 text-booking-surface-raised/80 hover:text-booking-surface-raised"
+                  >
+                    Se detaljer
+                    <ChevronRight className="size-4" />
+                  </Link>
+                  <Link to={buildCancelHref(nearestAppointment.id)} className="text-danger hover:underline">
+                    Avbestill
+                  </Link>
+                </div>
+              </section>
+            ) : hasAnyBooking ? (
+              <section className={heroPanelClass}>
+                <h2 className="text-3xl font-bold tracking-tight">Ingen planlagte timer</h2>
+                {lastVisited && (
+                  <p className="mt-2 text-booking-surface-raised/80">
+                    Sist hos {getCompanyName(lastVisited.company)} {formatDateParts(lastVisited.startTime).shortDate}
+                  </p>
+                )}
+                <Link
+                  to={lastVisitedBookHref ?? ROUTES_MAP['booking.public.appointment'].href}
+                  className={`${heroPrimaryButtonClass} mt-4`}
+                >
+                  <CalendarPlus className="size-4" aria-hidden />
+                  {lastVisited ? `Book igjen hos ${getCompanyName(lastVisited.company)}` : 'Book time'}
+                </Link>
+              </section>
+            ) : (
+              <section className={heroPanelClass}>
+                <h2 className="text-3xl font-bold tracking-tight">Book din første time</h2>
+                <p className="mt-2 text-booking-surface-raised/80">Timene dine dukker opp her.</p>
+                <Link to={ROUTES_MAP['booking.public.appointment'].href} className={`${heroPrimaryButtonClass} mt-4`}>
+                  Book time
+                </Link>
+              </section>
+            )}
+
+            {loyaltyCards.length > 0 && (
+              <section>
+                <h2 className={sectionTitleClass}>Lojalitet</h2>
+                <div className="mt-2 space-y-3">
+                  {loyaltyCards.map((card) => (
+                    <LoyaltyTicket key={card.companyId} card={card} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {laterAppointments.length > 0 && (
+              <section>
+                <details open className={`${rowListClass} group`}>
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-booking-surface-subtle focus-visible:outline-2 focus-visible:outline-booking-action-ring [&::-webkit-details-marker]:hidden">
+                    <span className="min-w-0">
+                      <span className="block font-medium text-booking-text">Senere</span>
+                      <span className="block truncate text-sm text-booking-text-muted">
+                        {laterAppointments.length} {laterAppointments.length === 1 ? 'time' : 'timer'} · neste{' '}
+                        {formatDateParts(laterAppointments[0].startTime).shortDate}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className="size-5 shrink-0 text-booking-text-muted transition-transform group-open:rotate-180"
+                      aria-hidden
+                    />
+                  </summary>
+                  <div className="border-t border-booking-border">
+                    {laterAppointments.map((appointment) => (
+                      <AppointmentRow
+                        key={appointment.id}
+                        appointment={appointment}
+                        isFree={freeAppointmentIds.has(appointment.id)}
+                      />
+                    ))}
+                  </div>
+                </details>
+              </section>
+            )}
+
+            {completedAppointments.length > 0 && (
+              <section>
+                <details className={`${rowListClass} group`}>
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-booking-surface-subtle focus-visible:outline-2 focus-visible:outline-booking-action-ring [&::-webkit-details-marker]:hidden">
+                    <span className="min-w-0">
+                      <span className="block font-medium text-booking-text">Tidligere</span>
+                      <span className="block truncate text-sm text-booking-text-muted">
+                        {loaderData.completedTotalElements} {loaderData.completedTotalElements === 1 ? 'time' : 'timer'}{' '}
+                        · sist {formatDateParts(completedAppointments[0].startTime).shortDate}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className="size-5 shrink-0 text-booking-text-muted transition-transform group-open:rotate-180"
+                      aria-hidden
+                    />
+                  </summary>
+                  <div className="border-t border-booking-border">{pastRows}</div>
+                  {loaderData.completedTotalElements > PAST_PREVIEW_SIZE && (
+                    <BookingLink
+                      to={buildHistoryHref(0)}
+                      variant="inline"
+                      className="min-h-11 gap-1 border-t border-booking-border px-4 text-sm"
+                    >
+                      Se alle tidligere timer ({loaderData.completedTotalElements})
+                      <ChevronRight className="size-4" />
+                    </BookingLink>
+                  )}
+                </details>
+              </section>
+            )}
+          </>
         )}
-
-        <BookingSection title={`Kommende bookinger (${upcomingTotalElements})`}>
-          {upcomingAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ingen flere kommende bookinger.</p>
-          ) : (
-            <div className="space-y-3">
-              {upcomingAppointments.map((appointment) => {
-                const appointmentDate = formatDateParts(appointment.startTime);
-                const appointmentDuration = formatDurationMinutes(appointment.startTime, appointment.endTime);
-                const appointmentCalendarPayload = buildCalendarPayload(appointment);
-                const appointmentMapsUrl = buildGoogleMapsUrl(appointment);
-                const cancelHref = buildCancelHref(appointment);
-                const newBookingHref = buildNewBookingHref(appointment);
-
-                return (
-                  <BookingCard key={appointment.id} className="overflow-hidden p-3 md:p-4">
-                    <details className="group">
-                      <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-card-text md:text-base">
-                              {appointment.company.name?.trim() || `Bedrift #${appointment.company.id}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground md:text-sm">
-                              {appointmentDate.date} kl. {appointmentDate.time}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Badge className={UPCOMING_BADGE_CLASS}>
-                              <CircleDot className="mr-1 size-3.5" />
-                              Kommende
-                            </Badge>
-                            <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
-                          </div>
-                        </div>
-                      </summary>
-
-                      <div className="mt-3 space-y-3 border-t border-card-border pt-3">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground md:text-sm">
-                          <Clock className="size-4 text-primary" />
-                          <span>Varighet: {appointmentDuration} min</span>
-                        </div>
-
-                        {getGroupedServices(appointment).length > 0 ? (
-                          <div className="space-y-2">
-                            {getGroupedServices(appointment).map((group) => (
-                              <div
-                                key={`${appointment.id}-${group.id}`}
-                                className="space-y-1.5 border-b border-card-border pb-2.5 last:border-b-0"
-                              >
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                  {group.name}
-                                </p>
-                                {group.services.map((service) => (
-                                  <div key={service.id} className="flex items-center gap-2">
-                                    <Sparkles className="size-4 text-primary" />
-                                    <span className="text-sm font-medium text-card-text">{service.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Ingen tjenester oppgitt</p>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
-                          {newBookingHref && (
-                            <Button asChild size="sm">
-                              <Link to={newBookingHref}>
-                                <CalendarPlus className="size-4.5" />
-                                Book ny time
-                              </Link>
-                            </Button>
-                          )}
-                          {appointmentCalendarPayload && (
-                            <>
-                              <Button asChild variant="outline" size="sm">
-                                <a href={appointmentCalendarPayload.googleUrl} target="_blank" rel="noreferrer">
-                                  <ExternalLink className="size-4.5" />
-                                  Google Kalender
-                                </a>
-                              </Button>
-                              <Button asChild variant="outline" size="sm">
-                                <a
-                                  href={appointmentCalendarPayload.href}
-                                  download={appointmentCalendarPayload.filename}
-                                >
-                                  <Calendar className="size-4.5" />
-                                  Last ned kalenderfil
-                                </a>
-                              </Button>
-                            </>
-                          )}
-                          {appointmentMapsUrl && (
-                            <Button asChild variant="outline" size="sm">
-                              <a href={appointmentMapsUrl} target="_blank" rel="noreferrer">
-                                <MapPin className="size-4.5" />
-                                Google Maps
-                              </a>
-                            </Button>
-                          )}
-                          {cancelHref && (
-                            <Button asChild variant="destructive" size="sm">
-                              <Link to={cancelHref}>Avbestill</Link>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  </BookingCard>
-                );
-              })}
-            </div>
-          )}
-          <AppointmentPagination
-            page={upcomingPage}
-            pageSize={upcomingPageSize}
-            totalElements={upcomingTotalElements}
-            totalPages={upcomingTotalPages}
-            hasPrevious={upcomingHasPrevious}
-            hasNext={upcomingHasNext}
-            itemCount={upcomingAppointments.length}
-            previousHref={buildSectionPageHref('upcoming', upcomingPage - 1)}
-            nextHref={buildSectionPageHref('upcoming', upcomingPage + 1)}
-            isLoading={isLoading}
-          />
-        </BookingSection>
-
-        <BookingSection title={`Tidligere bookinger (${completedTotalElements})`}>
-          {expiredAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ingen tidligere bookinger å vise.</p>
-          ) : (
-            <div className="space-y-3">
-              {expiredAppointments.map((appointment) => {
-                const appointmentDate = formatDateParts(appointment.startTime);
-                const appointmentDuration = formatDurationMinutes(appointment.startTime, appointment.endTime);
-                const appointmentMapsUrl = buildGoogleMapsUrl(appointment);
-                const newBookingHref = buildNewBookingHref(appointment);
-
-                return (
-                  <BookingCard key={appointment.id} className="overflow-hidden p-3 md:p-4">
-                    <details className="group">
-                      <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-card-text md:text-base">
-                              {appointment.company.name?.trim() || `Bedrift #${appointment.company.id}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground md:text-sm">
-                              {appointmentDate.date} kl. {appointmentDate.time}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Badge className={COMPLETED_BADGE_CLASS}>
-                              <CheckCircle2 className="mr-1 size-3.5" />
-                              Fullført
-                            </Badge>
-                            <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
-                          </div>
-                        </div>
-                      </summary>
-
-                      <div className="mt-3 space-y-3 border-t border-card-border pt-3">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground md:text-sm">
-                          <Clock className="size-4 text-primary" />
-                          <span>Varighet: {appointmentDuration} min</span>
-                        </div>
-
-                        {getGroupedServices(appointment).length > 0 ? (
-                          <div className="space-y-2">
-                            {getGroupedServices(appointment).map((group) => (
-                              <div
-                                key={`${appointment.id}-${group.id}`}
-                                className="space-y-1.5 border-b border-card-border pb-2.5 last:border-b-0"
-                              >
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                  {group.name}
-                                </p>
-                                {group.services.map((service) => (
-                                  <div key={service.id} className="flex items-center gap-2">
-                                    <Sparkles className="size-4 text-primary" />
-                                    <span className="text-sm font-medium text-card-text">{service.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Ingen tjenester oppgitt</p>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
-                          {newBookingHref && (
-                            <Button asChild size="sm">
-                              <Link to={newBookingHref}>
-                                <CalendarPlus className="size-4.5" />
-                                Book ny time
-                              </Link>
-                            </Button>
-                          )}
-                          {appointmentMapsUrl && (
-                            <Button asChild variant="outline" size="sm">
-                              <a href={appointmentMapsUrl} target="_blank" rel="noreferrer">
-                                <MapPin className="size-4.5" />
-                                Google Maps
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  </BookingCard>
-                );
-              })}
-            </div>
-          )}
-          <AppointmentPagination
-            page={completedPage}
-            pageSize={completedPageSize}
-            totalElements={completedTotalElements}
-            totalPages={completedTotalPages}
-            hasPrevious={completedHasPrevious}
-            hasNext={completedHasNext}
-            itemCount={completedAppointments.length}
-            previousHref={buildSectionPageHref('completed', completedPage - 1)}
-            nextHref={buildSectionPageHref('completed', completedPage + 1)}
-            isLoading={isLoading}
-          />
-        </BookingSection>
       </Stack>
     </BookingContainer>
   );

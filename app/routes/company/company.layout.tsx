@@ -1,11 +1,12 @@
 import { Outlet, redirect, useOutletContext } from 'react-router';
+import { CompanyBackground } from '~/components/layout/page-backgrounds';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import type { RootOutletContext } from '../root.layout';
 import type { Route } from './+types/company.route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithInfo } from '~/lib/flash-message.server';
 import { redirectWithError } from '~/lib/flash-message.server';
-import type { ApiMessage } from '~/api/generated/base';
+import type { ApiMessage } from '~/api/generated';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -35,6 +36,7 @@ export default function CompanyLayout() {
 
   return (
     <div className="flex min-h-full flex-col">
+      <CompanyBackground />
       <main className="flex-1">
         <Outlet context={context} />
       </main>

@@ -10,7 +10,7 @@ import {
   type OfferMessageDto,
   type OfferRecipientDto,
   type OfferTemplateDto,
-} from '~/api/generated/offer';
+} from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

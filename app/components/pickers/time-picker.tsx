@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Clock3 } from 'lucide-react';
 import { Button } from '~/ui';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '~/ui';
 import { cn } from '~/lib/utils';
 
 type TimePickerProps = {
   value: string;
   placeholder: string;
+  contextLabel?: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onChange: (nextValue: string) => void;
@@ -44,6 +46,7 @@ const toMinutes = (value: string) => {
 export function TimePicker({
   value,
   placeholder,
+  contextLabel,
   isOpen,
   onOpenChange,
   onChange,
@@ -93,13 +96,17 @@ export function TimePicker({
   const pendingValue = buildTimeValue(value || '00:00', pendingHour, pendingMinute);
   const minMinutes = minValue ? toMinutes(minValue) : null;
   const maxMinutes = maxValue ? toMinutes(maxValue) : null;
+  const [contextName, contextPart] = contextLabel?.split(' — ') ?? [];
+  const questionVerb = contextPart?.toLowerCase() === 'fra' ? 'starter' : 'slutter';
 
   const panel = isOpen ? (
     <div
       data-time-picker-panel
       className={cn(
         'mt-1.5 rounded-md border border-border bg-overlay-surface p-0 shadow-lg',
-        panelMode === 'inline' ? 'relative z-0 w-full' : 'absolute top-full z-[60] w-[214px] max-w-[calc(100vw-2rem)]',
+        panelMode === 'inline'
+          ? 'relative z-0 w-full'
+          : 'absolute top-full z-[60] hidden w-[214px] max-w-[calc(100vw-2rem)] sm:block',
         panelMode === 'overlay' && (panelAlign === 'end' ? 'right-0' : 'left-0'),
       )}
       style={panelMode === 'overlay' ? { zIndex } : undefined}
@@ -159,6 +166,7 @@ export function TimePicker({
                 <button
                   key={minute}
                   type="button"
+                  data-minute={minute}
                   disabled={isMinuteUnavailable}
                   className={cn(
                     'w-full rounded-sm px-1.5 py-1 text-left text-xs transition-colors hover:bg-surface-primary-subtle hover:text-primary',
@@ -202,6 +210,45 @@ export function TimePicker({
     </div>
   ) : null;
 
+  const mobileSheet = (
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" showCloseButton={false} className="rounded-t-2xl px-4 pb-6 pt-3 sm:hidden">
+        <div className="mx-auto h-1 w-10 rounded-full bg-border" aria-hidden />
+        <SheetHeader className="px-0 pb-0">
+          <SheetTitle>
+            {contextName && contextPart ? (
+              <>
+                Når {questionVerb} du på <span className="text-interactive">{contextName}</span>?
+              </>
+            ) : (
+              'Velg tid'
+            )}
+          </SheetTitle>
+        </SheetHeader>
+        <div className="text-center text-3xl font-semibold tabular-nums text-interactive">{pendingValue}</div>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl bg-surface-variant-1 p-2">
+          <TimeWheel label="Time" options={hourOptions} value={pendingHour} onChange={setPendingHour} />
+          <span className="text-lg font-semibold text-text-secondary">:</span>
+          <TimeWheel label="Minutt" options={minuteOptions} value={pendingMinute} onChange={setPendingMinute} />
+        </div>
+        <SheetFooter className="grid grid-cols-2 gap-2 px-0 pb-0 pt-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Avbryt
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              onChange(pendingValue);
+              onOpenChange(false);
+            }}
+          >
+            Bruk {pendingValue}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+
   return (
     <div className="relative">
       <Button
@@ -209,9 +256,12 @@ export function TimePicker({
         variant="outline"
         onClick={() => !disabled && onOpenChange(!isOpen)}
         ref={triggerRef}
+        // The button only shows the time, so name what it sets ("Mandag — Fra: 09:00") for screen readers.
+        aria-label={contextLabel ? `${contextLabel}: ${normalized || placeholder}` : undefined}
+        aria-expanded={isOpen}
         disabled={disabled}
         className={cn(
-          'h-11 w-full justify-between gap-2 rounded-lg border border-border bg-background px-3 text-text-primary shadow-none',
+          'h-11 w-full justify-between gap-2 rounded-lg border border-field-border bg-background px-3 text-text-primary shadow-none',
           'focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]',
           isOpen && 'border-ring ring-2 ring-ring/40',
           !value && 'text-text-secondary',
@@ -223,6 +273,42 @@ export function TimePicker({
         <Clock3 className="size-4 text-text-secondary" />
       </Button>
       {panel}
+      {mobileSheet}
+    </div>
+  );
+}
+
+function TimeWheel({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <span className="sr-only">{label}</span>
+      <div className="h-32 snap-y overflow-y-auto rounded-lg border border-border bg-background p-1 text-center">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-label={`${label} ${option}`}
+            aria-pressed={value === option}
+            onClick={() => onChange(option)}
+            className={cn(
+              'block h-10 w-full snap-center rounded-md text-base tabular-nums text-text-secondary',
+              value === option && 'bg-interactive/10 font-semibold text-interactive',
+            )}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

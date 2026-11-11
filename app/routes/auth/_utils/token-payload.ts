@@ -1,4 +1,4 @@
-import type { AuthenticatedUserPayload, JwtClaims } from '~/api/generated/base';
+import type { AuthenticatedUserPayload, JwtClaims } from '~/api/generated';
 
 export const toJwtClaims = (accessToken: string): JwtClaims => {
   const parts = accessToken.split('.');

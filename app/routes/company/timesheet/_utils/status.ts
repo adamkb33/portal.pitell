@@ -1,4 +1,4 @@
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
 
 type BadgeVariant = 'default' | 'secondary' | 'outline' | 'destructive';
 export type TimesheetStatus = TimesheetDayEntryDto['status'];

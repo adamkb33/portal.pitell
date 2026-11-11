@@ -1,4 +1,4 @@
-import type { DailyScheduleDto } from '~/api/generated/booking';
+import type { DailyScheduleDto } from '~/api/generated';
 import type { FormFieldRenderProps } from '~/components/dialog/form-dialog';
 
 interface DailyScheduleRendererProps {

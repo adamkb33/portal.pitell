@@ -3,10 +3,16 @@ import { EmployeesTable } from './tables/employees.table';
 import { InvitesTable } from './tables/invites.table';
 import type { Route } from './+types/company.admin.employees.route';
 import { getFlashMessage } from '../../../../lib/flash-message.server';
-import { AdminCompanyUserController } from '~/api/generated/base';
+import { AdminCompanyUserController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { logRouteError, logRouteStart, logRouteSuccess } from '~/lib/routing/route-log';
 import { describeAxiosError } from '~/lib/http-log';
+import type { CreateActionHandle } from '~/lib/routing/create-action';
+import { ROUTES_MAP } from '~/lib/routing/route-tree';
+
+export const handle = {
+  createAction: { label: 'Inviter ansatt', to: ROUTES_MAP['company.admin.employees.invite'].href },
+} satisfies CreateActionHandle;
 
 export async function loader(args: Route.LoaderArgs) {
   const { request } = args;

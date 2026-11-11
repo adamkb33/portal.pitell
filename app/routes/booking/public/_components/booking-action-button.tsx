@@ -31,9 +31,14 @@ export const BookingActionButton = React.forwardRef<HTMLButtonElement, BookingAc
         className={cn(
           bookingActionBaseClass,
           bookingActionVariantClass[variant],
-          bookingActionSizeClass[size],
+          // Inline buttons take the size of the sentence they sit in.
+          variant !== 'inline' && bookingActionSizeClass[size],
           fullWidth && 'w-full',
-          isDisabled && 'cursor-not-allowed opacity-50',
+          // Disabled keeps full-contrast text on a neutral fill (faded brand colour reads as broken); loading just dims.
+          disabled &&
+            !loading &&
+            'cursor-not-allowed border-booking-border bg-booking-surface-subtle text-booking-text-muted shadow-none hover:bg-booking-surface-subtle',
+          loading && 'cursor-wait opacity-70',
           className,
         )}
         {...props}

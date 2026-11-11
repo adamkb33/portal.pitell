@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { data, useSubmit } from 'react-router';
 import { ClipboardList, UserCheck, UserX } from 'lucide-react';
 import type { Route } from './+types/company.timesheet.admin.submissions.route';
-import { AdminTimeSheetEntryController, type AdminEmployeeTimesheetEntriesDto } from '~/api/generated/timesheet';
+import { AdminTimeSheetEntryController, type AdminEmployeeTimesheetEntriesDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';

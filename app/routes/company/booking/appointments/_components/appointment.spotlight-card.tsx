@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import type { AppointmentDto } from '~/api/generated/booking';
+import type { AppointmentDto } from '~/api/generated';
 import { Badge, Card, CardContent, Text } from '~/ui';
 import { getTotalDuration } from '../_utils/appointments.utils';
 

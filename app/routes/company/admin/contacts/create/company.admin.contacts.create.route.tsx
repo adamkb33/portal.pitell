@@ -1,12 +1,16 @@
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { data, redirect } from 'react-router';
 import type { Route } from './+types/company.admin.contacts.create.route';
 import { ContactFormSchema, type ContactFormData, type FieldErrors } from '../_schemas/contact.form.schema';
 import { ContactFormPage } from '../_components/contact-form-page';
-import { CompanyUserContactController } from '~/api/generated/base';
+import { CompanyUserContactController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
+
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
 
 const emptyValues: ContactFormData = {
   givenName: '',

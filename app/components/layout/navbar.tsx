@@ -1,14 +1,23 @@
 import { Link, NavLink } from 'react-router';
 import { useLocation } from 'react-router';
 import type { UserNavigation } from '~/lib/routing/route-tree';
-import { BrachCategory, ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
-import type { CompanySummaryDto } from '~/api/generated/base';
-import { Loader2, Menu, User } from 'lucide-react';
+import { BrachCategory, ROUTE_TREE, ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
+import type { CompanySummaryDto } from '~/api/generated';
+import { ChevronLeft, Loader2, Menu } from 'lucide-react';
 import PTLLogo from '../logos/PTL.logo';
 import { NavbarNotificationBell } from './navbar-notification-bell';
-import { buildCrumbs } from '~/lib/routing/breadcrumbs';
+import {
+  getUserInitials,
+  navbarIconButtonClassName,
+  navbarOnBrandClassName,
+  UserAvatar,
+  type NavbarUserProfile,
+} from './navbar-controls';
+import { buildCrumbs, upCrumb, withTitle, withUpOverride, type Crumb } from '~/lib/routing/breadcrumbs';
+import { crumbHref, useRememberSearch, useTitleOverride, useUpOverride } from '~/lib/routing/up-link';
 import {
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,12 +28,7 @@ import {
 
 export type NavbarProps = {
   navRoutes: UserNavigation | undefined;
-  userProfile?: {
-    givenName?: string;
-    familyName?: string;
-    email?: string;
-    mobileNumber?: string;
-  } | null;
+  userProfile?: NavbarUserProfile;
   companyContext: CompanySummaryDto | null | undefined;
   hasSidebar?: boolean;
   onOpenSidebar?: () => void;
@@ -34,34 +38,63 @@ export function Navbar({ navRoutes, userProfile, companyContext, hasSidebar = fa
   const location = useLocation();
   const navigationBranches = navRoutes?.[RoutePlaceMent.NAVIGATION] || [];
   const sidebarBranches = navRoutes?.[RoutePlaceMent.SIDEBAR] || [];
-  const crumbs = buildCrumbs(sidebarBranches, location.pathname);
+  // The full tree keeps hidden pages (create, edit, invite), so the breadcrumb always names the current page.
+  // A page that belongs to one record (Last opp bilde → its Timebestilling) adds it via `handle.up`; a page that shows
+  // one record names itself via `handle.title` (a notification's page is "Ny timebestilling", not "Vis varsel").
+  const upOverride = useUpOverride();
+  const titleOverride = useTitleOverride();
+  useRememberSearch();
+  const crumbs = withTitle(
+    withUpOverride(
+      buildCrumbs(
+        ROUTE_TREE.filter((branch) => sidebarBranches.some((sidebarBranch) => sidebarBranch.id === branch.id)),
+        location.pathname,
+      ),
+      upOverride,
+    ),
+    titleOverride,
+  );
+  // Phones: pages below a section show ‹ one level up instead of the menu (ui-rules → Page top). Desktop has the breadcrumb.
+  const up = upCrumb(crumbs);
   const userBranches = navigationBranches.filter((branch) => branch.category === BrachCategory.USER);
   const authBranches = navigationBranches.filter((branch) => branch.category === BrachCategory.AUTH);
   const profileHref = userBranches.find((branch) => branch.id === 'user.profile')?.href;
   const canAccessNotifications = !!companyContext && hasBranch(sidebarBranches, 'company.notifications');
   const isLoggedInCompanyUser = !!companyContext;
-  const bookingSessionPath = ROUTES_MAP['booking.public.appointment.session'].href;
-  const isInBookingSession =
-    location.pathname === bookingSessionPath || location.pathname.startsWith(`${bookingSessionPath}/`);
+  // No "Bestill time" button while the customer is already booking, or on a booking/loyalty detail page that has its
+  // own book button. The "Mine bookinger" overview keeps it, since it is the only way to book from there.
+  const bookingPath = ROUTES_MAP['booking.public.appointment'].href;
+  const myAppointmentsPath = ROUTES_MAP['booking.public.my-appointments'].href;
+  const isInBookingFlow =
+    location.pathname === bookingPath ||
+    location.pathname.startsWith(`${bookingPath}/`) ||
+    location.pathname.startsWith(`${myAppointmentsPath}/`);
 
   return (
     <div className="flex h-full w-full min-w-0 items-center justify-between gap-3">
       <section className="flex min-w-0 flex-1 items-center">
         {hasSidebar ? (
           <div className="flex min-w-0 items-center gap-2">
-            {onOpenSidebar ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={onOpenSidebar}
-                className="h-9 w-9 shrink-0 rounded-[var(--radius-control)] lg:hidden"
-                aria-label="Åpne navigasjon"
+            {/* On phones ≡ opens the drawer, which holds the menu, the company switcher and the account. */}
+            {up ? (
+              <Link
+                to={crumbHref(up)}
+                aria-label={`Tilbake til ${up.label}`}
+                className={cn(navbarIconButtonClassName, navbarOnBrandClassName, '-ml-1.5 lg:hidden')}
               >
-                <Menu className="h-4 w-4" />
-              </Button>
+                <ChevronLeft className="size-6" aria-hidden />
+              </Link>
+            ) : onOpenSidebar ? (
+              <button
+                type="button"
+                onClick={onOpenSidebar}
+                className={cn(navbarIconButtonClassName, navbarOnBrandClassName, '-ml-1.5 lg:hidden')}
+                aria-label="Åpne meny"
+              >
+                <Menu className="size-6" aria-hidden />
+              </button>
             ) : null}
-            <Breadcrumbs crumbs={crumbs} />
+            <Breadcrumbs crumbs={crumbs} onBrand />
           </div>
         ) : (
           <Link to="/" className="flex h-full shrink-0 items-center text-xl font-semibold">
@@ -71,9 +104,9 @@ export function Navbar({ navRoutes, userProfile, companyContext, hasSidebar = fa
       </section>
 
       <section className="flex w-max shrink-0 items-center justify-end gap-2">
-        {canAccessNotifications ? <NavbarNotificationBell /> : null}
+        {canAccessNotifications ? <NavbarNotificationBell onBrand={hasSidebar} /> : null}
 
-        {!isLoggedInCompanyUser && !isInBookingSession && (
+        {!isLoggedInCompanyUser && !isInBookingFlow && (
           <NavLink
             to={ROUTES_MAP['booking.public.appointment'].href}
             end
@@ -94,18 +127,13 @@ export function Navbar({ navRoutes, userProfile, companyContext, hasSidebar = fa
           </NavLink>
         )}
 
-        {userBranches.length > 0 ? (
+        {hasSidebar ? null : userBranches.length > 0 ? (
           <div className="md:hidden">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Brukermeny"
-                  className="h-11 w-11 rounded-[var(--radius-control)]"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
+                <button type="button" aria-label="Brukermeny" className={navbarIconButtonClassName}>
+                  <UserAvatar userProfile={userProfile} />
+                </button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="min-w-[220px] p-2">
@@ -150,18 +178,14 @@ export function Navbar({ navRoutes, userProfile, companyContext, hasSidebar = fa
           </div>
         )}
 
-        {userBranches.length > 0 ? (
+        {userBranches.length > 0 && !hasSidebar ? (
+          // With a sidebar the account lives in it (desktop) or in the phone menu, so the header has no account menu.
           <div className="hidden md:flex">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="User menu"
-                  className="h-11 w-11 rounded-[var(--radius-control)]"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
+                <button type="button" aria-label="Brukermeny" className={navbarIconButtonClassName}>
+                  <UserAvatar userProfile={userProfile} />
+                </button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="min-w-[180px]">
@@ -214,20 +238,11 @@ function UserMenuHeader({
 }) {
   const fullName = [userProfile?.givenName, userProfile?.familyName].filter(Boolean).join(' ');
   const mobileNumber = userProfile?.mobileNumber?.replace(/^\+47\s*/, '');
-  const initials =
-    [userProfile?.givenName, userProfile?.familyName]
-      .filter(Boolean)
-      .map((part) => part?.charAt(0))
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ||
-    userProfile?.email?.slice(0, 2).toUpperCase() ||
-    'K';
 
   const content = (
     <>
       <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-interactive text-sm font-bold text-text-inverse">
-        {initials}
+        {getUserInitials(userProfile)}
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-text-primary">{fullName || 'Din konto'}</p>
@@ -251,23 +266,57 @@ function UserMenuHeader({
   return <div className="flex min-w-0 items-center gap-3 px-2 py-2">{content}</div>;
 }
 
-function Breadcrumbs({ crumbs }: { crumbs: Array<{ label: string; href: string }> }) {
+/**
+ * `onBrand`: the company shell, where the bar is blue below `lg` (white text, the current page in the display font as
+ * the title) and white from `lg`.
+ */
+function Breadcrumbs({ crumbs, onBrand = false }: { crumbs: Crumb[]; onBrand?: boolean }) {
+  const current = cn(
+    'truncate font-display font-semibold tracking-tight',
+    onBrand ? 'text-[19px] text-on-brand lg:text-base lg:text-text-primary' : 'text-text-primary',
+  );
+
   if (crumbs.length === 0) {
-    return <span className="truncate text-sm font-semibold text-text-primary">Oversikt</span>;
+    return <span className={current}>Oversikt</span>;
   }
 
   return (
-    <nav className="flex min-w-0 items-center gap-1.5 text-sm text-text-secondary" aria-label="Brødsmuler">
+    <nav
+      className={cn(
+        'flex min-w-0 items-center gap-1.5 text-sm',
+        onBrand ? 'text-on-brand-muted lg:text-text-secondary' : 'text-text-secondary',
+      )}
+      aria-label="Brødsmuler"
+    >
       {crumbs.map((crumb, index) => {
         const isCurrent = index === crumbs.length - 1;
 
         return (
-          <span key={`${crumb.href}-${index}`} className="flex min-w-0 items-center gap-1.5">
-            {index > 0 ? <span className="text-text-disabled">/</span> : null}
+          <span
+            key={`${crumb.href}-${index}`}
+            // On phones only the current page shows; it doubles as the page title.
+            className={cn('min-w-0 items-center gap-1.5', isCurrent ? 'flex' : 'hidden sm:flex')}
+          >
+            {index > 0 ? (
+              <span
+                className={cn(
+                  'hidden sm:inline',
+                  onBrand ? 'text-on-brand-muted/70 lg:text-text-disabled' : 'text-text-disabled',
+                )}
+              >
+                /
+              </span>
+            ) : null}
             {isCurrent ? (
-              <span className="truncate font-semibold text-text-primary">{crumb.label}</span>
+              <span className={current}>{crumb.label}</span>
             ) : (
-              <Link to={crumb.href} className="truncate hover:text-text-primary">
+              <Link
+                to={crumbHref(crumb)}
+                className={cn(
+                  'truncate',
+                  onBrand ? 'hover:text-on-brand lg:hover:text-text-primary' : 'hover:text-text-primary',
+                )}
+              >
                 {crumb.label}
               </Link>
             )}

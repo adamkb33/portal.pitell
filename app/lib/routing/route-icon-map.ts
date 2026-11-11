@@ -17,6 +17,7 @@ import {
   Key,
   UserPlus,
   FileText,
+  Megaphone,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export const ICON_MAP = {
   Key,
   UserPlus,
   FileText,
+  Megaphone,
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

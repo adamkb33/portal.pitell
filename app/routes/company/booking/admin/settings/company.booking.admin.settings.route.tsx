@@ -1,3 +1,4 @@
+export { loader } from '../company.booking.admin.layout';
 import { NavLink } from 'react-router';
 import { Settings2, SlidersHorizontal } from 'lucide-react';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

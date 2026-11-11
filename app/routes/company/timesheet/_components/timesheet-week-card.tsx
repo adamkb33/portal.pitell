@@ -1,5 +1,5 @@
 import { addDays, format, isSameDay, parseISO } from 'date-fns';
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
 import type { DayFormState } from '../_types/timesheet.types';
 import { createDefaultDayFormState } from '../_utils';
 import { TimesheetDayColumn } from './calendar/day-column';

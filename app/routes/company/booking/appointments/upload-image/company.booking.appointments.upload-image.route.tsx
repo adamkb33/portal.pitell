@@ -1,29 +1,30 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
-import { data, Link, useNavigation, useSubmit } from 'react-router';
-import { Camera, Image as ImageIcon, Move, ZoomIn } from 'lucide-react';
-import { CompanyUserAppointmentController, PublicAppointmentSessionController } from '~/api/generated/booking';
+import { data, useNavigation, useSubmit } from 'react-router';
+import { format, parseISO } from 'date-fns';
+import { nb } from 'date-fns/locale';
+import { Camera, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { CompanyUserAppointmentController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { fileToBase64 } from '~/lib/file.utils';
 import type { Route } from './+types/company.booking.appointments.upload-image.route';
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CompanyPageTemplate,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Notice,
-  Text,
-} from '~/ui';
+import { Button, cn, CompanyPageTemplate, Dialog, DialogContent, DialogTitle, Notice } from '~/ui';
+import type { UpHandle } from '~/lib/routing/up-link';
 
-const EDITOR_SIZE = 240;
+/** Up is the appointment the image belongs to (ui-rules → Page top). */
+export const handle: UpHandle = {
+  up: (loaderData) => {
+    const appointmentId = (loaderData as { appointmentId?: number | null } | undefined)?.appointmentId;
+    if (!appointmentId) return null;
+    return {
+      label: 'Timebestilling',
+      href: ROUTES_MAP['company.booking.appointments.detail'].href.replace(':appointmentId', String(appointmentId)),
+    };
+  },
+};
+
+const EDITOR_SIZE = 280;
 const OUTPUT_SIZE = 1024;
 
 const parseAppointmentIdFromUrl = (url: string): number | null => {
@@ -51,8 +52,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     const response = await withAuth(request, async () =>
-      PublicAppointmentSessionController.getAppointmentById({
-        query: { appointmentId },
+      // Company endpoint: the backend checks the appointment belongs to the signed-in user's company.
+      CompanyUserAppointmentController.getAppointmentById1({
+        path: { id: appointmentId },
       }),
     );
 
@@ -147,28 +149,19 @@ type ImageMeta = {
 export default function CompanyBookingAppointmentUploadImagePage({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const submit = useSubmit();
-  const isSubmitting = navigation.state === 'submitting';
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
-  const [label, setLabel] = useState('');
-  const [selectedPreviewImage, setSelectedPreviewImage] = useState<{ url: string; label: string; size: number } | null>(
-    null,
-  );
+  const [viewedImageUrl, setViewedImageUrl] = useState<string | null>(null);
   const dragStateRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   const appointment = loaderData.appointment;
-  const selectedServiceNames = useMemo(
-    () =>
-      appointment?.groupedServiceGroups
-        ?.flatMap((group) => (group.services ?? []).map((service) => service.name))
-        .filter(Boolean) ?? [],
-    [appointment],
-  );
   const existingImages = appointment?.images ?? [];
   const submittingIntent = navigation.formData?.get('intent')?.toString();
+  const isUploading = navigation.state === 'submitting' && submittingIntent === 'upload';
   const deletingImageId =
     navigation.state === 'submitting' && submittingIntent === 'delete-image'
       ? Number(navigation.formData?.get('imageId'))
@@ -182,13 +175,6 @@ export default function CompanyBookingAppointmentUploadImagePage({ loaderData, a
       height: imageMeta.naturalHeight * fit,
     };
   }, [imageMeta]);
-
-  const placementHint = useMemo(() => {
-    const normalizedDistance = Math.hypot(offset.x / EDITOR_SIZE, offset.y / EDITOR_SIZE);
-    if (normalizedDistance < 0.06) return 'Bra plassering nær midten';
-    if (normalizedDistance < 0.14) return 'Litt ute av midten - dra bildet litt for å sentrere hodet';
-    return 'Flytt bildet nærmere midten for bedre plassering';
-  }, [offset]);
 
   const setNewFile = (file: File | null) => {
     if (!file) return;
@@ -251,7 +237,9 @@ export default function CompanyBookingAppointmentUploadImagePage({ loaderData, a
     setImageMeta(null);
     setOffset({ x: 0, y: 0 });
     setScale(1);
-    setLabel('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   useEffect(() => {
@@ -279,7 +267,6 @@ export default function CompanyBookingAppointmentUploadImagePage({ loaderData, a
     formData.append('fileName', normalizedFile.name);
     formData.append('contentType', normalizedFile.type || 'image/jpeg');
     formData.append('data', encoded);
-    formData.append('label', label);
 
     submit(formData, { method: 'post' });
   };
@@ -292,299 +279,143 @@ export default function CompanyBookingAppointmentUploadImagePage({ loaderData, a
   };
 
   return (
-    <CompanyPageTemplate
-      title="Last opp avtalebilder"
-      description="Ta bilde med kamera eller last opp eksisterende bilde, og flytt/zoom for å få hodet nær midten."
-      routeLinks={
-        <Button asChild variant="outline" size="sm">
-          <Link to={ROUTES_MAP['company.booking.appointments'].href}>Tilbake til timebestillinger</Link>
-        </Button>
-      }
-    >
+    <CompanyPageTemplate title="Last opp bilde">
       {loaderData.error ? <Notice tone="emphasis" title="Kunne ikke hente avtale" message={loaderData.error} /> : null}
 
       {appointment ? (
-        <section className="rounded-xl bg-surface p-3 sm:p-4">
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="space-y-2">
-              <Badge variant="outline" size="sm" className="rounded-full">
-                Avtaledetaljer
-              </Badge>
-              <Text as="p" variant="heading-sm" className="tracking-tight">
-                {appointment.user.givenName} {appointment.user.familyName}
-              </Text>
-              <Text as="p" variant="caption" className="text-text-secondary">
-                {new Date(appointment.startTime).toLocaleString('nb-NO')} -{' '}
-                {new Date(appointment.endTime).toLocaleTimeString('nb-NO')}
-              </Text>
-            </div>
+        <section aria-label="Bilder" className="w-full max-w-[32rem] space-y-2">
+          <p className="text-sm text-text-secondary">
+            {[appointment.user.givenName, appointment.user.familyName].filter(Boolean).join(' ')} ·{' '}
+            {format(parseISO(appointment.startTime), 'EEE d. MMM · HH:mm', { locale: nb })}
+          </p>
 
-            <div className="space-y-1.5">
-              <Text as="p" variant="caption" className="font-semibold">
-                Tjenester
-              </Text>
-              {selectedServiceNames.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {selectedServiceNames.map((serviceName, index) => (
-                    <Badge key={`${serviceName}-${index}`} variant="outline" size="sm" className="rounded-full">
-                      {serviceName}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <Text as="p" variant="body-sm" className="text-text-secondary">
-                  Ingen tjenester registrert
-                </Text>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-12">
-          <CardContent className="space-y-3 p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Text as="p" variant="label">
-                  Opplastede Bilder
-                </Text>
-                <Text as="p" variant="caption" className="text-text-secondary">
-                  Kompakt liste. Dra horisontalt for å se flere bilder.
-                </Text>
-              </div>
-              {existingImages.length > 0 ? (
-                <Badge variant="outline" size="sm" className="rounded-full">
-                  {existingImages.length} bilder
-                </Badge>
-              ) : null}
-            </div>
-
-            {existingImages.length === 0 ? (
-              <Notice tone="default" title="Ingen bilder" message="Ingen bilder lastet opp ennå." />
-            ) : (
-              <div className="-mx-1 overflow-x-auto px-1 pb-1">
-                <div className="flex min-w-max gap-2">
-                  {existingImages.map((image, index) => (
-                    <article
-                      key={image.id ?? `${image.url}-${index}`}
-                      className="w-28 shrink-0 overflow-hidden rounded-lg bg-surface"
-                    >
-                      <button
-                        type="button"
-                        className="block w-full text-left"
-                        onClick={() =>
-                          setSelectedPreviewImage({
-                            url: image.url,
-                            label: image.label || `Bilde ${index + 1}`,
-                            size: image.size,
-                          })
-                        }
-                      >
-                        <div className="h-24 w-full overflow-hidden bg-background">
-                          <img
-                            src={image.url}
-                            alt={image.label || `Avtalebilde ${index + 1}`}
-                            className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
-                            loading="lazy"
-                          />
-                        </div>
-                      </button>
-                      <div className="space-y-1 p-2">
-                        <Text as="p" variant="caption" className="truncate font-semibold">
-                          {image.label || `Bilde ${index + 1}`}
-                        </Text>
-                        <Text as="p" variant="caption" className="text-xs text-text-secondary">
-                          {(image.size / 1024).toFixed(0)} KB
-                        </Text>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-6 w-full px-2 text-xs"
-                          disabled={!image.id || deletingImageId === image.id}
-                          loading={deletingImageId === image.id}
-                          onClick={() => {
-                            if (!image.id) return;
-                            handleDeleteImage(image.id);
-                          }}
-                        >
-                          Fjern
-                        </Button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-12">
-          <CardContent className="space-y-3 p-3 sm:p-4">
-            <div className="space-y-1">
-              <Text as="p" variant="label">
-                Last Opp Nye Bilder
-              </Text>
-              <Text as="p" variant="caption" className="text-text-secondary">
-                Kamera eller filopplasting. Flytt og zoom bildet så hodet havner i midten av guiden.
-              </Text>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              <Button asChild variant="outline" size="sm">
-                <label className="cursor-pointer">
-                  <Camera className="h-3.5 w-3.5" />
-                  Ta bilde
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={(event) => setNewFile(event.currentTarget.files?.[0] ?? null)}
-                  />
-                </label>
-              </Button>
-
-              <Button asChild variant="outline" size="sm">
-                <label className="cursor-pointer">
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  Last opp bilde
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) => setNewFile(event.currentTarget.files?.[0] ?? null)}
-                  />
-                </label>
-              </Button>
-
-              {selectedFile ? (
-                <Button variant="outline" size="sm" type="button" onClick={resetEditor}>
-                  Fjern valgt bilde
-                </Button>
-              ) : null}
-            </div>
-
-            {imagePreviewUrl && previewSize ? (
-              <div className="space-y-2">
+          <div className="rounded-xl border border-border bg-background p-3">
+            {imagePreviewUrl ? (
+              <div className="space-y-3">
                 <div
-                  className="relative mx-auto touch-none overflow-hidden rounded-xl bg-black shadow-inner"
+                  className="relative mx-auto touch-none overflow-hidden rounded-xl bg-black"
                   style={{ width: EDITOR_SIZE, height: EDITOR_SIZE }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerUp}
                 >
-                  <img
-                    src={imagePreviewUrl}
-                    alt="Forhåndsvisning"
-                    onDragStart={(event) => event.preventDefault()}
-                    className="pointer-events-none absolute left-1/2 top-1/2 max-w-none select-none"
-                    style={{
-                      width: previewSize.width * scale,
-                      height: previewSize.height * scale,
-                      transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
-                    }}
-                  />
-
-                  <div className="pointer-events-none absolute inset-0 border border-white/25" />
+                  {previewSize ? (
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Bildet som justeres"
+                      onDragStart={(event) => event.preventDefault()}
+                      className="pointer-events-none absolute left-1/2 top-1/2 max-w-none select-none"
+                      style={{
+                        width: previewSize.width * scale,
+                        height: previewSize.height * scale,
+                        transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+                      }}
+                    />
+                  ) : null}
+                  {/* Guide: drag and zoom until the head sits inside the circle. */}
                   <div
                     className="pointer-events-none absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-white/80"
                     aria-hidden
                   />
                 </div>
 
-                <Text as="p" variant="caption" className="text-text-secondary">
-                  {placementHint}
-                </Text>
-
-                <div className="grid gap-2 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label
-                      className="flex items-center gap-1.5 text-xs font-medium text-text-primary"
-                      htmlFor="zoom-range"
-                    >
-                      <ZoomIn className="h-3.5 w-3.5" /> Zoom
-                    </label>
-                    <input
-                      id="zoom-range"
-                      type="range"
-                      min={1}
-                      max={3}
-                      step={0.01}
-                      value={scale}
-                      onChange={(event) => setScale(Number(event.currentTarget.value))}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label
-                      className="flex items-center gap-1.5 text-xs font-medium text-text-primary"
-                      htmlFor="image-label"
-                    >
-                      <Move className="h-3.5 w-3.5" /> Bildetekst (valgfritt)
-                    </label>
-                    <Input
-                      id="image-label"
-                      type="text"
-                      placeholder="f.eks. Sideprofil"
-                      value={label}
-                      onChange={(event) => setLabel(event.currentTarget.value)}
-                    />
-                  </div>
+                <div className="mx-auto flex max-w-[280px] items-center gap-3 text-text-secondary">
+                  <ZoomOut className="h-4 w-4 shrink-0" aria-hidden />
+                  <input
+                    type="range"
+                    aria-label="Zoom"
+                    min={1}
+                    max={3}
+                    step={0.01}
+                    value={scale}
+                    onChange={(event) => setScale(Number(event.currentTarget.value))}
+                    className="w-full accent-[var(--color-interactive)]"
+                  />
+                  <ZoomIn className="h-4 w-4 shrink-0" aria-hidden />
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" onClick={resetEditor} disabled={isUploading}>
+                    Avbryt
+                  </Button>
                   <Button
                     type="button"
-                    size="sm"
                     onClick={handleUpload}
-                    loading={isSubmitting}
-                    disabled={isSubmitting || !selectedFile || !imageMeta}
+                    loading={isUploading}
+                    disabled={isUploading || !imageMeta}
                   >
-                    Last opp bilde
+                    Lagre bilde
                   </Button>
                 </div>
               </div>
-            ) : imagePreviewUrl ? (
-              <Text as="p" variant="caption" className="text-text-secondary">
-                Klargjør bilde...
-              </Text>
             ) : (
-              <Text as="p" variant="caption" className="text-text-secondary">
-                Velg et bilde for å starte justering.
-              </Text>
+              <ul className="grid grid-cols-3 gap-2">
+                {existingImages.map((image, index) => (
+                  <li
+                    key={image.id ?? `${image.url}-${index}`}
+                    className={cn('relative aspect-square', deletingImageId === image.id && 'opacity-50')}
+                  >
+                    <button
+                      type="button"
+                      aria-label={`Vis bilde ${index + 1}`}
+                      onClick={() => setViewedImageUrl(image.url)}
+                      className="block h-full w-full overflow-hidden rounded-[var(--radius-control)] bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive"
+                    >
+                      <img
+                        src={image.url}
+                        alt={`Avtalebilde ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Fjern bilde ${index + 1}`}
+                      disabled={!image.id || deletingImageId === image.id}
+                      onClick={() => image.id && handleDeleteImage(image.id)}
+                      className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-background/90 text-text-secondary shadow-sm transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                <li className="aspect-square">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] border-2 border-dashed border-border px-2 text-center text-xs font-medium sm:text-sm text-interactive transition-colors hover:border-interactive/50 hover:bg-surface-variant-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive"
+                  >
+                    <Camera className="h-5 w-5" aria-hidden />
+                    Legg til bilde
+                  </button>
+                </li>
+              </ul>
             )}
+          </div>
 
-            {actionData?.message ? (
-              <Notice
-                tone={actionData.success ? 'default' : 'emphasis'}
-                title={actionData.success ? 'Opplasting fullført' : 'Opplasting feilet'}
-                message={actionData.message}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+          {/* One picker: phones offer camera or photo library from here. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(event) => setNewFile(event.currentTarget.files?.[0] ?? null)}
+          />
 
-      <Dialog open={!!selectedPreviewImage} onOpenChange={(open) => !open && setSelectedPreviewImage(null)}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedPreviewImage?.label ?? 'Forhåndsvisning'}</DialogTitle>
-            <DialogDescription>
-              {selectedPreviewImage ? `${(selectedPreviewImage.size / 1024).toFixed(0)} KB` : ''}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedPreviewImage ? (
-            <div className="overflow-hidden rounded-lg bg-background">
-              <img
-                src={selectedPreviewImage.url}
-                alt={selectedPreviewImage.label}
-                className="max-h-screen w-full object-contain"
-              />
-            </div>
+          {actionData && !actionData.success ? (
+            <Notice tone="emphasis" title="Noe gikk galt" message={actionData.message} />
+          ) : null}
+        </section>
+      ) : null}
+
+      <Dialog open={!!viewedImageUrl} onOpenChange={(open) => !open && setViewedImageUrl(null)}>
+        <DialogContent className="sm:max-w-2xl" aria-describedby={undefined}>
+          <DialogTitle className="sr-only">Bilde</DialogTitle>
+          {viewedImageUrl ? (
+            <img src={viewedImageUrl} alt="Avtalebilde" className="max-h-[80vh] w-full rounded-lg object-contain" />
           ) : null}
         </DialogContent>
       </Dialog>

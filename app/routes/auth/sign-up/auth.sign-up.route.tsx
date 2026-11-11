@@ -2,7 +2,7 @@
 import { Link, Form, redirect, data, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.sign-up.route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
 import { authService } from '~/lib/auth-service';
@@ -86,7 +86,7 @@ export default function AuthSignUp() {
       }
       bottom="Vi sender bekreftelseslenke til e-posten din før kontoen aktiveres."
     >
-      <Form method="post" className="space-y-6">
+      <Form method="post" className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             id="givenName"

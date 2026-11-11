@@ -2,14 +2,14 @@ import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/a
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ENV } from '~/api/config/env';
 import { redirect } from 'react-router';
-import type { AuthenticationTokenDto } from '~/api/generated/base';
+import type { AuthenticationTokenDto } from '~/api/generated';
 
 export interface AuthenticatedUserPayload {
   id: number;
   email?: string;
   companyId?: number;
   companyRoles?: Array<'ADMIN' | 'EMPLOYEE'>;
-  companyProducts?: Array<'BOOKING' | 'EVENT' | 'OFFER' | 'TIMESHEET'>;
+  companyProducts?: Array<'BOOKING' | 'EVENT' | 'OFFER' | 'MARKETING' | 'TIMESHEET'>;
 }
 
 export type UserSession = {
@@ -148,8 +148,9 @@ export class AuthService {
     accessExpiresAt: number,
     refreshExpiresAt: number,
   ): Promise<Headers> {
+    // The access cookie outlives the access token so the root loader can still read its companyId when refreshing.
     const accessCookie = await accessTokenCookie.serialize(accessToken, {
-      expires: new Date(accessExpiresAt * 1000),
+      expires: new Date(Math.max(accessExpiresAt, refreshExpiresAt) * 1000),
     });
     const refreshCookie = await refreshTokenCookie.serialize(refreshToken, {
       expires: new Date(refreshExpiresAt * 1000),
@@ -174,13 +175,14 @@ export class AuthService {
   }
 
   getCompanyIdFromToken(accessToken: string): number | undefined {
-    if (!accessToken || this.isTokenExpired(accessToken)) {
+    if (!accessToken) {
       return undefined;
     }
 
     try {
-      const payload = this.verifyAndDecodeToken(accessToken);
-      return payload.companyId;
+      // Signature is verified but expiry is ignored: an expired token still tells us which company to refresh into.
+      const decoded = jwt.verify(accessToken, this.jwtSecret, { ignoreExpiration: true }) as JwtClaimsPayload;
+      return decoded.companyId ? Number(decoded.companyId) : undefined;
     } catch {
       return undefined;
     }

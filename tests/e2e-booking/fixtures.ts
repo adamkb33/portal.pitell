@@ -1,16 +1,12 @@
 import { expect, test as base } from '@playwright/test';
 import { Pool } from 'pg';
+import { readDatabaseUrl } from '../../scripts/e2e/stack';
 
 export const test = base.extend<{}, { db: Pool }>({
   db: [
     async ({}, use) => {
-      const connectionString = process.env.E2E_DATABASE_URL;
-      if (!connectionString) {
-        throw new Error('E2E_DATABASE_URL is required. Run this suite through npm run test:e2e:booking.');
-      }
-
       const pool = new Pool({
-        connectionString,
+        connectionString: readDatabaseUrl(),
         max: 4,
         application_name: 'portal-playwright-booking',
       });
@@ -42,12 +38,90 @@ export async function resetMutableBookingState(db: Pool) {
   `);
 }
 
+const DEMO_CUSTOMERS = [
+  { givenName: 'Ada', familyName: 'Lovelace', email: 'ada.lovelace@company.e2e.invalid', mobile: '+4798880001' },
+  { givenName: 'Grace', familyName: 'Hopper', email: 'grace.hopper@company.e2e.invalid', mobile: '+4798880002' },
+  { givenName: 'Alan', familyName: 'Turing', email: 'alan.turing@company.e2e.invalid', mobile: '+4798880003' },
+];
+const DEMO_APPOINTMENT_COUNT = 6;
+
+/**
+ * Gives company 1 three customers and six past appointments, which the company specs (tests/e2e) need for the
+ * appointment list, search and "create appointment" flows. The booking suite wipes appointments between its tests,
+ * so every spec file that needs them calls this first; it only inserts what is missing and is safe to repeat.
+ */
+export async function seedAppointmentHistory(db: Pool) {
+  // The mobile bottom navigation of the company specs expects Oversikt, Booking and Timelister.
+  await db.query(`
+    insert into base.company_products (company_id, product)
+    select 1, 'TIMESHEET'
+    where not exists (select 1 from base.company_products where company_id = 1 and product = 'TIMESHEET')
+  `);
+
+  for (const customer of DEMO_CUSTOMERS) {
+    await db.query(
+      `
+        insert into base.users (given_name, family_name, email, provider, email_verified_at)
+        select $1::text, $2::text, $3::text, 'LOCAL', now()
+        where not exists (select 1 from base.users where provider = 'LOCAL' and email = $3::text)
+      `,
+      [customer.givenName, customer.familyName, customer.email],
+    );
+    await db.query(
+      `
+        insert into base.user_mobile_number (user_id, mobile_number, verification_status, verified_at)
+        select u.id, $2::text, 'VERIFIED', now()
+        from base.users u
+        where u.email = $1::text
+          and not exists (select 1 from base.user_mobile_number m where m.user_id = u.id)
+      `,
+      [customer.email, customer.mobile],
+    );
+  }
+
+  const existing = await db.query<{ count: number }>(`
+    select count(*)::int as count
+    from booking.appointments a
+    join base.users u on u.id = a.user_id
+    where a.profile_id = 1 and a.deleted_at is null
+      and a.start_time < now() and u.email like '%@company.e2e.invalid'
+  `);
+  const missing = DEMO_APPOINTMENT_COUNT - existing.rows[0].count;
+
+  const hour = 60 * 60 * 1000;
+  const lastWholeHour = Math.floor(Date.now() / hour) * hour;
+  for (let i = 0; i < missing; i++) {
+    // One a day going back from yesterday, so they all list as past appointments and never overlap.
+    const start = new Date(lastWholeHour - (i + 1) * 24 * hour);
+    const customer = DEMO_CUSTOMERS[i % DEMO_CUSTOMERS.length];
+    const appointment = await db.query<{ id: string }>(
+      `
+        insert into booking.appointments (profile_id, user_id, start_time, end_time)
+        select 1, u.id, $2::timestamptz, $2::timestamptz + interval '20 minutes'
+        from base.users u where u.email = $1::text
+        returning id
+      `,
+      [customer.email, start.toISOString()],
+    );
+    // Service ids 1-4 come from seedBookingFixture.
+    await db.query(`insert into booking.appointment_services (appointment_id, service_id) values ($1, $2)`, [
+      appointment.rows[0].id,
+      (i % 4) + 1,
+    ]);
+  }
+}
+
 export async function seedBookingFixture(db: Pool) {
   await db.query(`
     begin;
 
-    insert into base.users (id, given_name, family_name, email, provider, email_verified_at)
-    values (1, 'E2E', 'Behandler', 'provider@booking.e2e.invalid', 'LOCAL', now());
+    -- User 1 doubles as the signed-in company admin of the company/auth-refresh suites: they sign in with
+    -- e2eAdmin's password, which needs a verified mobile number for sign-in to finish.
+    insert into base.users (id, given_name, family_name, email, password, provider, email_verified_at)
+    values (1, 'E2E', 'Behandler', 'provider@booking.e2e.invalid', 'password', 'LOCAL', now());
+
+    insert into base.user_mobile_number (user_id, mobile_number, verification_status, verified_at)
+    values (1, '+4799990001', 'VERIFIED', now());
 
     insert into base.companies (id, org_num, name)
     values (1, '927491745', 'Fredrikstad Barbershop Bahar');

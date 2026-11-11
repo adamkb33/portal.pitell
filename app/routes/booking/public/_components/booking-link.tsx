@@ -50,9 +50,13 @@ export const BookingLink = React.forwardRef<HTMLAnchorElement, BookingLinkProps>
       className={cn(
         bookingActionBaseClass,
         bookingActionVariantClass[variant],
-        bookingActionSizeClass[size],
+        // Inline links take the size of the sentence they sit in.
+        variant !== 'inline' && bookingActionSizeClass[size],
         fullWidth && 'w-full',
-        isDisabled && 'pointer-events-none cursor-not-allowed opacity-50',
+        disabled &&
+          !loading &&
+          'pointer-events-none cursor-not-allowed border-booking-border bg-booking-surface-subtle text-booking-text-muted shadow-none',
+        loading && 'pointer-events-none cursor-wait opacity-70',
         className,
       )}
       {...props}

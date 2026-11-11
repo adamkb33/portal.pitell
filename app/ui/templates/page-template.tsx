@@ -15,6 +15,8 @@ export interface PageTemplateProps extends React.HTMLAttributes<HTMLDivElement> 
   hero?: React.ReactNode;
   children: React.ReactNode;
   size?: ContainerSize;
+  /** Keeps the title for screen readers only, for shells whose breadcrumb already names the page. */
+  hideTitle?: boolean;
 }
 
 export function PageTemplate({
@@ -27,13 +29,30 @@ export function PageTemplate({
   hero,
   children,
   size = '2xl',
+  hideTitle = false,
   className,
   ...props
 }: PageTemplateProps) {
   const eyebrowContent = eyebrow ?? label;
 
+  if (hideTitle) {
+    return (
+      <Container size={size} gutter="none" className={cn('space-y-4', className)} {...props}>
+        {title ? <h1 className="sr-only">{title}</h1> : null}
+        {actions || routeLinks ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {routeLinks ? <div className="flex flex-wrap items-center gap-2">{routeLinks}</div> : null}
+            {actions ? <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div> : null}
+          </div>
+        ) : null}
+        {hero ? <div>{hero}</div> : null}
+        <Stack space="md">{children}</Stack>
+      </Container>
+    );
+  }
+
   return (
-    <Container size={size} className={cn('space-y-6', className)} {...props}>
+    <Container size={size} gutter="none" className={cn('space-y-4', className)} {...props}>
       {title || description || eyebrowContent || actions || routeLinks ? (
         <header className="space-y-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -61,7 +80,7 @@ export function PageTemplate({
 
       {hero ? <div>{hero}</div> : null}
 
-      <Stack space="lg">{children}</Stack>
+      <Stack space="md">{children}</Stack>
     </Container>
   );
 }

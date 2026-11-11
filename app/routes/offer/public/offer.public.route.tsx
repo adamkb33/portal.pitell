@@ -1,7 +1,7 @@
 import { Form, data } from 'react-router';
 import { CheckCircle2, FileText, MessageSquare, XCircle } from 'lucide-react';
 import type { Route } from './+types/offer.public.route';
-import { Offer, type PublicOfferPageDto } from '~/api/generated/offer';
+import { Offer, type PublicOfferPageDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { Badge, Button, Notice, Panel, Textarea } from '~/ui';
 

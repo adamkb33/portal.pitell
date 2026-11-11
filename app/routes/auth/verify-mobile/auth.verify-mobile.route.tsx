@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Link, data, redirect, Form, useActionData, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.route';
 
-import { AuthController, type VerificationStatusResponseDto } from '~/api/generated/base';
+import { AuthController, type VerificationStatusResponseDto } from '~/api/generated';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils.server';

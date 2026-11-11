@@ -31,7 +31,7 @@ function SelectTrigger({
       className={cn(
         // Base styles
         'flex w-full items-center justify-between gap-2',
-        'rounded-sm border border-border bg-background',
+        'rounded-sm border border-field-border bg-background',
         'text-sm font-medium',
         'shadow-xs',
         'whitespace-nowrap',

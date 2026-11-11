@@ -3,7 +3,7 @@ import { Form, Link, useNavigation } from 'react-router';
 import type { Route } from './+types/auth.forgot-password.route';
 
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { redirectWithError, redirectWithInfo } from '~/lib/flash-message.server';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
@@ -46,7 +46,7 @@ export default function AuthForgotPassword({}: Route.ComponentProps) {
       }
       bottom="Du får en lenke på e-post hvis kontoen finnes hos oss."
     >
-      <Form method="post" className="space-y-6">
+      <Form method="post" className="space-y-4">
         <FormField
           id="email"
           name="email"

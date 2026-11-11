@@ -1,8 +1,9 @@
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { useState } from 'react';
 import { Form, data, redirect } from 'react-router';
 import { FileText, Mail, PackagePlus, Plus, Trash2, UserRound } from 'lucide-react';
 import type { Route } from './+types/company.offer.create.route';
-import { Offer, type OfferCatalogItemDto, type OfferTemplateDto } from '~/api/generated/offer';
+import { Offer, type OfferCatalogItemDto, type OfferTemplateDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -25,6 +26,9 @@ import {
   getTemplateFieldName,
   countFilled,
 } from './_utils/company.offer.create.utils';
+
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -182,8 +186,6 @@ export default function CompanyOfferCreateRoute({ loaderData, actionData }: Rout
   return (
     <CompanyFormPageTemplate
       title="Nytt tilbud"
-      description="Opprett et komplett utkast med kunde, backendstyrt mal, linjer og mottakere. Sending skjer fra detaljsiden etter gjennomgang."
-      backLink={{ to: ROUTES_MAP['company.offer'].href, label: 'Tilbake til tilbud' }}
       notices={
         <>
           {loaderData.error ? (
@@ -194,17 +196,16 @@ export default function CompanyOfferCreateRoute({ loaderData, actionData }: Rout
           ) : null}
         </>
       }
-      footer={
-        <div className="flex w-full flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-text-secondary">
-            Forhåndsberegnet sum:{' '}
-            <span className="font-semibold text-text-primary">{formatOfferCurrency(previewTotal)}</span>
-          </div>
-          <Button type="submit" form="create-offer-form" disabled={loaderData.templates.length === 0}>
-            Opprett utkast
-          </Button>
-        </div>
-      }
+      submit={{
+        form: 'create-offer-form',
+        label: 'Lagre utkast',
+        disabled: loaderData.templates.length === 0,
+        message: (
+          <>
+            Sum: <span className="font-semibold text-text-primary">{formatOfferCurrency(previewTotal)}</span>
+          </>
+        ),
+      }}
     >
       <ProgressSteps
         steps={[

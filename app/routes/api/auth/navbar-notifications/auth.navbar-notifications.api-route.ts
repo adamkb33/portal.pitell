@@ -1,5 +1,5 @@
 import { data, type LoaderFunctionArgs } from 'react-router';
-import { CompanyUserInAppNotificationController } from '~/api/generated/notification';
+import { CompanyUserInAppNotificationController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { serializeQueryParams } from '~/lib/query';
 import { resolveErrorPayload } from '~/lib/api-error';
@@ -33,9 +33,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }),
       ]);
 
+      const unreadCount = unreadResponse.data?.data?.totalElements ?? 0;
+
       return {
         items: latestResponse.data?.data?.content ?? [],
-        hasUnread: (unreadResponse.data?.data?.totalElements ?? 0) > 0,
+        hasUnread: unreadCount > 0,
+        unreadCount,
       };
     });
 
@@ -44,9 +47,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente varsler');
     // Degrade gracefully for auth/authorization failures to avoid noisy UI churn.
     if (status === 401 || status === 403) {
-      return data({ items: [], hasUnread: false, error: null }, { status: 200 });
+      return data({ items: [], hasUnread: false, unreadCount: 0, error: null }, { status: 200 });
     }
 
-    return data({ items: [], hasUnread: false, error: message }, { status: status ?? 500 });
+    return data({ items: [], hasUnread: false, unreadCount: 0, error: message }, { status: status ?? 500 });
   }
 }

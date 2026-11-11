@@ -8,3 +8,4 @@ export { Label, type LabelProps } from './label';
 export { Link, type LinkProps } from './link';
 export { Textarea, type TextareaProps, type TextareaSize } from './textarea';
 export { Text, type TextElement, type TextProps, type TextVariant } from './text';
+export { Switch, type SwitchProps } from './switch';

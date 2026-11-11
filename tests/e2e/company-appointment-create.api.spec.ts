@@ -1,4 +1,5 @@
-import { type APIRequestContext, expect, test } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
+import { expect, seedAppointmentHistory, test } from '../e2e-booking/fixtures';
 
 type AuthTokens = {
   accessToken: string;
@@ -196,7 +197,7 @@ async function probeBookingProfile(
   request: APIRequestContext,
   scopedAccessToken: string,
 ): Promise<{ ok: boolean; status: number; body: string }> {
-  const response = await request.get(`${gatewayUrl}/booking-service/company-user/booking-profile`, {
+  const response = await request.get(`${gatewayUrl}/booking-service/company-user/profile`, {
     headers: authHeaders(scopedAccessToken),
   });
   const body = response.ok() ? '' : await readResponseBody(response);
@@ -289,20 +290,21 @@ async function getFirstBookableServiceAndStartTime(
   request: APIRequestContext,
   accessToken: string,
 ): Promise<{ serviceId: number; startTime: string }> {
-  const profileResponse = await request.get(`${gatewayUrl}/booking-service/company-user/booking-profile`, {
+  const profileResponse = await request.get(`${gatewayUrl}/booking-service/company-user/profile`, {
     headers: authHeaders(accessToken),
   });
   if (!profileResponse.ok()) {
     await failWithResponseBody(profileResponse, 'Booking profile');
   }
-  const profileJson = (await profileResponse.json()) as ApiEnvelope<BookingProfilePayload>;
+  // The profile endpoint returns the profile itself, not an ApiResponse envelope.
+  const profile = (await profileResponse.json()) as BookingProfilePayload;
 
-  const serviceId = profileJson.data?.services?.[0]?.services?.[0]?.id;
+  const serviceId = profile.services?.[0]?.services?.[0]?.id;
   expect(serviceId, 'No services available for company user booking profile').toBeTruthy();
 
-  const scheduleResponse = await request.post(`${gatewayUrl}/booking-service/company-user/schedule`, {
+  const scheduleResponse = await request.post(`${gatewayUrl}/booking-service/company-user/schedules`, {
     headers: authHeaders(accessToken),
-    data: { selectedServiceIds: [serviceId] },
+    data: { selectedServices: [{ serviceId, quantity: 1 }] },
   });
   if (!scheduleResponse.ok()) {
     await failWithResponseBody(scheduleResponse, 'Schedule');
@@ -328,10 +330,14 @@ async function getCustomers(request: APIRequestContext, accessToken: string) {
 }
 
 test.describe('Company User Appointment Creation API', () => {
+  test.beforeAll(async ({ db }) => {
+    await seedAppointmentHistory(db);
+  });
+
   test.beforeEach(() => {
     test.skip(
       envValidationIssues.length > 0,
-      `Invalid E2E env configuration: ${envValidationIssues.join(' | ')}. Fix .env.e2e (or shell env) and rerun.`,
+      `Invalid E2E env configuration: ${envValidationIssues.join(' | ')}. These come from playwright.config.ts.`,
     );
   });
 
@@ -347,7 +353,7 @@ test.describe('Company User Appointment Creation API', () => {
       headers: authHeaders(tokens.accessToken),
       data: {
         userId: customerId,
-        serviceIds: [serviceId],
+        services: [{ serviceId, quantity: 1 }],
         startTime,
       },
     });
@@ -383,7 +389,7 @@ test.describe('Company User Appointment Creation API', () => {
       headers: authHeaders(tokens.accessToken),
       data: {
         userId: resolveJson.data!.userId,
-        serviceIds: [serviceId],
+        services: [{ serviceId, quantity: 1 }],
         startTime,
       },
     });

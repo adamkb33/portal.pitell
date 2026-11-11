@@ -13,7 +13,7 @@ vi.mock('~/lib/auth-service', () => ({
   },
 }));
 
-vi.mock('~/api/generated/base', () => ({
+vi.mock('~/api/generated', () => ({
   AuthController: {
     getPermissions: mocks.getPermissions,
   },
@@ -27,7 +27,7 @@ vi.mock('~/lib/flash-message.server', () => ({
   redirectWithError: mocks.redirectWithError,
 }));
 
-import { AuthController } from '~/api/generated/base';
+import { AuthController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { loader } from './system-admin.layout';
 

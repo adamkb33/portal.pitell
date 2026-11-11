@@ -28,7 +28,7 @@ export function AuthPageTemplate({
   return (
     <div
       className={cn(
-        'grid min-h-[calc(100vh-var(--app-header-height)-var(--app-footer-height))] bg-surface lg:grid-cols-2',
+        'grid min-h-[calc(100vh-var(--app-header-height)-var(--app-footer-height))] lg:grid-cols-2',
         className,
       )}
     >
@@ -36,7 +36,9 @@ export function AuthPageTemplate({
         {aside ?? <DefaultAuthAside />}
       </aside>
 
-      <main className="flex min-h-full flex-col px-5 py-6 sm:px-8 lg:px-12">
+      {/* Compact (design-language → Space and shape): the shell already pads the sides on phones, so no second gutter;
+          the card sits near the top on phones instead of floating in the middle of the screen. */}
+      <main className="flex min-h-full flex-col py-1 sm:px-4 lg:px-12 lg:py-6">
         <div className="flex items-center justify-between gap-4 text-sm">
           <Link to="/" className="text-text-secondary transition-colors hover:text-text-primary">
             Til forsiden
@@ -44,21 +46,21 @@ export function AuthPageTemplate({
           {topRight ? <div className="text-right text-sm text-text-secondary">{topRight}</div> : null}
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-10">
-          <section className="w-full max-w-md rounded-[var(--radius-card)] border border-border bg-background p-6 shadow-[var(--shadow-card)] sm:p-8">
-            <header className="mb-6 space-y-2">
+        <div className="flex flex-1 items-start justify-center py-3 lg:items-center lg:py-8">
+          <section className="w-full max-w-md rounded-[var(--radius-card)] border border-border bg-background p-4 shadow-[var(--shadow-card)] sm:p-6">
+            <header className="mb-4 space-y-1">
               <h1 className="font-display text-2xl font-bold leading-tight tracking-tight text-text-primary">
                 {title}
               </h1>
               {description ? <p className="text-sm leading-relaxed text-text-secondary">{description}</p> : null}
             </header>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               {error ? <Notice tone="emphasis" message={error} /> : null}
               {children}
             </div>
 
-            {footer ? <footer className="mt-6 border-t border-border pt-5">{footer}</footer> : null}
+            {footer ? <footer className="mt-4 border-t border-border pt-4">{footer}</footer> : null}
           </section>
         </div>
 

@@ -54,12 +54,14 @@ describe('booking pending submission UI', () => {
     expect(source).not.toContain('ProviderButtons');
   });
 
-  it('"log in with a different account" sends the browser to real sign-in, not back into the same session', () => {
+  it('booking sign-in posts to the real sign-in action and comes back to the contact step', () => {
     const signInSource = readSessionRoute(
       'contact/sign-in/booking.public.appointment.session.contact.sign-in.route.tsx',
     );
 
-    expect(signInSource).toContain('return redirectToSignIn()');
+    expect(signInSource).toContain("action={ROUTES_MAP['auth.sign-in'].href}");
+    expect(signInSource).toContain('name="returnTo" value={routes.contact}');
+    expect(signInSource).toContain('name="retryTo" value={routes.contactSignIn}');
     expect(signInSource).toContain("'Set-Cookie': await clearManualContactOverride()");
   });
 
@@ -95,9 +97,7 @@ describe('booking pending submission UI', () => {
     expect(selectServicesSource).toContain('loading={isSubmitting}');
     expect(selectServicesSource).toContain('disabled={!hasSelections || isSubmitting}');
     expect(selectServicesSource).toContain("const isSubmitting = navigation.state !== 'idle'");
-    expect(selectServicesSource).toContain(
-      'to={returnToOverview ? withOverviewReturnTo(routes.employee) : routes.employee}',
-    );
+    expect(selectServicesSource).not.toContain('Tilbake');
     expect(selectTimeSource).toContain('disabled={isSubmitting}');
     expect(selectTimeSource).toContain("const isSubmitting = navigation.state !== 'idle' || isSelectingTime");
     expect(selectTimeSource).toContain(
@@ -110,16 +110,34 @@ describe('booking pending submission UI', () => {
     expect(overviewSource).toContain("const isSubmitting = navigation.state !== 'idle'");
   });
 
-  it('keeps cancellation actions pending through redirect loading', () => {
-    const cancellationSource = readWorkspaceFile(
-      'app/routes/booking/public/appointment/cancel/booking.public.appointment.cancel.route.tsx',
-    );
-    const cancellationByIdSource = readWorkspaceFile(
-      'app/routes/booking/public/appointment/cancel-by-id/booking.public.appointment.cancel-by-id.route.tsx',
-    );
+  it('overview requires the terms box and keeps marketing optional and unticked', () => {
+    const overviewSource = readSessionRoute('overview/booking.public.appointment.session.overview.route.tsx');
 
-    expect(cancellationSource).toContain("const isSubmitting = navigation.state !== 'idle'");
-    expect(cancellationByIdSource).toContain("const isSubmitting = navigation.state !== 'idle'");
+    expect(overviewSource).toContain('name="acceptedTerms"');
+    expect(overviewSource).toContain('disabled={isSubmitting || (termsRequired && !termsAccepted)}');
+    expect(overviewSource).toContain('name="marketingConsentEmail"');
+    expect(overviewSource).toContain('name="marketingConsentSms"');
+    expect(overviewSource).toContain("formData.get('acceptedTerms') === 'on'");
+    expect(overviewSource).toContain("formData.get('marketingConsentEmail') === 'on'");
+    expect(overviewSource).toContain("formData.get('marketingConsentSms') === 'on'");
+    // Marketing is never required or pre-ticked.
+    expect(overviewSource).not.toMatch(/name="marketingConsent(Email|Sms)"[^>]*(required|defaultChecked|checked)/);
+  });
+
+  it('keeps cancellation actions pending through redirect loading', () => {
+    // Both cancel routes (email link and Mine bookinger) render the shared view.
+    const cancelViewSource = readWorkspaceFile('app/routes/booking/public/_components/cancel-appointment.tsx');
+    for (const route of [
+      'app/routes/booking/public/appointment/cancel/booking.public.appointment.cancel.route.tsx',
+      'app/routes/booking/public/appointment/cancel-by-id/booking.public.appointment.cancel-by-id.route.tsx',
+    ]) {
+      expect(readWorkspaceFile(route)).toContain('<CancelAppointmentView');
+    }
+
+    expect(cancelViewSource).toContain(
+      "const isSubmitting = navigation.state !== 'idle' && navigation.formMethod === 'POST'",
+    );
+    expect(cancelViewSource).toContain('loading={isSubmitting}');
   });
 
   it('saves time selection through one visible route-owned form and continues with a link', () => {

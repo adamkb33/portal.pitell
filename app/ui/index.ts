@@ -18,3 +18,4 @@ export * from './templates/index';
 
 /* ─── Utilities ───────────────────────────────────────────── */
 export { cn } from './lib/cn';
+export { CATEGORY_TONES, categoryTone, type CategoryTone } from './lib/category-tones';

@@ -1,7 +1,7 @@
 import { type ActionFunctionArgs } from 'react-router';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithSuccess } from '~/lib/flash-message.server';
-import { AdminCompanyController } from '~/api/generated/base';
+import { AdminCompanyController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: ActionFunctionArgs) {

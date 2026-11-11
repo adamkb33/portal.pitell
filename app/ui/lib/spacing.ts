@@ -29,6 +29,8 @@ export const insetSpaceClasses = {
 export type InsetSpace = keyof typeof insetSpaceClasses;
 
 export const containerGutterClasses = {
+  /** For pages inside the app shell, whose <main> already pads the sides. */
+  none: '',
   sm: 'px-4 sm:px-5 md:px-6',
   md: 'px-4 sm:px-6 lg:px-8',
   lg: 'px-5 sm:px-6 lg:px-10',

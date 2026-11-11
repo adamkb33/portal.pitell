@@ -122,6 +122,22 @@ export const BOOKING_ROUTES: RouteBranch[] = [
             category: BrachCategory.USER,
             placement: RoutePlaceMent.NAVIGATION,
             accessType: Access.AUTHENTICATED,
+            children: [
+              {
+                id: 'booking.public.my-appointments.loyalty',
+                href: '/booking/public/my-appointments/loyalty/:companyId',
+                category: BrachCategory.NONE,
+                accessType: Access.AUTHENTICATED,
+                hidden: true,
+              },
+              {
+                id: 'booking.public.my-appointments.appointment',
+                href: '/booking/public/my-appointments/:appointmentId',
+                category: BrachCategory.NONE,
+                accessType: Access.AUTHENTICATED,
+                hidden: true,
+              },
+            ],
           },
         ],
       },

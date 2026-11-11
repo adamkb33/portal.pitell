@@ -14,7 +14,7 @@ vi.mock('~/routes/booking/public/_services/booking.appointment-session.service.s
   },
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   PublicAppointmentSessionController: {
     getAppointmentSessionRequirements: mocks.getAppointmentSessionRequirements,
   },
@@ -96,13 +96,13 @@ describe('booking session guards', () => {
     expect(result).toEqual({ session });
   });
 
-  it('clears stale appointment session cookie and redirects to booking start', async () => {
+  it('clears stale appointment session cookie and restarts through the session route', async () => {
     mocks.getSessionResult.mockResolvedValue({ status: 'stale-cookie' });
 
     const result = await requireBookingReady(new Request('http://localhost/x'));
 
     expect(result).toBeInstanceOf(Response);
-    expect((result as Response).headers.get('Location')).toBe('/booking/public/appointment');
+    expect((result as Response).headers.get('Location')).toBe('/booking/public/appointment/session');
     expect((result as Response).headers.get('Set-Cookie')).toContain('appointment_session=');
   });
 });

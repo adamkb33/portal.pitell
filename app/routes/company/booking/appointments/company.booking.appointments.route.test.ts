@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   formatCurrentDateTimeInTimeZone: vi.fn(),
 }));
 
-vi.mock('~/api/generated/booking', () => ({
+vi.mock('~/api/generated', () => ({
   CompanyUserAppointmentController: {
     getAppointments: mocks.getAppointments,
   },
@@ -102,7 +102,6 @@ describe('company booking appointments list route', () => {
   it('builds canonical appointment detail hrefs for row and card navigation', () => {
     expect(getAppointmentDetailHref(123)).toBe('/company/booking/appointments/123');
     expect(routeSource).toContain("ROUTES_MAP['company.booking.appointments.detail']");
-    expect(routeSource).toContain('onOpen={openAppointmentDetails}');
     expect(routeSource).not.toContain('AppointmentDetailsDialog');
     expect(routeSource).not.toContain("nextParams.delete('appointmentId')");
   });

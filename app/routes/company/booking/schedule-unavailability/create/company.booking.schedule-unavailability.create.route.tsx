@@ -1,50 +1,23 @@
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { data, redirect } from 'react-router';
 import type { Route } from './+types/company.booking.schedule-unavailability.create.route';
-import type React from 'react';
 import { useState } from 'react';
-import { useNavigate, useNavigation, useSubmit } from 'react-router';
-import { addMinutes, format, isSameDay, startOfDay } from 'date-fns';
+import { useNavigation, useSubmit } from 'react-router';
+import { format } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
-import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
-import { CompanyUserScheduleUnavailabilityController } from '~/api/generated/booking';
+import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { DateField } from '~/components/pickers/date-field';
+import { TimePicker } from '~/components/pickers/time-picker';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { setFlashMessage } from '~/lib/flash-message.server';
+import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { cn } from '~/lib/utils';
-import { Button, Calendar, CompanyFormPageTemplate, Notice, Popover, PopoverContent, PopoverTrigger, Text } from '~/ui';
+import { CompanyFormPageTemplate, Label, Switch } from '~/ui';
+import { absenceSummary, defaultAbsenceDraft, withStartDay, type AbsenceDraft } from '../_utils/absence-draft';
 
-type UnavailabilityDateRange = {
-  from?: Date;
-  to?: Date;
-};
-
-type UnavailabilityRangeFormData = {
-  id: string;
-  dateRange: UnavailabilityDateRange | undefined;
-  startTime: string;
-  endTime: string;
-};
-
-type UnavailabilityFormData = {
-  ranges: UnavailabilityRangeFormData[];
-};
-
-function createEmptyRange(): UnavailabilityRangeFormData {
-  const today = startOfDay(new Date());
-  return {
-    id: String(Date.now()) + Math.random().toString(36).slice(2),
-    dateRange: { from: today, to: today },
-    startTime: '',
-    endTime: '',
-  };
-}
-
-const emptyFormData: UnavailabilityFormData = {
-  ranges: [createEmptyRange()],
-};
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
 
 function resolveRedirectTo(value: string | null): string {
   if (!value) return ROUTES_MAP['company.booking.schedule-unavailability'].href;
@@ -52,23 +25,17 @@ function resolveRedirectTo(value: string | null): string {
   return value;
 }
 
-function parsePrefillRange(searchParams: URLSearchParams): UnavailabilityRangeFormData | null {
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
-  if (!from || !to) return null;
-
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()) || fromDate >= toDate) return null;
-
+/** "Legg til fravær" from a gap in Kalender opens with that time filled in (`?from=…&to=…`). */
+function parsePrefill(searchParams: URLSearchParams): AbsenceDraft | null {
+  const from = new Date(searchParams.get('from') ?? '');
+  const to = new Date(searchParams.get('to') ?? '');
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) return null;
   return {
-    id: createEmptyRange().id,
-    dateRange: {
-      from: startOfDay(fromDate),
-      to: startOfDay(toDate),
-    },
-    startTime: format(fromDate, 'HH:mm'),
-    endTime: format(toDate, 'HH:mm'),
+    wholeDay: false,
+    startDay: format(from, 'yyyy-MM-dd'),
+    startTime: format(from, 'HH:mm'),
+    endDay: format(to, 'yyyy-MM-dd'),
+    endTime: format(to, 'HH:mm'),
   };
 }
 
@@ -89,7 +56,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return data({
-    prefillRange: parsePrefillRange(url.searchParams),
+    prefill: parsePrefill(url.searchParams),
     redirectTo,
   });
 }
@@ -133,7 +100,7 @@ export async function action({ request }: Route.ActionArgs) {
       await CompanyUserScheduleUnavailabilityController.companyUserCreateUnavailabilityRanges({ body: payload });
     });
 
-    return redirect(redirectTo);
+    return redirectWithSuccess(request, redirectTo, 'Fravær lagret');
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke lagre fravær');
     const flashCookie = await setFlashMessage(request, { type: 'error', text: message });
@@ -141,257 +108,83 @@ export async function action({ request }: Route.ActionArgs) {
   }
 }
 
+/**
+ * Nytt fravær (Skjema, approved sketch 2026-11-11): one continuous period, like a calendar event. Hele dagen first (off),
+ * then Starter and Slutter, each a date with its time on the same row, so "12:00" and "18:00" can only mean the start
+ * on the first day and the end on the last. Slutter follows Starter, so one day is one click. The Lagre bar says what
+ * will be saved, or why it can't be.
+ */
 export default function CompanyBookingScheduleUnavailabilityCreatePage({ loaderData }: Route.ComponentProps) {
   const submit = useSubmit();
-  const navigate = useNavigate();
   const navigation = useNavigation();
-  const isSubmitting = navigation.state === 'submitting';
+  const isSubmitting = navigation.state !== 'idle' && navigation.formMethod === 'POST';
+  const today = format(new Date(), 'yyyy-MM-dd');
 
-  const [formData, setFormData] = useState<UnavailabilityFormData>(() => ({
-    ranges: loaderData.prefillRange ? [loaderData.prefillRange] : emptyFormData.ranges,
-  }));
-  const [formErrors, setFormErrors] = useState<
-    Record<string, Partial<Record<'dateRange' | 'startTime' | 'endTime', string>>>
-  >({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [activeRangeId, setActiveRangeId] = useState<string | null>(null);
-  const today = startOfDay(new Date());
-  const backLabel = loaderData.redirectTo.startsWith(ROUTES_MAP['company.booking.schedule'].href)
-    ? 'Tilbake til ukeplan'
-    : 'Tilbake til fravær';
+  const [draft, setDraft] = useState<AbsenceDraft>(() => loaderData.prefill ?? defaultAbsenceDraft(new Date()));
+  const [openTime, setOpenTime] = useState<'start' | 'end' | null>(null);
+  const summary = absenceSummary(draft, new Date());
+  const update = (next: Partial<AbsenceDraft>) => setDraft((current) => ({ ...current, ...next }));
 
-  const isSingleDayRange = (range: UnavailabilityRangeFormData) =>
-    !!range.dateRange?.from && !!range.dateRange?.to && isSameDay(range.dateRange.from, range.dateRange.to);
-
-  const getEffectiveTimes = (range: UnavailabilityRangeFormData) => {
-    const isTodayRange = !!range.dateRange?.from && isSameDay(range.dateRange.from, new Date());
-    const nextMinute = format(addMinutes(new Date(), 1), 'HH:mm');
-    const currentTime = format(new Date(), 'HH:mm');
-    const normalizeStartTime = (value: string) => (isTodayRange && value <= currentTime ? nextMinute : value);
-
-    if (!isSingleDayRange(range)) {
-      const rangeStartTime = isTodayRange ? nextMinute : '00:00';
-      return { startTime: normalizeStartTime(rangeStartTime), endTime: '23:59' };
-    }
-
-    const requestedStartTime = range.startTime || (isTodayRange ? nextMinute : '00:00');
-    return { startTime: normalizeStartTime(requestedStartTime), endTime: range.endTime || '23:59' };
-  };
-
-  const validateRange = (range: UnavailabilityRangeFormData) => {
-    const nextErrors: Partial<Record<'dateRange' | 'startTime' | 'endTime', string>> = {};
-    if (!range.dateRange?.from || !range.dateRange?.to) {
-      nextErrors.dateRange = 'Velg periode';
-      return { fieldErrors: nextErrors };
-    }
-
-    const { startTime, endTime } = getEffectiveTimes(range);
-    const fromDate = new Date(`${format(range.dateRange.from, 'yyyy-MM-dd')}T${startTime}`);
-    const toDate = new Date(`${format(range.dateRange.to, 'yyyy-MM-dd')}T${endTime}`);
-
-    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-      return { fieldErrors: nextErrors, formError: 'Ugyldig dato eller tid' };
-    }
-
-    if (isSingleDayRange(range) && fromDate <= new Date()) {
-      return { fieldErrors: nextErrors, formError: 'Starttid må være i fremtiden' };
-    }
-
-    if (fromDate >= toDate) {
-      return { fieldErrors: nextErrors, formError: 'Sluttid må være etter starttid' };
-    }
-
-    return { fieldErrors: nextErrors };
-  };
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const nextErrors: Record<string, Partial<Record<'dateRange' | 'startTime' | 'endTime', string>>> = {};
-    let nextFormError: string | null = null;
-
-    formData.ranges.forEach((range) => {
-      const { fieldErrors, formError: rangeError } = validateRange(range);
-      if (Object.keys(fieldErrors).length > 0) {
-        nextErrors[range.id] = fieldErrors;
-      }
-      if (rangeError && !nextFormError) {
-        nextFormError = rangeError;
-      }
-    });
-
-    if (Object.keys(nextErrors).length > 0 || nextFormError) {
-      setFormErrors(nextErrors);
-      setFormError(nextFormError);
-      return;
-    }
-
-    const postFormData = new FormData();
-    postFormData.append(
-      'ranges',
-      JSON.stringify(
-        formData.ranges.map((range) => {
-          const { startTime, endTime } = getEffectiveTimes(range);
-          return {
-            fromDate: format(range.dateRange!.from!, 'yyyy-MM-dd'),
-            toDate: format(range.dateRange!.to!, 'yyyy-MM-dd'),
-            startTime,
-            endTime,
-          };
-        }),
-      ),
+  const row = (which: 'start' | 'end') => {
+    const isStart = which === 'start';
+    const label = isStart ? 'Starter' : 'Slutter';
+    return (
+      <div className="flex flex-col gap-2">
+        <Label id={`absence-${which}-label`}>{label}</Label>
+        <div className={draft.wholeDay ? '' : 'grid grid-cols-[minmax(0,1fr)_7rem] gap-2'}>
+          <DateField
+            aria-labelledby={`absence-${which}-label`}
+            value={isStart ? draft.startDay : draft.endDay}
+            minDay={isStart ? today : draft.startDay}
+            onChange={(day) => (isStart ? setDraft((current) => withStartDay(current, day)) : update({ endDay: day }))}
+          />
+          {draft.wholeDay ? null : (
+            <TimePicker
+              value={isStart ? draft.startTime : draft.endTime}
+              placeholder="Tid"
+              contextLabel={`${label}, klokkeslett`}
+              isOpen={openTime === which}
+              onOpenChange={(open) => setOpenTime(open ? which : null)}
+              onChange={(time) => update(isStart ? { startTime: time } : { endTime: time })}
+              panelAlign="end"
+            />
+          )}
+        </div>
+      </div>
     );
-
-    submit(postFormData, { method: 'post' });
   };
 
   return (
     <CompanyFormPageTemplate
-      title="Legg til pause eller fravær"
-      description="Velg dato og klokkeslett for tiden som skal blokkeres i bookingkalenderen."
-      backLink={{ to: loaderData.redirectTo, label: backLabel }}
-      notices={formError ? <Notice tone="emphasis" title="Kunne ikke lagre fravær" message={formError} /> : null}
-      footer={
-        <>
-          <Button type="button" variant="outline" onClick={() => navigate(loaderData.redirectTo)}>
-            Avbryt
-          </Button>
-          <Button type="submit" form="schedule-unavailability-form" loading={isSubmitting}>
-            Lagre pause/fravær
-          </Button>
-        </>
-      }
+      title="Nytt fravær"
+      submit={{
+        form: 'schedule-unavailability-form',
+        loading: isSubmitting,
+        disabled: !summary.valid,
+        message: summary.text,
+      }}
     >
-      <form id="schedule-unavailability-form" onSubmit={handleSubmit} className="space-y-3">
-        <div className="space-y-3">
-          {formData.ranges.map((range, index) => {
-            const rangeErrors = formErrors[range.id] || {};
-            const isSingleDay =
-              !!range.dateRange?.from && !!range.dateRange?.to && isSameDay(range.dateRange.from, range.dateRange.to);
-            const label = range.dateRange?.from
-              ? range.dateRange.to
-                ? `${format(range.dateRange.from, 'dd.MM.yyyy')} – ${format(range.dateRange.to, 'dd.MM.yyyy')}`
-                : format(range.dateRange.from, 'dd.MM.yyyy')
-              : 'Velg periode';
-
-            return (
-              <div key={range.id} className="space-y-3 border-b border-border pb-4 last:border-b-0">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <Text as="p" variant="label" className="text-text-primary">
-                      Periode {index + 1}
-                    </Text>
-                    <Text as="p" variant="body-sm" className="text-text-secondary">
-                      Velg datoer og klokkeslett for perioden som skal blokkeres.
-                    </Text>
-                  </div>
-                  {formData.ranges.length > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFormData((prev) => ({ ranges: prev.ranges.filter((r) => r.id !== range.id) }))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  ) : null}
-                </div>
-
-                <Popover
-                  open={isDatePickerOpen && activeRangeId === range.id}
-                  onOpenChange={(open) => {
-                    setIsDatePickerOpen(open);
-                    setActiveRangeId(open ? range.id : null);
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        'h-11 w-full justify-between bg-background text-text-primary',
-                        !range.dateRange?.from && 'text-text-secondary',
-                      )}
-                    >
-                      <span className="text-sm">{label}</span>
-                      <CalendarIcon className="h-4 w-4 opacity-60" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="range"
-                      selected={range.dateRange}
-                      onSelect={(nextRange) => {
-                        setFormData((prev) => ({
-                          ranges: prev.ranges.map((r) =>
-                            r.id === range.id
-                              ? { ...r, dateRange: (nextRange as UnavailabilityDateRange) ?? undefined }
-                              : r,
-                          ),
-                        }));
-                      }}
-                      hidden={{ before: today }}
-                      numberOfMonths={1}
-                      className="rounded-md border"
-                    />
-                  </PopoverContent>
-                </Popover>
-                {rangeErrors.dateRange ? (
-                  <p className="mt-1.5 text-xs text-destructive">{rangeErrors.dateRange}</p>
-                ) : null}
-
-                {isSingleDay ? (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <StartEndTimeSelector
-                        startName={`range-${range.id}-startTime`}
-                        endName={`range-${range.id}-endTime`}
-                        startValue={range.startTime || '00:00'}
-                        endValue={range.endTime || '23:59'}
-                        startPlaceholder="Velg starttid"
-                        endPlaceholder="Velg sluttid"
-                        zIndex={60}
-                        onStartChange={(nextValue) => {
-                          setFormData((prev) => ({
-                            ranges: prev.ranges.map((r) => (r.id === range.id ? { ...r, startTime: nextValue } : r)),
-                          }));
-                          setFormErrors((prev) => ({
-                            ...prev,
-                            [range.id]: { ...(prev[range.id] || {}), startTime: undefined },
-                          }));
-                          setFormError(null);
-                        }}
-                        onEndChange={(nextValue) => {
-                          setFormData((prev) => ({
-                            ranges: prev.ranges.map((r) => (r.id === range.id ? { ...r, endTime: nextValue } : r)),
-                          }));
-                          setFormErrors((prev) => ({
-                            ...prev,
-                            [range.id]: { ...(prev[range.id] || {}), endTime: undefined },
-                          }));
-                          setFormError(null);
-                        }}
-                      />
-                      {rangeErrors.startTime ? (
-                        <p className="text-xs text-destructive">{rangeErrors.startTime}</p>
-                      ) : null}
-                      {rangeErrors.endTime ? <p className="text-xs text-destructive">{rangeErrors.endTime}</p> : null}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+      <form
+        id="schedule-unavailability-form"
+        className="flex max-w-xl flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!summary.valid) return;
+          const body = new FormData();
+          body.append('ranges', JSON.stringify([summary.range]));
+          submit(body, { method: 'post' });
+        }}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+          <Label id="absence-whole-day-label">Hele dagen</Label>
+          <Switch
+            aria-labelledby="absence-whole-day-label"
+            checked={draft.wholeDay}
+            onCheckedChange={(wholeDay) => update({ wholeDay })}
+          />
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full"
-          onClick={() => setFormData((prev) => ({ ranges: [...prev.ranges, createEmptyRange()] }))}
-        >
-          Legg til periode
-        </Button>
+        {row('start')}
+        {row('end')}
       </form>
     </CompanyFormPageTemplate>
   );

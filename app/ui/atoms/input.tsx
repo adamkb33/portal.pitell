@@ -21,9 +21,9 @@ const sizeClasses: Record<InputSize, string> = {
 
 const variantClasses: Record<InputVariant, string> = {
   default:
-    'border-border bg-background text-text-primary placeholder:text-text-disabled focus-visible:border-interactive focus-visible:ring-blue-50 disabled:bg-surface-variant-2 disabled:text-text-disabled',
+    'border-field-border bg-background text-text-primary placeholder:text-text-placeholder focus-visible:border-interactive focus-visible:ring-blue-50 disabled:bg-surface-variant-2 disabled:text-text-disabled',
   booking:
-    'border-booking-border bg-booking-surface-strong text-booking-text placeholder:text-booking-text-muted focus-visible:border-booking-action focus-visible:ring-booking-action/25 disabled:bg-booking-surface-muted disabled:text-booking-text-muted',
+    'border-booking-field-border bg-booking-surface-strong text-booking-text placeholder:text-booking-text-muted focus-visible:border-booking-action focus-visible:ring-booking-action/25 disabled:bg-booking-surface-muted disabled:text-booking-text-muted',
 };
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(

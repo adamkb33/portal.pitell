@@ -1,28 +1,15 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { data, Link, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.route';
-import { AppointmentsController, type CompanySummaryDto } from '~/api/generated/booking';
+import { AppointmentsController, type CompanySummaryDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { parseBookingContext, resolveBookingTheme } from '~/lib/booking-context.server';
 import type { BookingThemeKey } from '~/lib/booking-theme';
-import {
-  Container,
-  Card,
-  CardAction,
-  CardContent,
-  CardFooter,
-  CardHead,
-  KeyValueList,
-  Notice,
-  Grid,
-  PageHeader,
-  Panel,
-  Stack,
-  Text,
-} from '~/ui';
-import { Loader2 } from 'lucide-react';
+import { Button, cn, Container, Input, Notice } from '~/ui';
+import { ChevronRight, Loader2, MapPin, Search } from 'lucide-react';
+import { formatCompanyName } from '~/routes/booking/public/_utils/booking-company-name';
 
 const CompaniesMap = lazy(() => import('~/components/booking/companies-map.client'));
 
@@ -36,19 +23,6 @@ const MAX_GEOCODE = 12;
 const GEO_DELAY_MS = 150;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const buildAddressLine = (company: CompanySummaryDto): string | null => {
-  const address = company.businessAddress || company.postalAddress;
-  if (!address) return null;
-
-  const street = address.addressLines?.join(' ') || '';
-  const city = address.city || address.municipality || '';
-  const postalCode = address.postalCode || '';
-  const country = address.country ?? address.countryCode ?? '';
-  const location = [postalCode, city].filter(Boolean).join(' ');
-
-  return [street, location, country].filter(Boolean).join(', ') || null;
-};
 
 const buildCompanyQuery = (company: CompanySummaryDto): string | null => {
   const address = company.businessAddress || company.postalAddress;
@@ -212,13 +186,38 @@ export async function action({ request: _request }: Route.ActionArgs) {
   return data(null, { status: 405 });
 }
 
+const toTitleCase = (value: string) => (value === value.toUpperCase() ? formatCompanyName(value) : value);
+
+/** "Brogata 12, Fredrikstad": enough for a customer to recognise the place. */
+export function buildShortAddress(company: CompanySummaryDto): string | null {
+  const address = company.businessAddress || company.postalAddress;
+  if (!address) return null;
+  const street = address.addressLines?.join(' ') || '';
+  const city = address.city || address.municipality || '';
+  return [street, city ? toTitleCase(city) : ''].filter(Boolean).join(', ') || null;
+}
+
+const getInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('') || '?';
+
+/** Search only earns its place once there are a handful of places to choose between. */
+const SEARCH_THRESHOLD = 5;
+
 export default function AppointmentsRoute({ loaderData }: Route.ComponentProps) {
   const companies = loaderData.companies ?? [];
   const locations = loaderData.locations ?? [];
   const error = loaderData.error ?? null;
   const theme = loaderData.theme;
   const errorMessage = typeof error === 'string' ? error : (error?.value ?? null);
-  const [showMap, setShowMap] = useState(false);
+  const [search, setSearch] = useState('');
+  const [isClient, setIsClient] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [activeCompanyId, setActiveCompanyId] = useState<number | null>(null);
   const navigation = useNavigation();
   const isNavigatingToSession = useMemo(() => {
@@ -227,123 +226,151 @@ export default function AppointmentsRoute({ loaderData }: Route.ComponentProps) 
     return navigation.location?.pathname?.startsWith(targetPath) ?? false;
   }, [navigation.location?.pathname, navigation.state]);
 
+  // The map only runs in the browser; desktop always shows it, phones only on request.
   useEffect(() => {
-    setShowMap(true);
+    setIsClient(true);
+    const query = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setIsDesktop(query.matches);
+    apply();
+    query.addEventListener('change', apply);
+    return () => query.removeEventListener('change', apply);
   }, []);
 
+  const places = companies.map((company) => {
+    const name = formatCompanyName(company.name || `Selskap ${company.orgNumber}`);
+    return { company, name, address: buildShortAddress(company) };
+  });
+  const searchLower = search.trim().toLocaleLowerCase('nb-NO');
+  const visiblePlaces = searchLower
+    ? places.filter((place) => `${place.name} ${place.address ?? ''}`.toLocaleLowerCase('nb-NO').includes(searchLower))
+    : places;
+  const showMap = isClient && companies.length > 0 && (isDesktop || mapOpen);
+
+  const map = (
+    <Suspense
+      fallback={
+        <div className="flex h-72 items-center justify-center rounded-xl border border-border bg-background text-sm text-text-secondary">
+          Laster kart...
+        </div>
+      }
+    >
+      <CompaniesMap locations={locations} />
+    </Suspense>
+  );
+
   return (
-    <Container size="lg">
-      <Stack space="xl">
-        <PageHeader
-          label="Bestill time"
-          title="Velg bedrift"
-          description="Velg en bedrift for å starte timebestilling."
-        />
+    <Container gutter="none" size="lg">
+      <div className="mx-auto grid w-full max-w-4xl items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-4">
+          <h1 className="font-display text-2xl font-bold leading-tight tracking-tight md:text-3xl">
+            Hvor vil du bestille?
+          </h1>
 
-        {errorMessage ? (
-          <Notice variant="booking" tone="emphasis" title="Kunne ikke hente timebestillinger" message={errorMessage} />
-        ) : null}
+          {errorMessage ? (
+            <Notice variant="booking" tone="emphasis" title="Kunne ikke hente steder" message={errorMessage} />
+          ) : null}
 
-        {companies.length > 0 && (
-          <Panel title="Kart" tone="muted">
-            {showMap ? (
-              <Suspense
-                fallback={
-                  <div className="flex h-72 items-center justify-center rounded-md border border-border bg-background text-sm text-text-secondary">
-                    Laster kart...
-                  </div>
-                }
-              >
-                <CompaniesMap locations={locations} />
-              </Suspense>
-            ) : (
-              <div className="flex h-72 items-center justify-center rounded-md border border-border bg-background text-sm text-text-secondary">
-                Laster kart...
-              </div>
-            )}
-          </Panel>
-        )}
+          {companies.length > SEARCH_THRESHOLD ? (
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary"
+                aria-hidden
+              />
+              <Input
+                type="search"
+                aria-label="Søk etter navn eller sted"
+                placeholder="Søk etter navn eller sted"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-11 bg-background pl-9"
+              />
+            </div>
+          ) : null}
 
-        <Panel title="Tilgjengelige bedrifter">
-          {companies.length === 0 ? (
-            <Notice
-              variant="booking"
-              tone="default"
-              title="Ingen bedrifter"
-              message="Ingen bedrifter er klare for booking akkurat nå."
-            />
-          ) : (
-            <Grid columns={2}>
-              {companies.map((company) => {
-                const companyName = company.name || `Selskap ${company.orgNumber}`;
+          {companies.length === 0 && !errorMessage ? (
+            <p className="rounded-xl border border-border bg-background p-4 text-center text-sm text-text-secondary">
+              Ingen steder tar imot bestillinger akkurat nå.
+            </p>
+          ) : null}
+
+          {places.length > 0 ? (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-background">
+              {visiblePlaces.map(({ company, name, address }) => {
                 const startParams = new URLSearchParams({ companyId: String(company.id) });
                 if (theme && theme !== 'pitell') {
                   startParams.set('theme', theme);
                 }
                 const startUrl = `${ROUTES_MAP['booking.public.appointment.session'].href}?${startParams.toString()}`;
-                const addressLine = buildAddressLine(company);
-                const orgTypeDescription = company.organizationType?.description;
                 const isLoading = isNavigatingToSession && activeCompanyId === company.id;
 
                 return (
-                  <Link
-                    key={company.id}
-                    to={startUrl}
-                    onClick={(event) => {
-                      if (isNavigatingToSession) {
-                        event.preventDefault();
-                        return;
-                      }
-                      setActiveCompanyId(company.id);
-                    }}
-                    aria-disabled={isNavigatingToSession}
-                    className={`group block focus-visible:outline-none ${isNavigatingToSession ? 'pointer-events-none opacity-60' : ''}`}
-                    aria-label={`Start booking hos ${companyName}`}
-                  >
-                    <Card
-                      variant="interactive"
-                      size="md"
-                      className="h-full focus-visible:ring-2 focus-visible:ring-interactive"
+                  <li key={company.id}>
+                    <Link
+                      to={startUrl}
+                      onClick={(event) => {
+                        if (isNavigatingToSession) {
+                          event.preventDefault();
+                          return;
+                        }
+                        setActiveCompanyId(company.id);
+                      }}
+                      aria-disabled={isNavigatingToSession}
+                      aria-label={`Bestill hos ${name}`}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-4 transition-colors hover:bg-surface-variant-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-booking-action-text sm:px-5',
+                        isNavigatingToSession && !isLoading && 'pointer-events-none opacity-60',
+                      )}
                     >
-                      <CardHead heading={companyName}>
-                        <Text as="p" variant="body-sm" className="text-text-secondary">
-                          {orgTypeDescription
-                            ? `Organisasjonsform: ${orgTypeDescription}`
-                            : 'Velg denne bedriften for å starte en ny booking.'}
-                        </Text>
-                      </CardHead>
-                      <CardContent>
-                        <KeyValueList
-                          layout="compact"
-                          items={[
-                            { label: 'Org.nr', value: company.orgNumber },
-                            ...(addressLine ? [{ label: 'Adresse', value: addressLine }] : []),
-                          ]}
+                      <span
+                        aria-hidden
+                        className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] bg-booking-action-muted text-sm font-semibold text-booking-action-text"
+                      >
+                        {getInitials(name)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold leading-snug text-text-primary">{name}</span>
+                        {address ? <span className="block truncate text-sm text-text-secondary">{address}</span> : null}
+                      </span>
+                      {isLoading ? (
+                        <Loader2
+                          className="h-4 w-4 shrink-0 animate-spin text-booking-action-text"
+                          aria-label="Starter"
                         />
-                      </CardContent>
-                      <CardFooter>
-                        <CardAction>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="size-4 animate-spin" />
-                              Starter booking...
-                            </>
-                          ) : (
-                            <>
-                              Start booking
-                              <span aria-hidden="true">→</span>
-                            </>
-                          )}
-                        </CardAction>
-                      </CardFooter>
-                    </Card>
-                  </Link>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-text-disabled" aria-hidden />
+                      )}
+                    </Link>
+                  </li>
                 );
               })}
-            </Grid>
-          )}
-        </Panel>
-      </Stack>
+              {visiblePlaces.length === 0 ? (
+                <li className="p-4 text-center text-sm text-text-secondary">Fant ingen steder som passer søket.</li>
+              ) : null}
+            </ul>
+          ) : null}
+
+          {companies.length > 0 && !isDesktop ? (
+            <Button
+              type="button"
+              variant="booking-ghost"
+              size="sm"
+              className="px-0"
+              onClick={() => setMapOpen((open) => !open)}
+            >
+              <MapPin className="h-4 w-4" />
+              {mapOpen ? 'Skjul kart' : 'Vis på kart'}
+            </Button>
+          ) : null}
+
+          {showMap && !isDesktop ? map : null}
+        </div>
+
+        {showMap && isDesktop ? (
+          <aside aria-label="Kart" className="sticky top-[calc(var(--app-header-height)+1.5rem)]">
+            {map}
+          </aside>
+        ) : null}
+      </div>
     </Container>
   );
 }

@@ -1,6 +1,6 @@
 import { data, Form, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.companies.products.delete.route';
-import { Base } from '~/api/generated/base';
+import { Base } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
@@ -10,7 +10,7 @@ import { SystemAdminCompanySelect } from '../../_components/system-admin-company
 import { parsePositiveInteger } from '../../_utils/system-admin-company-display';
 import { loadSystemAdminCompanyOptions } from '../../_utils/system-admin-companies.server';
 
-const PRODUCT_VALUES = ['BOOKING', 'EVENT', 'OFFER', 'TIMESHEET'] as const;
+const PRODUCT_VALUES = ['BOOKING', 'EVENT', 'OFFER', 'MARKETING', 'TIMESHEET'] as const;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);

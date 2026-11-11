@@ -1,4 +1,4 @@
-import type { TimesheetDayEntryDto } from '~/api/generated/timesheet';
+import type { TimesheetDayEntryDto } from '~/api/generated';
 import { CALENDAR_END_HOUR, CALENDAR_START_HOUR } from './constants';
 
 const parseTimeToMinutes = (value?: string) => {

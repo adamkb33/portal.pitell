@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import type { OfferTemplateFieldDto } from '~/api/generated/offer';
+import type { OfferTemplateFieldDto } from '~/api/generated';
 import { Checkbox } from '~/ui';
 
 type CarPanelOption = NonNullable<OfferTemplateFieldDto['options']>[number];

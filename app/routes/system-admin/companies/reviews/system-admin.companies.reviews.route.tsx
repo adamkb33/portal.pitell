@@ -5,7 +5,7 @@ import {
   type PaginatedResponseSystemAdminReviewDto,
   type SystemAdminCompanyDto,
   type SystemAdminReviewDto,
-} from '~/api/generated/base';
+} from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';

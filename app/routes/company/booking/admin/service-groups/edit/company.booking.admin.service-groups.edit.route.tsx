@@ -1,13 +1,19 @@
-import { data, redirect } from 'react-router';
+import type { FormPageHandle } from '~/lib/routing/create-action';
+import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
+import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.edit.route';
-import { CompanyUserServiceGroupController, type ServiceGroupDto } from '~/api/generated/booking';
+import { CompanyUserServiceGroupController, ServiceController, type ServiceGroupDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { redirectWithInfo, setFlashMessage } from '~/lib/flash-message.server';
+import { redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ServiceGroupFormPage, type ServiceGroupFormValues } from '../_components/service-group-form-page';
 
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+export const handle: FormPageHandle = { formPage: true };
+
 export async function loader({ request }: Route.LoaderArgs) {
+  await requireBookingAdmin({ request });
   const url = new URL(request.url);
   const id = Number(url.searchParams.get('id'));
 
@@ -20,16 +26,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () =>
-      CompanyUserServiceGroupController.getServiceGroups({
-        query: {
-          page: 0,
-          size: 1000,
-        },
-      }),
+    // Services too: deleting the group deletes them, so the confirm dialog says how many.
+    const [response, servicesResponse] = await withAuth(request, async () =>
+      Promise.all([
+        CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
+        ServiceController.getServices({ query: { page: 0, size: 1000 } }),
+      ]),
     );
 
     const serviceGroup = (response.data?.data?.content ?? []).find((item: ServiceGroupDto) => item.id === id) ?? null;
+    const serviceCount = (servicesResponse.data?.data?.content ?? []).filter(
+      (service) => service.serviceGroupId === id,
+    ).length;
 
     if (!serviceGroup) {
       return redirectWithInfo(
@@ -44,6 +52,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         id: serviceGroup.id,
         name: serviceGroup.name,
       } satisfies ServiceGroupFormValues,
+      serviceCount,
       error: null as string | null,
     });
   } catch (error) {
@@ -59,6 +68,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const id = Number(formData.get('id'));
   const values: ServiceGroupFormValues = {
@@ -83,7 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
       });
     });
 
-    return redirect(ROUTES_MAP['company.booking.admin.service-groups'].href);
+    return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.service-groups'].href, 'Gruppe lagret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke oppdatere tjenestegruppe');
     const flashCookie = await setFlashMessage(request, { type: 'error', text: message });
@@ -96,6 +106,7 @@ export default function CompanyBookingAdminServiceGroupsEditPage({ loaderData, a
     <ServiceGroupFormPage
       mode="edit"
       values={actionData?.values ?? loaderData.values}
+      serviceCount={'serviceCount' in loaderData ? loaderData.serviceCount : 0}
       actionData={actionData ?? (loaderData.error ? { error: loaderData.error, values: loaderData.values } : null)}
     />
   );

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { BookingProfileDto } from '~/api/generated/booking';
+import type { BookingProfileDto } from '~/api/generated';
 import { Button } from '~/ui';
 
 export interface BookingProfileCardProps {

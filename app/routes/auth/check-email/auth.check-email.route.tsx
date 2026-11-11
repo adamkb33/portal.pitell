@@ -4,7 +4,7 @@ import { Link, data, Form, useActionData, useNavigate, useNavigation, useRevalid
 import type { Route } from './+types/auth.check-email.route';
 
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { AuthController, type DeliveryStatusDto, type VerificationStatusResponseDto } from '~/api/generated/base';
+import { AuthController, type DeliveryStatusDto, type VerificationStatusResponseDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { resolveAuthNextStepHref } from '../_utils/auth-flow';
 import { getVerificationTokenFromRequest } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils.server';

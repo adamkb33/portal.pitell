@@ -1,6 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.diagnostics.booking.route';
-import { Diagnostic } from '~/api/generated/diagnostic';
+import { Diagnostic } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';

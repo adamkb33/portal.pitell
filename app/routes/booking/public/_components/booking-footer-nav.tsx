@@ -2,25 +2,18 @@ import * as React from 'react';
 import { cn } from '~/ui';
 
 export interface BookingFooterNavProps extends React.HTMLAttributes<HTMLElement> {
+  /** "Tilbake" to the previous step (left out on the first step), then the step's main action. */
   children: React.ReactNode;
-  columns?: 1 | 2 | 3;
   /** CSS selector for the page footer the nav should avoid overlapping. */
   avoidSelector?: string;
   /** Optional message strip above the buttons — stays visible since the nav is fixed. */
   message?: React.ReactNode;
 }
 
-const gridClassByColumns: Record<NonNullable<BookingFooterNavProps['columns']>, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-};
-
 const BASE_OFFSET_PX = 12; // matches inset-x-3 / 0.75rem
 
 export function BookingFooterNav({
   children,
-  columns = 2,
   className,
   avoidSelector = 'footer',
   message,
@@ -69,8 +62,10 @@ export function BookingFooterNav({
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
 
+    // The footer moves when the page above it grows (e.g. times appearing), so watch the page too.
     const observer = new ResizeObserver(update);
     observer.observe(footer);
+    observer.observe(document.body);
 
     return () => {
       window.removeEventListener('scroll', update);
@@ -106,6 +101,7 @@ export function BookingFooterNav({
       <div style={{ height: spacerHeight ?? 0 }}>
         <div
           ref={wrapperRef}
+          data-floating-action-bar
           style={{
             bottom: `max(${bottomOffset ?? BASE_OFFSET_PX}px, env(safe-area-inset-bottom))`,
           }}
@@ -136,7 +132,7 @@ export function BookingFooterNav({
               )}
               {...props}
             >
-              <div className={cn('grid w-full gap-2', gridClassByColumns[columns])}>{children}</div>
+              <div className="grid w-full auto-cols-fr grid-flow-col gap-2">{children}</div>
             </nav>
           </div>
         </div>

@@ -1,11 +1,12 @@
 import { Link, Form } from 'react-router';
 import { FileText, Send, CheckCircle2, XCircle } from 'lucide-react';
 import type { Route } from './+types/company.offer.route';
-import { Offer, type OfferDto } from '~/api/generated/offer';
+import { Offer, type OfferDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { OfferStatusBadge } from './_components';
+import { PageCreateButton } from '~/routes/_components/page-create-button';
 import {
   formatOfferDate,
   getCompanyOfferDetailHref,
@@ -27,6 +28,11 @@ import {
   TableHeader,
   TableRow,
 } from '~/ui';
+import type { CreateActionHandle } from '~/lib/routing/create-action';
+
+export const handle = {
+  createAction: { label: 'Nytt tilbud', to: ROUTES_MAP['company.offer.create'].href },
+} satisfies CreateActionHandle;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -61,15 +67,13 @@ export default function CompanyOfferRoute({ loaderData }: Route.ComponentProps) 
       label="Tilbud"
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm">
-            <Link to={ROUTES_MAP['company.offer.create'].href}>Nytt tilbud</Link>
-          </Button>
           <Button asChild size="sm" variant="outline">
             <Link to={ROUTES_MAP['company.offer.catalog'].href}>Varekatalog</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link to={ROUTES_MAP['company.offer'].href}>Oppdater</Link>
           </Button>
+          <PageCreateButton size="sm" />
         </div>
       }
       hero={

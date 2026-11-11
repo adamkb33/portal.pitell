@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Clock } from 'lucide-react';
-import type { ScheduleDto } from '~/api/generated/booking';
+import type { ScheduleDto } from '~/api/generated';
 import { formatFullDate } from '~/lib/date.utils';
 import { cn, Panel as BookingSection } from '~/ui';
 import { groupTimeSlotsByHour, isSameSlotTime } from '../_utils/select-time-schedule';
@@ -12,6 +12,8 @@ type TimeSlotsSectionProps = {
   displayTime: string | null;
   isSubmitting: boolean;
   variant?: 'mobile' | 'desktop';
+  /** Picks a time without submitting a form (Ny time on the company side). */
+  onSelectTime?: (time: string) => void;
 };
 
 export function TimeSlotsSection({
@@ -20,6 +22,7 @@ export function TimeSlotsSection({
   displayTime,
   isSubmitting,
   variant = 'mobile',
+  onSelectTime,
 }: TimeSlotsSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showMoreTimeHint, setShowMoreTimeHint] = useState(true);
@@ -56,7 +59,7 @@ export function TimeSlotsSection({
     return (
       <BookingSection className="lg:col-span-3">
         {!selectedDate ? (
-          <div className="flex min-h-56 flex-col items-center justify-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-2 py-6">
             <Clock className="size-12 text-booking-text-muted opacity-50" />
             <p className="text-sm font-medium text-booking-text">Velg en dato først</p>
             <p className="max-w-xs text-center text-xs text-booking-text-muted">
@@ -69,7 +72,7 @@ export function TimeSlotsSection({
               <div className="flex items-center gap-2">
                 <Clock className="size-5 text-booking-text-muted" />
                 <div>
-                  <h3 className="text-base font-bold text-booking-text">Ledige tider</h3>
+                  <h3 className="text-base font-bold text-booking-text">Velg tid</h3>
                   <p className="text-sm text-booking-text-muted">{formatFullDate(selectedDate)}</p>
                 </div>
               </div>
@@ -83,6 +86,7 @@ export function TimeSlotsSection({
                   slots={groupedTimeSlots[hour]}
                   displayTime={displayTime}
                   isSubmitting={isSubmitting}
+                  onSelectTime={onSelectTime}
                   className="min-w-44"
                 />
               ))}
@@ -117,7 +121,7 @@ export function TimeSlotsSection({
               )}
               aria-hidden="true"
             >
-              <ChevronRight className="size-4 text-booking-action animate-bounce-right" />
+              <ChevronRight className="size-4 text-booking-action-text animate-bounce-right" />
             </div>
           )}
           <div ref={scrollRef} className="overflow-x-auto pb-2 pr-8">
@@ -129,6 +133,7 @@ export function TimeSlotsSection({
                   slots={groupedTimeSlots[hour]}
                   displayTime={displayTime}
                   isSubmitting={isSubmitting}
+                  onSelectTime={onSelectTime}
                   className="min-w-40"
                 />
               ))}
@@ -145,13 +150,14 @@ type HourColumnProps = {
   slots: ScheduleDto['timeSlots'];
   displayTime: string | null;
   isSubmitting: boolean;
+  onSelectTime?: (time: string) => void;
   className?: string;
 };
 
-function HourColumn({ hour, slots, displayTime, isSubmitting, className }: HourColumnProps) {
+function HourColumn({ hour, slots, displayTime, isSubmitting, onSelectTime, className }: HourColumnProps) {
   return (
     <div className={cn('shrink-0', className)}>
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-booking-text-muted">{hour}</div>
+      <div className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-booking-text-muted">{hour}</div>
       <div className="grid grid-cols-2 gap-2 p-1">
         {slots.map((slot) => (
           <TimeSlotButton
@@ -160,6 +166,7 @@ function HourColumn({ hour, slots, displayTime, isSubmitting, className }: HourC
             isSelected={displayTime ? isSameSlotTime(displayTime, slot.startTime) : false}
             disabled={isSubmitting}
             variant="compact"
+            onSelect={onSelectTime}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { Form, Link, data, isRouteErrorResponse, redirect, useNavigation, useRouteError } from 'react-router';
 import type { Route } from './+types/auth.respond-user-invite.route';
 
-import { AuthController, type AcceptUserInviteDto, type UserInviteTokenDto } from '~/api/generated/base';
+import { AuthController, type AcceptUserInviteDto, type UserInviteTokenDto } from '~/api/generated';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
@@ -269,7 +269,7 @@ export default function RespondUserInvitePage({ loaderData, actionData }: Route.
         ) : null}
       </div>
 
-      <Form method="post" className="space-y-6">
+      <Form method="post" className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <FormField

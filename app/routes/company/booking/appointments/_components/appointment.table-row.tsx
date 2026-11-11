@@ -6,8 +6,8 @@ import {
   getTotalServiceCount,
   isAppointmentCompleted,
 } from '../_utils/appointments.utils';
-import type { AppointmentDto } from '~/api/generated/booking';
-import { Button, TableCell, TableRow } from '~/ui';
+import type { AppointmentDto } from '~/api/generated';
+import { Badge, Button, TableCell, TableRow } from '~/ui';
 
 type AppointmentTableRowProps = {
   appointment: AppointmentDto;
@@ -61,7 +61,16 @@ export function AppointmentTableRow({ appointment, onOpen, onDelete, isDeleting 
       </TableCell>
 
       <TableCell>
-        <span className="text-sm font-semibold text-primary">{getTotalPrice(appointment)}</span>
+        {appointment.loyaltyFreeVisit ? (
+          <div className="flex flex-col items-start gap-1">
+            <Badge variant="success" size="sm">
+              Gratis besøk
+            </Badge>
+            <span className="text-xs text-text-secondary line-through">{getTotalPrice(appointment)}</span>
+          </div>
+        ) : (
+          <span className="text-sm font-semibold text-primary">{getTotalPrice(appointment)}</span>
+        )}
       </TableCell>
 
       <TableCell className="text-right">
