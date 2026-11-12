@@ -1,3 +1,4 @@
+import { OSLO_TZ } from '~/lib/oslo-time';
 export function formatOfferCurrency(value: number): string {
   return new Intl.NumberFormat('nb-NO', { style: 'currency', currency: 'NOK' }).format(value);
 }
@@ -9,5 +10,7 @@ export function formatOfferDate(value?: string): string {
 
 export function formatOfferDateTime(value?: string): string {
   if (!value) return '';
-  return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short', timeZone: OSLO_TZ }).format(
+    new Date(value),
+  );
 }

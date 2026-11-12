@@ -1,4 +1,5 @@
 import type { CompanySummaryDto, GroupedServiceGroupDto, LoyaltyCardDto } from '~/api/generated';
+import { formatOslo, formatOsloTime, osloDateParts } from '~/lib/oslo-time';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { getBookingRouteHref } from '~/routes/booking/public/_utils/booking.route-map';
 import {
@@ -15,15 +16,14 @@ type AppointmentTimes = {
 };
 
 export const formatDateParts = (iso: string) => {
-  const date = new Date(iso);
-  const longDate = new Intl.DateTimeFormat('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+  const longDate = formatOslo(iso, { weekday: 'long', day: 'numeric', month: 'long' });
   return {
     // Norwegian writes months in lower case, so only the weekday gets a capital.
     longDate: longDate.charAt(0).toUpperCase() + longDate.slice(1),
-    day: String(date.getDate()),
-    month: new Intl.DateTimeFormat('nb-NO', { month: 'short' }).format(date).replace('.', ''),
-    shortDate: new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'short' }).format(date),
-    time: new Intl.DateTimeFormat('nb-NO', { hour: '2-digit', minute: '2-digit' }).format(date),
+    day: String(osloDateParts(iso).day),
+    month: formatOslo(iso, { month: 'short' }).replace('.', ''),
+    shortDate: formatOslo(iso, { day: 'numeric', month: 'short' }),
+    time: formatOsloTime(iso),
   };
 };
 

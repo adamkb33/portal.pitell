@@ -1,3 +1,4 @@
+import { formatOslo, osloDateParts } from '~/lib/oslo-time';
 import { data, redirect } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.success.route';
 import { CalendarPlus, Check, Clock, Gift, ListChecks, MapPin, User } from 'lucide-react';
@@ -261,8 +262,8 @@ export default function BookingPublicAppointmentSessionSuccessRoute({ loaderData
                   className="flex w-20 shrink-0 flex-col items-center justify-center border-r-2 border-dashed border-booking-surface-raised bg-booking-action py-4 text-booking-action-contrast"
                 >
                   <span className="text-sm">{dateTime.dayName.slice(0, 3).toLocaleLowerCase('nb-NO')}.</span>
-                  <span className="text-3xl font-bold leading-none">{startDate.getDate()}</span>
-                  <span className="text-sm">{startDate.toLocaleDateString('nb-NO', { month: 'short' })}</span>
+                  <span className="text-3xl font-bold leading-none">{osloDateParts(startDate).day}</span>
+                  <span className="text-sm">{formatOslo(startDate, { month: 'short' })}</span>
                 </div>
                 <div className="flex min-w-0 flex-col justify-center gap-0.5 p-4">
                   <h2 className="text-xl font-bold leading-tight tracking-tight text-booking-text md:text-2xl">

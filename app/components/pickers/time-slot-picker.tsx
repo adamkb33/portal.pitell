@@ -1,3 +1,4 @@
+import { formatOsloTime } from '~/lib/oslo-time';
 import * as React from 'react';
 import { Button } from '~/ui';
 import type { ScheduleDto, ScheduleTimeSlot } from '~/api/generated';
@@ -98,15 +99,9 @@ export function TimeSlotPicker({ schedule, selectedTimeSlot, onChange, isSlotAll
   );
 }
 
-/** Extract and format time (HH:mm) from LocalDateTime string */
-function formatTimeOnly(localDateTime: string): string {
-  // Parse ISO 8601 LocalDateTime: "2025-11-16T09:00:00" or "2025-11-16T09:00:00.123"
-  const date = new Date(localDateTime);
-  return date.toLocaleTimeString('no-NO', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+/** HH:mm in shop time (Oslo), whatever zone the browser is in */
+function formatTimeOnly(dateTime: string): string {
+  return formatOsloTime(dateTime);
 }
 
 /** Check if a slot's end time is in the past */

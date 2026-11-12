@@ -1,3 +1,4 @@
+import { OSLO_TZ } from '~/lib/oslo-time';
 import { NavLink, data } from 'react-router';
 import type { Route } from './+types/system-admin.companies.route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -37,7 +38,9 @@ function buildCompaniesHref(query: { page?: number; size?: number; sort?: string
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
   try {
-    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short', timeZone: OSLO_TZ }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }

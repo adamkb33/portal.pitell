@@ -5,6 +5,7 @@ import { AppointmentsController, type LoyaltyCardDto, type MyAppointmentDto } fr
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
+import { osloDaysFromToday } from '~/lib/oslo-time';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
 import { Container as BookingContainer, Notice, PageHeader as BookingPageHeader, Stack } from '~/ui';
@@ -40,8 +41,7 @@ const getSafePage = (value: string | null): number => {
 };
 
 const formatCountdown = (iso: string): string => {
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOfDay(new Date(iso)) - startOfDay(new Date())) / 86_400_000);
+  const days = osloDaysFromToday(iso);
   if (days <= 0) return 'I dag';
   if (days === 1) return 'I morgen';
   return `Om ${days} dager`;

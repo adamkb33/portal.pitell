@@ -1,5 +1,7 @@
 import { addDays, addHours, addMinutes, differenceInMinutes, format, isSameDay, startOfHour } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
+import { OSLO_TZ } from '~/lib/oslo-time';
 import { dayRangeTitle, dayTitle, durationLabel } from '../../_utils/periods';
 
 /**
@@ -23,11 +25,15 @@ export type AbsenceSummary =
 
 const at = (day: string, time: string) => new Date(`${day}T${time}:00`);
 
+/** The shop's wall clock (Oslo), so the logic below works the same in any browser zone. */
+const osloWallClock = (instant: Date) => toZonedTime(instant, OSLO_TZ);
+
 /**
  * A new absence starts as the next whole hour, one hour long (not Hele dagen, which is a choice). After 22:00 it is
  * tomorrow 09:00–10:00 instead, so it never runs past midnight by default.
  */
-export function defaultAbsenceDraft(now: Date): AbsenceDraft {
+export function defaultAbsenceDraft(instant: Date): AbsenceDraft {
+  const now = osloWallClock(instant);
   let start = addHours(startOfHour(now), 1);
   if (start.getHours() >= 23 || !isSameDay(start, now)) {
     start = new Date(addDays(now, 1).setHours(9, 0, 0, 0));
@@ -52,7 +58,8 @@ export function withStartDay(draft: AbsenceDraft, startDay: string): AbsenceDraf
  * "Torsdag 12. nov. 12:00 → søndag 15. nov. 18:00"), or why it can't be saved. Hele dagen is 00:00–23:59, from a
  * minute from now when it starts today.
  */
-export function absenceSummary(draft: AbsenceDraft, now: Date): AbsenceSummary {
+export function absenceSummary(draft: AbsenceDraft, instant: Date): AbsenceSummary {
+  const now = osloWallClock(instant);
   const oneDay = draft.startDay === draft.endDay;
   let startTime = draft.wholeDay ? '00:00' : draft.startTime;
   const endTime = draft.wholeDay ? '23:59' : draft.endTime;

@@ -1,3 +1,4 @@
+import { OSLO_TZ } from '~/lib/oslo-time';
 import { data, Form, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.companies.reviews.route';
 import {
@@ -45,7 +46,9 @@ function parseInteger(value: string | null, options: { min?: number; max?: numbe
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
   try {
-    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short', timeZone: OSLO_TZ }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }

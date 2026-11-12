@@ -1,3 +1,4 @@
+import { OSLO_TZ } from '~/lib/oslo-time';
 import type { AppointmentDto } from '~/api/generated';
 
 export const isAppointmentCompleted = (appointment: Pick<AppointmentDto, 'startTime'>, now: Date = new Date()) => {
@@ -11,6 +12,7 @@ export const formatDateTime = (dateTime: string) => {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: OSLO_TZ,
   });
 };
 
@@ -39,6 +41,6 @@ export const getAppointmentTotals = (appointment: AppointmentDto) => {
 export const isAppointmentInProgress = (appointment: Pick<AppointmentDto, 'startTime' | 'endTime'>, now: Date) =>
   new Date(appointment.startTime) <= now && now <= new Date(appointment.endTime);
 
-export const getTotalServiceCount =(appointment: AppointmentDto) => {
+export const getTotalServiceCount = (appointment: AppointmentDto) => {
   return appointment.groupedServiceGroups?.reduce((sum, group) => sum + (group.services?.length ?? 0), 0) ?? 0;
 };

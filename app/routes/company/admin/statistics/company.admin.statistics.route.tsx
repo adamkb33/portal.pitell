@@ -1,3 +1,4 @@
+import { OSLO_TZ } from '~/lib/oslo-time';
 import { Link } from 'react-router';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import type { Route } from './+types/company.admin.statistics.route';
@@ -330,7 +331,9 @@ function KeyValueRow({
 function formatDate(value?: string | null) {
   if (!value) return '—';
   try {
-    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeStyle: 'short', timeZone: OSLO_TZ }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }
