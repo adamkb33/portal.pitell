@@ -6,8 +6,7 @@ import { CompanyUserMarketingCampaignController, type CampaignSummaryDto } from 
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate } from '~/ui';
-import { BookingErrorState } from '~/routes/company/booking/_components/booking-error-state';
+import { Button, CompanyPageTemplate, PageNotice } from '~/ui';
 import { loader as requireMarketingAdmin } from './company.marketing.layout';
 import { CampaignListRow } from './_components/campaign-list-row';
 import { ListFooter } from './_components/list-footer';
@@ -64,7 +63,7 @@ export default function CompanyMarketingRoute({ loaderData }: Route.ComponentPro
       {isEmpty ? null : <div className="flex justify-end">{newCampaignButton('h-11 w-full px-4 sm:w-auto')}</div>}
 
       {error ? (
-        <BookingErrorState className="min-h-[24rem]" />
+        <PageNotice title="Kunne ikke hente kampanjer" />
       ) : isEmpty ? (
         <section className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-background px-6 py-12 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-marketing-email-soft text-marketing-email">

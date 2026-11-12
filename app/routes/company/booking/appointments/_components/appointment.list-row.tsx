@@ -1,7 +1,8 @@
-import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { Check, Gift, ImageIcon, ChevronRight, UserX } from 'lucide-react';
 import { Link } from 'react-router';
 import type { AppointmentDto } from '~/api/generated';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
 import { cn } from '~/ui';
 import { getAppointmentTotals } from '../_utils/appointments.utils';
@@ -61,7 +62,7 @@ export function AppointmentListRow({ appointment, href, marker }: AppointmentLis
     >
       <time dateTime={appointment.startTime} className="block w-14 shrink-0">
         <span className={cn('block text-base font-semibold tabular-nums leading-tight', strongText)}>
-          {format(parseISO(appointment.startTime), 'HH:mm')}
+          {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm')}
         </span>
         {state === 'now' ? <span className="block text-xs font-semibold text-white">Nå</span> : null}
         {state === 'next' ? <span className="block text-xs font-semibold text-interactive">Neste</span> : null}

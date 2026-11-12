@@ -7,7 +7,7 @@ import { Offer, type OfferCatalogItemDto, type OfferTemplateDto } from '~/api/ge
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyFormPageTemplate, Input, Notice, Panel, ProgressSteps } from '~/ui';
+import { Button, CompanyFormPageTemplate, Input, Notice, Panel, ProgressSteps, PageNotice } from '~/ui';
 import { formatOfferCurrency, getCompanyOfferDetailHref } from '../_utils';
 import { OfferDatePicker } from './_components/company.offer.date-picker';
 import { InfoTile } from './_components/company.offer.info-tile';
@@ -188,9 +188,7 @@ export default function CompanyOfferCreateRoute({ loaderData, actionData }: Rout
       title="Nytt tilbud"
       notices={
         <>
-          {loaderData.error ? (
-            <Notice tone="emphasis" title="Kunne ikke hente tilbudsdata" message={loaderData.error} />
-          ) : null}
+          {loaderData.error ? <PageNotice title="Kunne ikke hente tilbudsdata" /> : null}
           {actionData?.error ? (
             <Notice tone="emphasis" title="Kunne ikke opprette tilbud" message={actionData.error} />
           ) : null}

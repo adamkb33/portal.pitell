@@ -22,6 +22,23 @@ const tree = [
 ];
 
 describe('buildCrumbs', () => {
+  it('links a crumb to crumbTo when its own page is not meant to be opened (Bruker → Min profil)', () => {
+    const userTree = [
+      {
+        ...branch('user', '/user', 'Bruker', [
+          branch('user.profile', '/user/profile', 'Min profil', [
+            branch('user.profile.password', '/user/profile/passord', 'Endre passord', undefined, true),
+          ]),
+        ]),
+        crumbTo: '/user/profile',
+      },
+    ];
+    const crumbs = buildCrumbs(userTree, '/user/profile/passord');
+    expect(crumbs.map((crumb) => crumb.href)).toEqual(['/user/profile', '/user/profile', '/user/profile/passord']);
+    expect(upCrumb(crumbs)?.label).toBe('Min profil');
+    expect(upCrumb(buildCrumbs(userTree, '/user/profile'))).toBeNull();
+  });
+
   it('names hidden pages, preferring a static route over a param route', () => {
     expect(buildCrumbs(tree, '/company/appointments/create').map((crumb) => crumb.label)).toEqual([
       'Mitt selskap',

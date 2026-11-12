@@ -19,7 +19,6 @@ import {
   CompanyEmptyState,
   CompanyPageTemplate,
   KpiCard,
-  Notice,
   Panel,
   Table,
   TableBody,
@@ -27,6 +26,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  PageNotice,
 } from '~/ui';
 import type { CreateActionHandle } from '~/lib/routing/create-action';
 
@@ -114,7 +114,7 @@ export default function CompanyOfferRoute({ loaderData }: Route.ComponentProps) 
       </Panel>
 
       {error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente tilbud" message={error} />
+        <PageNotice title="Kunne ikke hente tilbud" />
       ) : offers.length === 0 ? (
         <CompanyEmptyState
           icon={<FileText className="h-6 w-6" />}

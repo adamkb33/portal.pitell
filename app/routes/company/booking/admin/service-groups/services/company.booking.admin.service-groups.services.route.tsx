@@ -2,7 +2,7 @@ import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/co
 import { Link } from 'react-router';
 import { useMemo, useState } from 'react';
 import { ChevronRight, ClipboardList, ImageIcon, Search, SearchX, X } from 'lucide-react';
-import { Button, CompanyPageTemplate, Input, Notice, categoryTone, cn } from '~/ui';
+import { Button, CompanyPageTemplate, Input, categoryTone, cn, PageNotice } from '~/ui';
 import { withAuth } from '~/api/utils/with-auth';
 import { CompanyUserServiceGroupController, ServiceController, type ServiceDto } from '~/api/generated';
 import { redirectWithInfo } from '~/lib/flash-message.server';
@@ -64,7 +64,7 @@ export default function BookingAdminServices({ loaderData }: Route.ComponentProp
         <PageCreateButton />
       </div>
 
-      {error ? <Notice tone="emphasis" title="Kunne ikke hente tjenester" message={error} /> : null}
+      {error ? <PageNotice title="Kunne ikke hente tjenester" /> : null}
 
       <section aria-label="Tjenester" className="overflow-hidden rounded-xl border border-border bg-background">
         <div className="relative p-3 sm:p-5">

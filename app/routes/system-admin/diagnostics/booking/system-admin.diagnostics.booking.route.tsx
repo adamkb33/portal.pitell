@@ -14,9 +14,9 @@ import {
   CompanyPageTemplate,
   GridCol,
   Icon,
-  Notice,
   Panel,
   Text,
+  PageNotice,
 } from '~/ui';
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -56,9 +56,7 @@ export default function SystemAdminDiagnosticsBookingPage({ loaderData }: Route.
         </Button>
       }
     >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente booking-flyter" message={loaderData.error} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente booking-flyter" /> : null}
 
       <Panel title="Flyter" description="Status per diagnostikkflyt.">
         {loaderData.flowsData?.flows?.length ? (

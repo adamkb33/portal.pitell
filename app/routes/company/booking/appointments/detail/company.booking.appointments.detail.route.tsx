@@ -7,7 +7,7 @@ import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, cn, CompanyPageTemplate, Label, Notice, Textarea } from '~/ui';
+import { Button, cn, CompanyPageTemplate, Label, Textarea, PageNotice } from '~/ui';
 import { AppointmentCard } from '../_components/appointment-card';
 import { isBookingAdmin, setNoShowFromForm } from '../_services/appointment-admin.server';
 import { isAppointmentCompleted } from '../_utils/appointments.utils';
@@ -43,7 +43,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const appointmentId = parseAppointmentRouteId(params.appointmentId);
 
   if (!appointmentId) {
-    return data({ appointment: null, error: 'Ugyldig timebestilling' }, { status: 400 });
+    return data({ appointment: null, notFound: true, error: 'Ugyldig timebestilling' }, { status: 400 });
   }
 
   try {
@@ -60,7 +60,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const appointment = response.data?.data ?? null;
 
     if (!appointment) {
-      return data({ appointment: null, error: 'Fant ikke timebestillingen' }, { status: 404 });
+      return data({ appointment: null, notFound: true, error: 'Fant ikke timebestillingen' }, { status: 404 });
     }
 
     return data({
@@ -78,11 +78,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     }
 
     if (status === 403) {
-      return data({ appointment: null, error: 'Du har ikke tilgang til denne timebestillingen' }, { status: 403 });
+      return data(
+        { appointment: null, notFound: true, error: 'Du har ikke tilgang til denne timebestillingen' },
+        { status: 403 },
+      );
     }
 
-    if (status === 404) {
-      return data({ appointment: null, error: 'Fant ikke timebestillingen' }, { status: 404 });
+    // The backend answers an unknown id with 400 ("Appointment ikke funnet"); the id itself was checked above.
+    if (status === 404 || status === 400) {
+      return data({ appointment: null, notFound: true, error: 'Fant ikke timebestillingen' }, { status: 404 });
     }
 
     return data({ appointment: null, error: message }, { status: status ?? 400 });
@@ -173,16 +177,20 @@ export default function CompanyBookingAppointmentDetailPage({ loaderData }: Rout
   return (
     <CompanyPageTemplate title="Timebestilling">
       {error || !appointment ? (
-        <Notice
-          tone="emphasis"
-          title={error ?? 'Fant ikke timebestillingen'}
-          message="Gå tilbake til oversikten for å se tilgjengelige timebestillinger."
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES_MAP['company.booking.appointments'].href}>Til oversikt</Link>
-            </Button>
-          }
-        />
+        'notFound' in loaderData && loaderData.notFound ? (
+          <PageNotice
+            kind="not-found"
+            title={error ?? 'Fant ikke timebestillingen'}
+            message="Den kan være slettet."
+            action={
+              <Button asChild variant="outline">
+                <Link to={ROUTES_MAP['company.booking.appointments'].href}>Til timebestillinger</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <PageNotice title="Kunne ikke hente timebestillingen" />
+        )
       ) : (
         <>
           <section

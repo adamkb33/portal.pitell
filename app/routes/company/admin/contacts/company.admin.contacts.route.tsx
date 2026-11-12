@@ -10,7 +10,7 @@ import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { ServerPaginatedTable } from '~/components/table/server-side-table';
 import { PageCreateButton } from '~/routes/_components/page-create-button';
 import type { ContactDto } from '~/api/generated';
-import { Button, Input, Notice, TableCell, TableRow } from '~/ui';
+import { Button, Input, TableCell, TableRow, PageNotice } from '~/ui';
 import type { CreateActionHandle } from '~/lib/routing/create-action';
 
 export const handle = {
@@ -60,7 +60,7 @@ export default function CompanyContactsRoute({ loaderData }: Route.ComponentProp
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
 
   if ('error' in loaderData) {
-    return <Notice tone="emphasis" title="Kunne ikke hente kontakter" message={loaderData.error} />;
+    return <PageNotice title="Kunne ikke hente kontakter" />;
   }
 
   const { contacts, pagination } = loaderData;

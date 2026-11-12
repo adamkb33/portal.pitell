@@ -5,7 +5,7 @@ import { CompanyUserBookingProfileController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, ListEmpty, ListRow, Notice, categoryTone, cn } from '~/ui';
+import { Button, CompanyPageTemplate, ListEmpty, ListRow, categoryTone, cn, PageNotice } from '~/ui';
 import { BOOKING_AREAS } from '../_utils/booking-areas';
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -32,7 +32,7 @@ export default function BookingCompanyUserProfile({ loaderData }: Route.Componen
   return (
     <CompanyPageTemplate title="Bookingprofil">
       {error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente bookingprofil" message={error} />
+        <PageNotice title="Kunne ikke hente bookingprofil" />
       ) : !bookingProfile ? (
         <section className="overflow-hidden rounded-xl border border-border bg-background">
           <ListEmpty

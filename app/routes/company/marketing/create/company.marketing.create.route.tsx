@@ -7,8 +7,18 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import type { loader as rootLoader } from '~/routes/root.layout';
-import { BookingErrorState } from '~/routes/company/booking/_components/booking-error-state';
-import { Button, CompanyPageTemplate, ConfirmDialog, FormField, Label, Notice, Text, Textarea, cn } from '~/ui';
+import {
+  Button,
+  CompanyPageTemplate,
+  ConfirmDialog,
+  FormField,
+  Label,
+  Notice,
+  Text,
+  Textarea,
+  cn,
+  PageNotice,
+} from '~/ui';
 import { loader as requireMarketingAdmin } from '../company.marketing.layout';
 import { CHANNEL_LABELS, getCampaignDetailHref, pluralize, type CampaignChannel } from '../_utils/campaigns';
 import {
@@ -197,7 +207,7 @@ export default function CompanyMarketingCreateRoute({ loaderData, actionData }: 
   if (error || !audience) {
     return (
       <CompanyPageTemplate title="Ny kampanje">
-        <BookingErrorState className="min-h-[24rem]" />
+        <PageNotice title="Kunne ikke hente mottakere" />
       </CompanyPageTemplate>
     );
   }

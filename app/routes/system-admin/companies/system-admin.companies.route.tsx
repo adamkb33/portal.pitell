@@ -6,7 +6,6 @@ import {
   Badge,
   Button,
   CompanyPageTemplate,
-  Notice,
   Panel,
   Table,
   TableBody,
@@ -15,6 +14,7 @@ import {
   TableHeader,
   TableRow,
   Text,
+  PageNotice,
 } from '~/ui';
 import {
   DEFAULT_COMPANY_PAGE_SIZE,
@@ -76,9 +76,7 @@ export default function SystemAdminCompaniesPage({ loaderData }: Route.Component
       title="Systemadmin: Selskaper"
       description="Finn selskap og gå videre til relevante handlinger."
     >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente selskaper" message={loaderData.error} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente selskaper" /> : null}
 
       <Panel title="Handlinger" description="Velg ønsket handling.">
         <div className="flex flex-wrap gap-2">

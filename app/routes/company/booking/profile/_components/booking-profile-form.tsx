@@ -4,7 +4,7 @@ import { Upload } from 'lucide-react';
 import type { BookingProfileDto, DailyScheduleDto, GroupedServiceGroupDto } from '~/api/generated';
 import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
 import { BOOKING_AREAS } from '../../_utils/booking-areas';
-import { Button, Checkbox, CompanyFormPageTemplate, Label, Notice, Textarea, categoryTone, cn } from '~/ui';
+import { Button, Checkbox, CompanyFormPageTemplate, Label, Textarea, categoryTone, cn, PageNotice } from '~/ui';
 
 type BookingProfileFormProps = {
   mode: 'create' | 'edit';
@@ -85,9 +85,7 @@ export function BookingProfileForm({
   return (
     <CompanyFormPageTemplate
       title={title}
-      notices={
-        loaderError ? <Notice tone="emphasis" title="Kunne ikke hente bookingprofil" message={loaderError} /> : null
-      }
+      notices={loaderError ? <PageNotice title="Kunne ikke hente bookingprofil" /> : null}
       submit={{
         form: 'booking-profile-form',
         loading: navigation.state === 'submitting',

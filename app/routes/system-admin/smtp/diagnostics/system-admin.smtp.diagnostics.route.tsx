@@ -4,7 +4,7 @@ import { Base } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, Notice, Panel, Text } from '~/ui';
+import { Button, CompanyPageTemplate, Panel, Text, PageNotice } from '~/ui';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -27,9 +27,7 @@ export default function SystemAdminSmtpDiagnosticsPage({ loaderData }: Route.Com
         </Button>
       }
     >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente diagnostikk" message={loaderData.error} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente diagnostikk" /> : null}
       <Panel title="Diagnostikk" description="Backend-respons">
         {loaderData.diagnostics ? (
           <div className="space-y-1">

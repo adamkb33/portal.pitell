@@ -6,7 +6,7 @@ import { AdminTimeSheetEntryController, type AdminEmployeeTimesheetEntriesDto } 
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
-import { Accordion, CompanyEmptyState, CompanyPageTemplate, KpiCard, Notice } from '~/ui';
+import { Accordion, CompanyEmptyState, CompanyPageTemplate, KpiCard, PageNotice } from '~/ui';
 import { TimesheetPaginationFilterCard } from '~/routes/company/timesheet/_components/timesheet-pagination-filters';
 import type { CalendarDateRange } from '~/ui';
 import { SubmissionGroupCard } from './_components/submission-group-card';
@@ -259,7 +259,7 @@ export default function CompanyTimesheetSubmissionsPage({ loaderData, actionData
       />
 
       {error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente innsendinger" message={error} />
+        <PageNotice title="Kunne ikke hente innsendinger" />
       ) : groups.length === 0 ? (
         <CompanyEmptyState
           icon={<ClipboardList className="h-6 w-6" />}

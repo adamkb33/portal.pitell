@@ -1,4 +1,5 @@
-import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import { CircleCheck, Clock, Gift, ImagePlus, Mail, MessageSquare, Phone, UserX } from 'lucide-react';
 import { Link } from 'react-router';
@@ -52,12 +53,12 @@ export function AppointmentCard({
         )}
       </div>
       <p className="mt-1 text-base font-semibold text-text-primary first-letter:uppercase">
-        {format(parseISO(appointment.startTime), 'EEEE d. MMMM', { locale: nb })}
+        {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'EEEE d. MMMM', { locale: nb })}
       </p>
       <p className="flex items-center gap-1.5 text-sm text-text-secondary">
         <Clock className="size-4" aria-hidden />
-        {format(parseISO(appointment.startTime), 'HH:mm')}–{format(parseISO(appointment.endTime), 'HH:mm')} ·{' '}
-        {formatEstimatedDuration(duration)}
+        {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm')}–
+        {formatInTimeZone(appointment.endTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm')} · {formatEstimatedDuration(duration)}
       </p>
 
       {isDone ? (

@@ -76,7 +76,7 @@ Every message about the result of something the user just did (saved, created, d
 What stays on the page instead of a toast:
 
 - field validation errors (under the field),
-- states that must stay visible: a page that failed to load (`Notice`), empty states, the booking bar's message strip ("Velg minst én tjeneste"),
+- states that must stay visible: a page that failed to load or a thing that's gone (`PageNotice`: "Prøv igjen" for load errors, a link back for not-found), empty states, the booking bar's message strip ("Velg minst én tjeneste"),
 - confirmations before something destructive (the delete dialog).
 
 ## 7. Lists and rows
@@ -138,3 +138,4 @@ Newest last. Add a dated line when the user decides something new about how the 
 - 2026-11-11 – Compact layout app-wide: no space that doesn't group or separate something. One side gutter (the shell's `<main>`; templates use `Container gutter="none"`), 16px between page blocks (24px max on desktop), no padding on plain wrappers. Touch targets stay 44px. Booking public pages were audited first (`page-sketch` → design-language → Space and shape).
 - 2026-11-11 – Dates in forms are a plain `DateField` (one click picks the day); the user rejected a custom day strip as too complicated. A period over several days is Starter (date + time) and Slutter (date + time) rows with "Hele dagen" first, so the times can only mean start and end of one continuous period. Nytt fravær saves one period at a time.
 - 2026-11-11 – The company Oversikt (/company) follows the Oversikt type: key cards Kalender ("n avtaler i dag") and Varsler ("n uleste"), one row per area the user can open (Booking with "n kommende avtaler"), and the company as one row with org.nr and "Endre" for admins. The registry tiles, address panels and admin lists are gone.
+- 2026-11-12 – A page that can't show its content shows `PageNotice`: one centred card with an icon, a title, one line and one way forward. Load errors: amber cloud, "Prøv igjen" reloads the data in place, never the raw error text. Not-found: blue icon and a link back, no retry. The small `Notice` stays for messages inside forms. A backend 5xx still shows the app-wide problems page.

@@ -891,6 +891,44 @@
     color: var(--blue);
     font: 600 14px Inter;
   }
+  /* Page notice [app/ui/organisms/page-notice.tsx]: instead of a page's content when it can't be shown.
+     <div class="pnt"><span class="pic warn"><i class="ti ti-cloud-off"></i></span><b>Kunne ikke hente varsler</b>
+     <p>Prøv igjen om litt.</p><span class="btn"><i class="ti ti-refresh"></i>Prøv igjen</span></div>
+     Not-found: <span class="pic neu"><i class="ti ti-file-search"></i></span> and a link button instead of Prøv igjen. */
+  .pk .pnt {
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 40px 24px;
+  }
+  .pk .pnt b {
+    font-weight: 600;
+  }
+  .pk .pnt p {
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .pic {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+  }
+  .pk .pic.warn {
+    background: #fef3c7;
+    color: #78350f;
+  }
+  .pk .pic.neu {
+    background: var(--blue50);
+    color: var(--blue);
+  }
   .pk .scrim {
     position: relative;
     flex: 1;

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { parseISO, format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import { ChevronRight, Clock3, Trash2, Wallet } from 'lucide-react';
 import {
@@ -71,7 +72,9 @@ export function AppointmentCardRow({
                 className="block text-xs font-semibold leading-tight text-text-primary"
                 dateTime={appointment.startTime}
               >
-                {format(parseISO(appointment.startTime), "EEE d. MMM 'kl.' HH:mm", { locale: nb })}
+                {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, "EEE d. MMM 'kl.' HH:mm", {
+                  locale: nb,
+                })}
               </time>
               <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                 {appointment.user.givenName} {appointment.user.familyName}

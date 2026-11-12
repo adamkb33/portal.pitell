@@ -3,7 +3,7 @@ import { CheckCircle2, FileText, MessageSquare, XCircle } from 'lucide-react';
 import type { Route } from './+types/offer.public.route';
 import { Offer, type PublicOfferPageDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { Badge, Button, Notice, Panel, Textarea } from '~/ui';
+import { Badge, Button, Notice, Panel, Textarea, PageNotice } from '~/ui';
 
 export async function loader({ params }: Route.LoaderArgs) {
   const token = params.token;
@@ -83,9 +83,7 @@ export default function PublicOfferRoute({ loaderData, actionData }: Route.Compo
           </div>
         </header>
 
-        {loaderData.error ? (
-          <Notice tone="emphasis" title="Kunne ikke hente tilbudet" message={loaderData.error} />
-        ) : null}
+        {loaderData.error ? <PageNotice title="Kunne ikke hente tilbudet" /> : null}
         {actionData?.error ? <Notice tone="emphasis" title="Handlingen feilet" message={actionData.error} /> : null}
         {actionData?.ok ? <Notice title="Oppdatert" message="Tilbudet er oppdatert." /> : null}
 

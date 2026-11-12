@@ -7,7 +7,7 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { serializeQueryParams } from '~/lib/query';
-import { Button, CompanyPageTemplate, Notice, SegmentedLinks } from '~/ui';
+import { Button, CompanyPageTemplate, SegmentedLinks, PageNotice } from '~/ui';
 import { NotificationRow } from './_components/notification-row';
 import { groupNotificationsByDay, notificationClock } from './_utils/notification-display';
 import {
@@ -86,7 +86,7 @@ export default function CompanyNotificationsRoute({ loaderData }: Route.Componen
   return (
     <CompanyPageTemplate title="Varsler">
       {error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente varsler" message={error} />
+        <PageNotice title="Kunne ikke hente varsler" />
       ) : (
         <section
           aria-label="Varsler"

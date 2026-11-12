@@ -10,8 +10,7 @@ import {
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { BookingErrorState } from '~/routes/company/booking/_components/booking-error-state';
-import { Button, CompanyPageTemplate, ConfirmDialog, Notice, cn } from '~/ui';
+import { Button, CompanyPageTemplate, ConfirmDialog, Notice, cn, PageNotice } from '~/ui';
 import { loader as requireMarketingAdmin } from '../company.marketing.layout';
 import { ListFooter } from '../_components/list-footer';
 import { StatusChip } from '../_components/status-chip';
@@ -177,9 +176,9 @@ export default function CompanyMarketingDetailRoute({ loaderData }: Route.Compon
     return (
       <CompanyPageTemplate title="Kampanje" routeLinks={backLink}>
         {notFound ? (
-          <Notice tone="emphasis" title="Fant ikke kampanjen" message={null} />
+          <PageNotice kind="not-found" title="Fant ikke kampanjen" message="Den kan være slettet." />
         ) : (
-          <BookingErrorState className="min-h-[24rem]" />
+          <PageNotice title="Kunne ikke hente kampanjen" />
         )}
       </CompanyPageTemplate>
     );

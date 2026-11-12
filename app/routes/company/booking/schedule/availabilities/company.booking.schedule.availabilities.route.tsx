@@ -9,7 +9,7 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { formatDateBoundaryInTimeZone } from '~/lib/query';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { PageCreateButton } from '~/routes/_components/page-create-button';
-import { CompanyPageTemplate, ListEmpty, ListRow, ListStrip, Notice } from '~/ui';
+import { CompanyPageTemplate, ListEmpty, ListRow, ListStrip, PageNotice } from '~/ui';
 import { AvailabilityAreaSwitch } from '../../_components/availability-area-switch';
 import { PeriodSwitch } from '../../_components/period-switch';
 import { dayTitle, durationLabel, groupByMonth, periodWindow, readPeriod } from '../../_utils/periods';
@@ -65,7 +65,7 @@ export default function CompanyBookingScheduleAvailabilitiesPage({ loaderData }:
         <PageCreateButton />
       </div>
 
-      {error ? <Notice tone="emphasis" title="Kunne ikke hente bookbar tid" message={error} /> : null}
+      {error ? <PageNotice title="Kunne ikke hente bookbar tid" /> : null}
 
       <section aria-label="Bookbar tid" className="overflow-hidden rounded-xl border border-border bg-background">
         <div className="p-3 sm:p-5">

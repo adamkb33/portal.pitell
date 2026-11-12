@@ -5,7 +5,7 @@ import type { SystemAdminCompanyDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, Input, Label, Notice, Panel, Text } from '~/ui';
+import { Button, CompanyPageTemplate, Input, Label, Panel, Text, PageNotice } from '~/ui';
 import { SystemAdminCompanySelect } from '~/routes/system-admin/companies/_components/system-admin-company-select';
 import { loadSystemAdminCompanyOptions } from '~/routes/system-admin/companies/_utils/system-admin-companies.server';
 
@@ -105,10 +105,8 @@ export default function SystemAdminDiagnosticsBookingPublicAppointmentCancellati
         </Button>
       }
     >
-      {loaderData.error ? <Notice tone="emphasis" title="Kunne ikke hente tabell" message={loaderData.error} /> : null}
-      {loaderData.loadError ? (
-        <Notice tone="emphasis" title="Kunne ikke hente selskaper" message={loaderData.loadError} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente tabell" /> : null}
+      {loaderData.loadError ? <PageNotice title="Kunne ikke hente selskaper" /> : null}
 
       <Panel title="Filtre" description="Server-side filtre">
         <Form method="get" className="grid grid-cols-1 gap-3 md:grid-cols-3">

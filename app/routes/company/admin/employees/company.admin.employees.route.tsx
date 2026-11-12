@@ -1,4 +1,4 @@
-import { Notice, Tabs, TabsContent, TabsList, TabsTrigger } from '~/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger, PageNotice } from '~/ui';
 import { EmployeesTable } from './tables/employees.table';
 import { InvitesTable } from './tables/invites.table';
 import type { Route } from './+types/company.admin.employees.route';
@@ -89,7 +89,7 @@ export async function loader(args: Route.LoaderArgs) {
 
 export default function CompanyAdminEmployees({ loaderData }: Route.ComponentProps) {
   if ('error' in loaderData) {
-    return <Notice tone="emphasis" title="Kunne ikke hente ansatte" message={loaderData.error} />;
+    return <PageNotice title="Kunne ikke hente ansatte" />;
   }
 
   const { users, pagination, invites } = loaderData;

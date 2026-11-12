@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { UpHandle } from '~/lib/routing/up-link';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { CompanyPageTemplate, Notice, cn } from '~/ui';
+import { CompanyPageTemplate, cn, PageNotice } from '~/ui';
 import { monthHref, monthTitle, shiftMonth } from '../_utils/month';
 
 /**
@@ -122,7 +122,7 @@ export function StatisticsPage({
   return (
     <CompanyPageTemplate title={title}>
       {month && currentMonth ? <MonthStepper month={month} currentMonth={currentMonth} /> : null}
-      {error ? <Notice tone="emphasis" title="Kunne ikke hente statistikk" message={error} /> : children}
+      {error ? <PageNotice title="Kunne ikke hente statistikk" /> : children}
     </CompanyPageTemplate>
   );
 }

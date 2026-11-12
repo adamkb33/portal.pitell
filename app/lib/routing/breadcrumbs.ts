@@ -20,7 +20,7 @@ export function buildCrumbs(branches: RouteBranch[], pathname: string): Crumb[] 
 
   return trail.map((branch) => ({
     label: branch.label ?? branch.id,
-    href: branch.href,
+    href: branch.crumbTo ?? branch.href,
   }));
 }
 

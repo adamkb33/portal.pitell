@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { data, Link } from 'react-router';
-import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import { Clock3 } from 'lucide-react';
 import type { Route } from './+types/company.notifications.view.route';
@@ -14,7 +15,7 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { TitleHandle } from '~/lib/routing/up-link';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, Notice } from '~/ui';
+import { Button, CompanyPageTemplate, PageNotice } from '~/ui';
 import { AppointmentListRow } from '~/routes/company/booking/appointments/_components/appointment.list-row';
 import { NotificationTile } from '../_components/notification-row';
 import {
@@ -28,6 +29,8 @@ type LoaderData = {
   notification: InAppNotificationDto | null;
   appointment: AppointmentDto | null;
   error: string | null;
+  /** Unknown or invalid id: there is nothing to retry. */
+  notFound?: boolean;
 };
 
 /** The header names the notification ("Ny timebestilling"), not the route ("Vis varsel"). */
@@ -46,7 +49,10 @@ function parseNotificationId(idParam: string | undefined): number | null {
 export async function loader({ request, params }: Route.LoaderArgs) {
   const id = parseNotificationId(params.id);
   if (id == null) {
-    return data<LoaderData>({ notification: null, appointment: null, error: 'Ugyldig varsel' }, { status: 400 });
+    return data<LoaderData>(
+      { notification: null, appointment: null, notFound: true, error: 'Ugyldig varsel' },
+      { status: 400 },
+    );
   }
 
   try {
@@ -55,7 +61,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     );
     let notification = response.data?.data ?? null;
     if (!notification) {
-      return data<LoaderData>({ notification: null, appointment: null, error: 'Fant ikke varselet' }, { status: 404 });
+      return data<LoaderData>(
+        { notification: null, appointment: null, notFound: true, error: 'Fant ikke varselet' },
+        { status: 404 },
+      );
     }
 
     // Opening a notification reads it.
@@ -98,16 +107,20 @@ export default function CompanyNotificationsViewRoute({ loaderData }: Route.Comp
   if (error || !notification) {
     return (
       <CompanyPageTemplate title="Varsel">
-        <Notice
-          tone="emphasis"
-          title={error ?? 'Fant ikke varselet'}
-          message="Varselet kan være slettet."
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES_MAP['company.notifications'].href}>Til varsler</Link>
-            </Button>
-          }
-        />
+        {loaderData.notFound || !error ? (
+          <PageNotice
+            kind="not-found"
+            title="Fant ikke varselet"
+            message="Det kan være slettet."
+            action={
+              <Button asChild variant="outline">
+                <Link to={ROUTES_MAP['company.notifications'].href}>Til varsler</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <PageNotice title="Kunne ikke hente varselet" />
+        )}
       </CompanyPageTemplate>
     );
   }
@@ -143,7 +156,7 @@ export default function CompanyNotificationsViewRoute({ loaderData }: Route.Comp
           className="w-full max-w-[32rem] overflow-hidden rounded-xl border border-border bg-background"
         >
           <h3 className="border-b border-border bg-slate-100 px-4 py-1.5 text-xs font-semibold text-text-primary first-letter:uppercase sm:px-5">
-            {format(parseISO(appointment.startTime), 'EEEE d. MMM', { locale: nb })}
+            {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'EEEE d. MMM', { locale: nb })}
           </h3>
           <AppointmentListRow
             appointment={appointment}

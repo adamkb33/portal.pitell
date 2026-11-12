@@ -26,8 +26,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PageNotice,
 } from '~/ui';
-import { BookingErrorState } from '~/routes/company/booking/_components/booking-error-state';
 import { BookingDailyToolbar } from '~/routes/company/booking/_components/booking-daily-switch';
 import type { ScheduleWeekDay } from './_types/schedule.types';
 import {
@@ -201,7 +201,7 @@ export default function CompanyBookingSchedulePage({ loaderData }: Route.Compone
         <BookingDailyToolbar />
 
         {loaderData.error ? (
-          <BookingErrorState className="min-h-0 flex-1" />
+          <PageNotice title="Kunne ikke hente kalenderen" className="min-h-0 flex-1" />
         ) : (
           <section
             aria-label="Kalender"

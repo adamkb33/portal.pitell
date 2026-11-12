@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { data, useNavigation, useSubmit } from 'react-router';
-import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import { Camera, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { CompanyUserAppointmentController } from '~/api/generated';
@@ -9,7 +10,7 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { fileToBase64 } from '~/lib/file.utils';
 import type { Route } from './+types/company.booking.appointments.upload-image.route';
-import { Button, cn, CompanyPageTemplate, Dialog, DialogContent, DialogTitle, Notice } from '~/ui';
+import { Button, cn, CompanyPageTemplate, Dialog, DialogContent, DialogTitle, Notice, PageNotice } from '~/ui';
 import type { UpHandle } from '~/lib/routing/up-link';
 
 /** Up is the appointment the image belongs to (ui-rules → Page top). */
@@ -280,13 +281,13 @@ export default function CompanyBookingAppointmentUploadImagePage({ loaderData, a
 
   return (
     <CompanyPageTemplate title="Last opp bilde">
-      {loaderData.error ? <Notice tone="emphasis" title="Kunne ikke hente avtale" message={loaderData.error} /> : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente avtale" /> : null}
 
       {appointment ? (
         <section aria-label="Bilder" className="w-full max-w-[32rem] space-y-2">
           <p className="text-sm text-text-secondary">
             {[appointment.user.givenName, appointment.user.familyName].filter(Boolean).join(' ')} ·{' '}
-            {format(parseISO(appointment.startTime), 'EEE d. MMM · HH:mm', { locale: nb })}
+            {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'EEE d. MMM · HH:mm', { locale: nb })}
           </p>
 
           <div className="rounded-xl border border-border bg-background p-3">

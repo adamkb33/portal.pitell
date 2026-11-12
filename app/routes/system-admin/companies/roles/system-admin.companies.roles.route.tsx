@@ -5,7 +5,7 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, FormField, Label, Notice, Panel } from '~/ui';
+import { Button, CompanyPageTemplate, FormField, Label, Notice, Panel, PageNotice } from '~/ui';
 import { SystemAdminCompanySelect } from '../_components/system-admin-company-select';
 import { parsePositiveInteger } from '../_utils/system-admin-company-display';
 import { loadSystemAdminCompanyOptions } from '../_utils/system-admin-companies.server';
@@ -89,9 +89,7 @@ export default function SystemAdminCompaniesRolesPage({ loaderData, actionData }
       {actionData?.error ? (
         <Notice tone="emphasis" title="Kunne ikke tildele rolle" message={actionData.error} />
       ) : null}
-      {loaderData.loadError ? (
-        <Notice tone="emphasis" title="Kunne ikke hente selskaper" message={loaderData.loadError} />
-      ) : null}
+      {loaderData.loadError ? <PageNotice title="Kunne ikke hente selskaper" /> : null}
       <Panel title="Rolle" description="Velg bruker, selskap og rolle som skal tildeles.">
         <form method="post" className="space-y-4">
           <FormField label="Bruker-ID" name="userId" type="number" defaultValue={values.userId} required />

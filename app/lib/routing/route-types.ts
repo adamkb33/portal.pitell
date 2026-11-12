@@ -50,6 +50,8 @@ export type RouteBranch = {
    * and the phone header's ‹ arrow.
    */
   up?: string;
+  /** Where this branch's breadcrumb links when its own page isn't meant to be opened (Bruker → Min profil). */
+  crumbTo?: string;
 };
 
 export type ApiRoute = {

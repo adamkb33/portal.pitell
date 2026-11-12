@@ -6,7 +6,7 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
-import { Button, CompanyPageTemplate, Input, KeyValueList, KpiCard, Label, Notice, Panel } from '~/ui';
+import { Button, CompanyPageTemplate, Input, KeyValueList, KpiCard, Label, Panel, PageNotice } from '~/ui';
 
 type SettingsActionValues = {
   displayName: string;
@@ -105,7 +105,7 @@ export default function CompanySettings({ loaderData, actionData }: Route.Compon
       }
     >
       {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke laste innstillinger" message={loaderData.error} />
+        <PageNotice title="Kunne ikke laste innstillinger" />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           <Panel title="Selskapsoversikt" description="Rask oversikt over de viktigste selskapsfeltene.">

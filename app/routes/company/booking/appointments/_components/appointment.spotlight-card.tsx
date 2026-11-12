@@ -1,4 +1,5 @@
-import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import type { AppointmentDto } from '~/api/generated';
 import { Badge, Card, CardContent, Text } from '~/ui';
@@ -66,7 +67,9 @@ export function SpotlightAppointmentCard({ title, hint, appointment, tone, onOpe
                 {appointment.user.givenName} {appointment.user.familyName}
               </Text>
               <Text as="p" variant="caption" className="text-text-secondary">
-                {format(parseISO(appointment.startTime), "EEE d. MMM 'kl.' HH:mm", { locale: nb })}
+                {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, "EEE d. MMM 'kl.' HH:mm", {
+                  locale: nb,
+                })}
               </Text>
             </div>
             <div className="text-right text-xs">

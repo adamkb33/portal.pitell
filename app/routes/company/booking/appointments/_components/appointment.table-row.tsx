@@ -1,4 +1,5 @@
-import { parseISO, format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import {
   getTotalDuration,
@@ -36,10 +37,10 @@ export function AppointmentTableRow({ appointment, onOpen, onDelete, isDeleting 
       <TableCell className="py-4 align-top">
         <div className="flex flex-col gap-0.5">
           <span className="text-base font-semibold leading-tight">
-            {format(parseISO(appointment.startTime), 'HH:mm', { locale: nb })}
+            {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm', { locale: nb })}
           </span>
           <span className="text-sm text-text-secondary">
-            {format(parseISO(appointment.startTime), 'd. MMM yyyy', { locale: nb })}
+            {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'd. MMM yyyy', { locale: nb })}
           </span>
         </div>
       </TableCell>

@@ -14,10 +14,10 @@ import {
   CompanyEmptyState,
   CompanyPageTemplate,
   KpiCard,
-  Notice,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  PageNotice,
 } from '~/ui';
 import { parseTimesheetListRequest, serializeTimesheetQuery, TIMESHEET_STATUS_LABELS } from './_utils';
 
@@ -121,7 +121,7 @@ export default function CompanyTimesheetRoute({ loaderData }: Route.ComponentPro
       }
     >
       {error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente timelister" message={error} />
+        <PageNotice title="Kunne ikke hente timelister" />
       ) : entries.length === 0 ? (
         <CompanyEmptyState
           icon={<CalendarDays className="h-6 w-6" />}

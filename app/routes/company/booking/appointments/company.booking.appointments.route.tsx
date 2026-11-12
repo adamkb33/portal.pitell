@@ -14,8 +14,7 @@ import {
 import { resolveErrorPayload } from '~/lib/api-error';
 import { formatCurrentDateTimeInTimeZone } from '~/lib/query';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate } from '~/ui';
-import { BookingErrorState } from '~/routes/company/booking/_components/booking-error-state';
+import { Button, CompanyPageTemplate, PageNotice } from '~/ui';
 import { BookingDailyToolbar } from '~/routes/company/booking/_components/booking-daily-switch';
 import { isAppointmentCompleted, isAppointmentInProgress } from './_utils/appointments.utils';
 import { AppointmentListRow } from './_components/appointment.list-row';
@@ -162,7 +161,7 @@ export default function CompanyBookingAppointmentsPage({ loaderData }: Route.Com
     <CompanyPageTemplate title="Timebestillinger">
       <BookingDailyToolbar />
       {error ? (
-        <BookingErrorState className="min-h-[36rem]" />
+        <PageNotice title="Kunne ikke hente timebestillinger" />
       ) : (
         <div>
           <section

@@ -45,6 +45,7 @@ import {
   Panel as BookingSection,
   categoryTone,
   cn,
+  PageNotice,
 } from '~/ui';
 
 /**
@@ -457,7 +458,7 @@ export default function CompanyBookingAppointmentsCreatePage({ loaderData, actio
         </span>
       </div>
 
-      {loaderData.error && <Notice tone="emphasis" title="Kunne ikke hente data" message={loaderData.error} />}
+      {loaderData.error && <PageNotice title="Kunne ikke hente data" />}
       {actionData?.error && <Notice tone="emphasis" title="Kunne ikke opprette time" message={actionData.error} />}
 
       <div className={cn('grid items-start gap-4', showOverview ? 'max-w-2xl' : 'lg:grid-cols-[minmax(0,1fr)_22rem]')}>

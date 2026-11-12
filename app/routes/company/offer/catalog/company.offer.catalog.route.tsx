@@ -17,6 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  PageNotice,
 } from '~/ui';
 import { formatOfferCurrency } from '../_utils';
 
@@ -104,9 +105,7 @@ export default function CompanyOfferCatalogRoute({ loaderData, actionData }: Rou
         </div>
       }
     >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente varekatalog" message={loaderData.error} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente varekatalog" /> : null}
       {actionData?.error ? (
         <Notice tone="emphasis" title="Kunne ikke oppdatere varekatalog" message={actionData.error} />
       ) : null}

@@ -8,7 +8,7 @@ import { redirectWithError, redirectWithSuccess, setFlashMessage } from '~/lib/f
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
 import type { FormPageHandle } from '~/lib/routing/create-action';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Notice } from '~/ui';
+import { PageNotice } from '~/ui';
 import { AvailabilityFormPage } from '../_components/availability-form-page';
 
 /** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 5). */
@@ -95,7 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function CompanyBookingScheduleAvailabilitiesEditPage({ loaderData }: Route.ComponentProps) {
   if (!loaderData.values) {
-    return <Notice tone="emphasis" title="Kunne ikke hente bookbar tid" message={loaderData.error ?? ''} />;
+    return <PageNotice title="Kunne ikke hente bookbar tid" />;
   }
   return <AvailabilityFormPage mode="edit" values={loaderData.values} />;
 }

@@ -3,7 +3,7 @@ import { ServiceAdminSwitch } from '~/routes/company/booking/admin/_components/s
 import { PageCreateButton } from '~/routes/_components/page-create-button';
 import { Link } from 'react-router';
 import { ChevronRight, Layers } from 'lucide-react';
-import { CompanyPageTemplate, Notice, categoryTone, cn } from '~/ui';
+import { CompanyPageTemplate, categoryTone, cn, PageNotice } from '~/ui';
 import type { Route } from './+types/company.booking.admin.service-groups.route';
 import { CompanyUserServiceGroupController, ServiceController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
@@ -49,7 +49,7 @@ export default function BookingServiceGroups({ loaderData }: Route.ComponentProp
         <PageCreateButton />
       </div>
 
-      {error ? <Notice tone="emphasis" title="Kunne ikke hente tjenestegrupper" message={error} /> : null}
+      {error ? <PageNotice title="Kunne ikke hente tjenestegrupper" /> : null}
 
       <section aria-label="Tjenestegrupper" className="overflow-hidden rounded-xl border border-border bg-background">
         {serviceGroups.length ? (

@@ -125,6 +125,7 @@ describe('company booking appointment detail route', () => {
     expect(mocks.getAppointmentById1).not.toHaveBeenCalled();
     expect(readDataResponse(result)).toEqual({
       appointment: null,
+      notFound: true,
       error: 'Ugyldig timebestilling',
     });
   });
@@ -139,6 +140,22 @@ describe('company booking appointment detail route', () => {
 
     expect(readDataResponse(result)).toEqual({
       appointment: null,
+      notFound: true,
+      error: 'Fant ikke timebestillingen',
+    });
+  });
+
+  it('maps the backend 400 for an unknown id to not found', async () => {
+    mocks.getAppointmentById1.mockRejectedValueOnce({ response: { status: 400 } });
+
+    const result = await loader({
+      request: createRequest('https://portal.pitell.no/company/booking/appointments/999'),
+      params: { appointmentId: '999' },
+    } as never);
+
+    expect(readDataResponse(result)).toEqual({
+      appointment: null,
+      notFound: true,
       error: 'Fant ikke timebestillingen',
     });
   });
@@ -153,6 +170,7 @@ describe('company booking appointment detail route', () => {
 
     expect(readDataResponse(result)).toEqual({
       appointment: null,
+      notFound: true,
       error: 'Du har ikke tilgang til denne timebestillingen',
     });
   });

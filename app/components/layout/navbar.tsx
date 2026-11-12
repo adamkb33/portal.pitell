@@ -47,7 +47,10 @@ export function Navbar({ navRoutes, userProfile, companyContext, hasSidebar = fa
   const crumbs = withTitle(
     withUpOverride(
       buildCrumbs(
-        ROUTE_TREE.filter((branch) => sidebarBranches.some((sidebarBranch) => sidebarBranch.id === branch.id)),
+        // The account pages (Min profil, Endre passord) aren't in the sidebar but still need their trail.
+        ROUTE_TREE.filter(
+          (branch) => branch.id === 'user' || sidebarBranches.some((sidebarBranch) => sidebarBranch.id === branch.id),
+        ),
         location.pathname,
       ),
       upOverride,

@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
   Text,
+  PageNotice,
 } from '~/ui';
 import { SystemAdminCompanySelect } from '../_components/system-admin-company-select';
 import { loadSystemAdminCompanyOptions } from '../_utils/system-admin-companies.server';
@@ -282,13 +283,9 @@ export default function SystemAdminCompaniesReviewsPage({ loaderData, actionData
         </Button>
       }
     >
-      {loaderData.error ? (
-        <Notice tone="emphasis" title="Kunne ikke hente Google reviews" message={loaderData.error} />
-      ) : null}
+      {loaderData.error ? <PageNotice title="Kunne ikke hente Google reviews" /> : null}
       {actionData?.error ? <Notice tone="emphasis" title="Handlingen feilet" message={actionData.error} /> : null}
-      {loaderData.loadError ? (
-        <Notice tone="emphasis" title="Kunne ikke hente selskaper" message={loaderData.loadError} />
-      ) : null}
+      {loaderData.loadError ? <PageNotice title="Kunne ikke hente selskaper" /> : null}
 
       <Panel
         title="Google Place ID"

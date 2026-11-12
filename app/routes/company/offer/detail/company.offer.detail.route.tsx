@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
   Textarea,
+  PageNotice,
 } from '~/ui';
 import { OfferStatusBadge } from '../_components';
 import {
@@ -253,7 +254,11 @@ export default function CompanyOfferDetailRoute({ loaderData, actionData }: Rout
           </Button>
         }
       >
-        <Notice tone="emphasis" title="Kunne ikke hente tilbud" message={error ?? 'Tilbudet finnes ikke.'} />
+        {error ? (
+          <PageNotice title="Kunne ikke hente tilbudet" />
+        ) : (
+          <PageNotice kind="not-found" title="Fant ikke tilbudet" message="Det kan være slettet." />
+        )}
       </CompanyPageTemplate>
     );
   }
