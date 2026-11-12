@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react';
-import { data, Link, useLocation } from 'react-router';
-import { BellOff, ChevronLeft, ChevronRight } from 'lucide-react';
+import { data, Form, Link, useLocation, useNavigation } from 'react-router';
+import { BellOff, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Route } from './+types/company.notifications.route';
 import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { setFlashMessage } from '~/lib/flash-message.server';
 import { serializeQueryParams } from '~/lib/query';
 import { Button, CompanyPageTemplate, Notice, SegmentedLinks } from '~/ui';
 import { NotificationRow } from './_components/notification-row';
@@ -58,6 +59,21 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
+/** "Merk alle som lest": reads every unread notification and stays on the page with a toast. */
+export async function action({ request }: Route.ActionArgs) {
+  try {
+    await withAuth(request, () => CompanyUserInAppNotificationController.markAllInAppNotificationsAsRead());
+    return data(null, {
+      headers: { 'Set-Cookie': await setFlashMessage(request, { type: 'success', text: 'Alle varsler er lest' }) },
+    });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke merke varslene som lest. Prøv igjen.');
+    return data(null, {
+      headers: { 'Set-Cookie': await setFlashMessage(request, { type: 'error', text: message }) },
+    });
+  }
+}
+
 /**
  * Varsler (Liste): Alle | Uleste, the notifications grouped by the day they arrived, a count and paging. Every row
  * opens the notification's own page. Nothing to create here, so no create button (approved sketch 2026-11-10).
@@ -76,8 +92,9 @@ export default function CompanyNotificationsRoute({ loaderData }: Route.Componen
           aria-label="Varsler"
           className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-background"
         >
-          <div className="border-b border-border p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
             <ShowSwitch unreadOnly={filters.unreadOnly} unreadCount={unreadCount} />
+            {unreadCount > 0 ? <MarkAllReadButton /> : null}
           </div>
 
           {groups.map((group) => (
@@ -130,6 +147,19 @@ function ShowSwitch({ unreadOnly, unreadCount }: { unreadOnly: boolean; unreadCo
         },
       ]}
     />
+  );
+}
+
+function MarkAllReadButton() {
+  const navigation = useNavigation();
+  const submitting = navigation.state === 'submitting' && navigation.formMethod?.toUpperCase() === 'POST';
+  return (
+    <Form method="post" preventScrollReset>
+      <Button type="submit" variant="outline" loading={submitting}>
+        <CheckCheck aria-hidden />
+        Merk alle som lest
+      </Button>
+    </Form>
   );
 }
 

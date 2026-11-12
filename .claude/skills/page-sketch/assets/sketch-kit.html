@@ -389,6 +389,11 @@
     background: color-mix(in oklab, var(--page) 86%, white);
     color: var(--mut);
   }
+  /* Over = done [appointment.list-row.tsx]: .row.past with <span class="chip ok">✓ Fullført</span>. A no-show is
+     greyed too, with a red bar and <span class="chip bad">Ikke møtt</span>: .row.past.ns */
+  .pk .row.ns {
+    box-shadow: inset 4px 0 0 var(--red);
+  }
   .pk .t {
     font-weight: 600;
     font-variant-numeric: tabular-nums;

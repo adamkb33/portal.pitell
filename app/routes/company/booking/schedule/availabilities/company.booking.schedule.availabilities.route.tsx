@@ -1,4 +1,5 @@
 import { differenceInMinutes, format } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { CalendarPlus } from 'lucide-react';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.schedule.availabilities.route';
@@ -22,7 +23,7 @@ const TIME_ZONE = 'Europe/Oslo';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const period = readPeriod(new URL(request.url));
-  const { start, end } = periodWindow(period);
+  const { start, end } = periodWindow(period, toZonedTime(new Date(), TIME_ZONE));
 
   try {
     const response = await withAuth(request, async () =>
@@ -54,7 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** Tilgjengelighet → Bookbar tid (page type Liste; blueprint map: ui-rules → references/booking-domain.md). */
 export default function CompanyBookingScheduleAvailabilitiesPage({ loaderData }: Route.ComponentProps) {
   const { period, items, error } = loaderData;
-  const months = groupByMonth(items, (item) => new Date(item.startTime));
+  const months = groupByMonth(items, (item) => toZonedTime(item.startTime, TIME_ZONE));
   const past = period === 'tidligere';
 
   return (
@@ -90,8 +91,8 @@ export default function CompanyBookingScheduleAvailabilitiesPage({ loaderData }:
                               : `${ROUTES_MAP['company.booking.schedule.availabilities.edit'].href}?id=${item.id}`
                           }
                           muted={past}
-                          title={dayTitle(start)}
-                          line={`${format(start, 'HH:mm')}–${format(end, 'HH:mm')} · ${durationLabel(differenceInMinutes(end, start))}`}
+                          title={dayTitle(toZonedTime(start, TIME_ZONE))}
+                          line={`${formatInTimeZone(start, TIME_ZONE, 'HH:mm')}–${formatInTimeZone(end, TIME_ZONE, 'HH:mm')} · ${durationLabel(differenceInMinutes(end, start))}`}
                         />
                       </li>
                     );

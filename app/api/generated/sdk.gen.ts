@@ -303,6 +303,8 @@ import type {
   ListResponses,
   ListReviewsData,
   ListReviewsResponses,
+  MarkAllInAppNotificationsAsReadData,
+  MarkAllInAppNotificationsAsReadResponses,
   MarkInAppNotificationAsReadData,
   MarkInAppNotificationAsReadResponses,
   MessagesData,
@@ -2775,6 +2777,16 @@ export class Notification {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  public static markAllInAppNotificationsAsRead<ThrowOnError extends boolean = false>(
+    options?: Options<MarkAllInAppNotificationsAsReadData, ThrowOnError>,
+  ) {
+    return (options?.client ?? client).post<MarkAllInAppNotificationsAsReadResponses, unknown, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/notification-service/company-user/notifications/in-app/read-all',
+      ...options,
     });
   }
 

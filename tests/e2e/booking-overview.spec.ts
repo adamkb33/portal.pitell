@@ -1,3 +1,5 @@
+import { nb } from 'date-fns/locale';
+import { formatInTimeZone } from 'date-fns-tz';
 import { expect, test } from '../e2e-booking/fixtures';
 import { frontendUrl as baseURL } from '../../scripts/e2e/stack';
 import { portalCookieValue, signInAsCompanyAdmin } from './loyalty.helpers';
@@ -44,5 +46,8 @@ for (const [device, width] of [
 
     await kalender.click();
     await expect(page).toHaveURL(`${baseURL}/company/booking/schedule`);
+    // Kalender opens on today, not on the week's Monday.
+    const today = formatInTimeZone(new Date(), 'Europe/Oslo', 'EEEE d. MMMM', { locale: nb });
+    await expect(page.getByRole('button', { pressed: true, name: today, exact: true })).toBeVisible();
   });
 }

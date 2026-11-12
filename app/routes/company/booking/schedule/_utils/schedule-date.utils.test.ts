@@ -19,8 +19,8 @@ describe('schedule date utils', () => {
     vi.useRealTimers();
   });
 
-  it('keeps the current week when no date is supplied', () => {
-    expect(toSafeScheduleDate(null)).toBe('2026-07-06');
+  it('opens on today when no date is supplied', () => {
+    expect(toSafeScheduleDate(null)).toBe('2026-07-08');
   });
 
   it('preserves the selected day within an allowed week', () => {
@@ -47,8 +47,8 @@ describe('schedule date utils', () => {
     expect(toSafeScheduleDate('2026-06-01')).toBe('2026-06-08');
   });
 
-  it('falls back to the current week for invalid dates', () => {
-    expect(toSafeScheduleDate('not-a-date')).toBe('2026-07-06');
+  it('falls back to today for invalid dates', () => {
+    expect(toSafeScheduleDate('not-a-date')).toBe('2026-07-08');
   });
 
   it('returns monday-sunday range for the selected week', () => {

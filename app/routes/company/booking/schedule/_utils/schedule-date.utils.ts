@@ -1,4 +1,5 @@
 import { addWeeks, endOfWeek, format, startOfWeek } from 'date-fns';
+import { formatDateInputInTimeZone } from '~/lib/query';
 import type { Weekday } from '../_types/schedule.types';
 
 export const PAST_WEEK_NAVIGATION_LIMIT = 4;
@@ -33,13 +34,13 @@ export function getLatestScheduleWeekStart(today = new Date()): Date {
   return addWeeks(toWeekStart(today), FUTURE_WEEK_NAVIGATION_LIMIT);
 }
 
+/** The day to show: the one in the URL (kept within the navigable weeks), or today in Oslo when there is none. */
 export function toSafeScheduleDate(rawDate: string | null): string {
-  const today = new Date();
-  const currentWeekStart = toWeekStart(today);
+  const today = new Date(`${formatDateInputInTimeZone(new Date())}T00:00:00`);
   const earliestWeekStart = getEarliestScheduleWeekStart(today);
   const latestWeekStart = getLatestScheduleWeekStart(today);
   const parsed = rawDate ? new Date(`${rawDate}T00:00:00`) : today;
-  const requestedDate = !rawDate || Number.isNaN(parsed.getTime()) ? currentWeekStart : parsed;
+  const requestedDate = Number.isNaN(parsed.getTime()) ? today : parsed;
   const requestedWeekStart = toWeekStart(requestedDate);
   const clamped =
     requestedWeekStart < earliestWeekStart

@@ -1,10 +1,11 @@
-import { format } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import type { ScheduleUnavailabilityGroupDto } from '~/api/generated';
 import { dayRangeTitle } from '../../_utils/periods';
 
 type Slot = ScheduleUnavailabilityGroupDto['blockedSlots'][number];
 
-const time = (value: string) => format(new Date(value), 'HH:mm');
+const time = (value: string) => formatInTimeZone(value, DEFAULT_QUERY_TIMEZONE, 'HH:mm');
 
 /** A blocked slot that covers the whole day (00:00 → 23:59 or midnight). */
 export function isWholeDay(slot: Slot): boolean {
@@ -19,7 +20,10 @@ function lastDay(group: ScheduleUnavailabilityGroupDto): Date {
 
 /** "Mandag 16. nov." or "24.–26. des." */
 export function absenceTitle(group: ScheduleUnavailabilityGroupDto): string {
-  return dayRangeTitle(new Date(group.from), lastDay(group));
+  return dayRangeTitle(
+    toZonedTime(group.from, DEFAULT_QUERY_TIMEZONE),
+    toZonedTime(lastDay(group), DEFAULT_QUERY_TIMEZONE),
+  );
 }
 
 /** "Hele dagen", "12:00–13:00", "12:00–13:00 hver dag" or "Ulike tider". */

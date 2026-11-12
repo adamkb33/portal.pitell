@@ -120,3 +120,58 @@ test('phone: the bell drops a full-width panel under the bar, and ‹ leads back
   await expect(page).toHaveURL(`${baseURL}/company/notifications`);
   await expect(list.getByRole('link', { name: /^Ulest:/ })).toHaveCount(0);
 });
+
+test('desktop: Merk alle som lest reads every unread notification, and only the signed-in user’s', async ({
+  page,
+  db,
+}) => {
+  // A second unread one for the admin, and an unread one for someone else that must stay unread.
+  await db.query(
+    `delete from notification.in_app_notifications where recipient_user_id = 999 and source_service = $1`,
+    [E2E_SOURCE],
+  );
+  await db.query(
+    `
+      insert into notification.in_app_notifications
+        (company_id, recipient_user_id, subject, content, source_service, created_at, read_at)
+      values
+        (1, 1, 'Avbestilt time', 'Grace Hopper har avbestilt.', $1, now() - interval '2 minutes', null),
+        (1, 999, 'Ny timebestilling', 'Til en annen bruker.', $1, now(), null)
+    `,
+    [E2E_SOURCE],
+  );
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(`${baseURL}/company/notifications`, { waitUntil: 'networkidle' });
+  const list = page.getByRole('region', { name: 'Varsler', exact: true });
+  await expect(list.getByRole('link', { name: /^Ulest:/ })).toHaveCount(2);
+
+  await list.getByRole('button', { name: 'Merk alle som lest' }).click();
+
+  await expect(page.getByRole('status').filter({ hasText: 'Alle varsler er lest' })).toBeVisible();
+  await expect(list.getByRole('link', { name: /^Ulest:/ })).toHaveCount(0);
+  await expect(list).toContainText('3 varsler');
+  // Nothing left to read: the button and the bell's count are gone.
+  await expect(list.getByRole('button', { name: 'Merk alle som lest' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Varsler', exact: true })).toBeVisible();
+
+  const others = await db.query(
+    `select count(*)::int as unread from notification.in_app_notifications
+       where recipient_user_id = 999 and source_service = $1 and read_at is null`,
+    [E2E_SOURCE],
+  );
+  expect(others.rows[0].unread).toBe(1);
+});
+
+test('phone: Merk alle som lest fits beside Alle | Uleste with a 44px target', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${baseURL}/company/notifications`, { waitUntil: 'networkidle' });
+  const button = page.getByRole('button', { name: 'Merk alle som lest' });
+  const box = await button.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375);
+
+  await button.click();
+  await expect(page.getByRole('status').filter({ hasText: 'Alle varsler er lest' })).toBeVisible();
+  await expect(button).toHaveCount(0);
+});

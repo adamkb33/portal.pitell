@@ -1,5 +1,5 @@
 import { data } from 'react-router';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import type { Route } from './+types/company.booking.schedule.availabilities.edit.route';
 import { Booking } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
@@ -37,9 +37,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     return data({
       values: {
         id: availability.id,
-        date: format(start, 'yyyy-MM-dd'),
-        startTime: format(start, 'HH:mm'),
-        endTime: format(new Date(availability.endTime), 'HH:mm'),
+        date: formatInTimeZone(start, TIME_ZONE, 'yyyy-MM-dd'),
+        startTime: formatInTimeZone(start, TIME_ZONE, 'HH:mm'),
+        endTime: formatInTimeZone(availability.endTime, TIME_ZONE, 'HH:mm'),
       },
       error: null as string | null,
     });

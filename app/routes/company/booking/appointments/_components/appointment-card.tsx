@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Clock, Gift, ImagePlus, Mail, MessageSquare, Phone, UserX } from 'lucide-react';
+import { CircleCheck, Clock, Gift, ImagePlus, Mail, MessageSquare, Phone, UserX } from 'lucide-react';
 import { Link } from 'react-router';
 import type { AppointmentDto } from '~/api/generated';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -35,16 +35,21 @@ export function AppointmentCard({
   const { mobileNumber, email } = appointment.user;
   const uploadHref = `${ROUTES_MAP['company.booking.appointments.upload-image'].href}?id=${appointment.id}`;
   const noShow = Boolean(appointment.noShow);
+  // Over and not "ikke møtt" means Fullført: greyed, with a green line.
+  const isDone = !noShow && new Date(appointment.endTime) < new Date();
+  const muted = noShow || isDone;
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className={cn('text-2xl font-bold tracking-tight', noShow ? 'text-text-secondary' : 'text-text-primary')}>
+        <h2 className={cn('text-2xl font-bold tracking-tight', muted ? 'text-text-secondary' : 'text-text-primary')}>
           {name}
         </h2>
-        <span className="rounded-full bg-interactive/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-          {isPast ? 'Tidligere' : 'Kommende'}
-        </span>
+        {isPast ? null : (
+          <span className="rounded-full bg-interactive/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            Kommende
+          </span>
+        )}
       </div>
       <p className="mt-1 text-base font-semibold text-text-primary first-letter:uppercase">
         {format(parseISO(appointment.startTime), 'EEEE d. MMMM', { locale: nb })}
@@ -55,6 +60,12 @@ export function AppointmentCard({
         {formatEstimatedDuration(duration)}
       </p>
 
+      {isDone ? (
+        <p className="mt-3 flex items-center gap-2 rounded-lg bg-flash-success-bg px-3 py-2.5 text-sm font-semibold text-flash-success-text">
+          <CircleCheck className="size-4 shrink-0" aria-hidden />
+          Fullført
+        </p>
+      ) : null}
       {noShow ? (
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger-text">
           <UserX className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -102,14 +113,14 @@ export function AppointmentCard({
       <ul
         className={cn(
           'mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border text-sm',
-          noShow && 'text-text-secondary',
+          muted && 'text-text-secondary',
         )}
       >
         {services.length === 0 ? <li className="px-4 py-3 text-text-secondary">Ingen tjenester registrert</li> : null}
         {services.map((service) => (
           <li key={service.id} className="flex justify-between gap-3 px-4 py-3">
             <span className="min-w-0">
-              <span className={cn('block font-semibold', !noShow && 'text-text-primary')}>{service.name}</span>
+              <span className={cn('block font-semibold', !muted && 'text-text-primary')}>{service.name}</span>
               <span className="block text-text-secondary">{formatEstimatedDuration(service.duration)}</span>
             </span>
             <span className={cn('shrink-0 whitespace-nowrap font-semibold tabular-nums', noShow && 'line-through')}>

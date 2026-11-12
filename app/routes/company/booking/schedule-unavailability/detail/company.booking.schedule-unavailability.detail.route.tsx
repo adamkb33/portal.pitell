@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { data, useNavigation, useSubmit } from 'react-router';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { nb } from 'date-fns/locale';
 import type { Route } from './+types/company.booking.schedule-unavailability.detail.route';
 import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
@@ -67,7 +67,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const longDay = (value: string) => {
-  const text = format(new Date(value), 'EEEE d. MMM', { locale: nb });
+  const text = formatInTimeZone(value, TIME_ZONE, 'EEEE d. MMM', { locale: nb });
   return text.charAt(0).toLocaleUpperCase('nb-NO') + text.slice(1);
 };
 
@@ -81,7 +81,7 @@ export default function CompanyBookingScheduleUnavailabilityDetailPage({ loaderD
   const title = absenceTitle(group);
   // A whole-day absence that ends at midnight belongs to the day before (same rule as the title).
   const lastDay =
-    format(new Date(group.to), 'HH:mm') === '00:00'
+    formatInTimeZone(group.to, TIME_ZONE, 'HH:mm') === '00:00'
       ? new Date(new Date(group.to).getTime() - 60_000).toISOString()
       : group.to;
 

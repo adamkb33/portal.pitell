@@ -1,8 +1,8 @@
 import { addDays, addWeeks, format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { CalendarCheck, ChevronLeft, ChevronRight, Gift, Moon, Plus, UserRound } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Moon, Plus } from 'lucide-react';
 import type { Route } from './+types/company.booking.schedule.route';
 import {
   Booking,
@@ -10,8 +10,9 @@ import {
   type AppointmentDto,
   type CompanyUserScheduleOverviewDto,
 } from '~/api/generated';
-import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
-import { getAppointmentTotals } from '../appointments/_utils/appointments.utils';
+import { formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
+import { AppointmentListRow } from '../appointments/_components/appointment.list-row';
+import { getAppointmentTotals, isAppointmentInProgress } from '../appointments/_utils/appointments.utils';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { logger } from '~/lib/logger';
@@ -169,48 +170,49 @@ export default function CompanyBookingSchedulePage({ loaderData }: Route.Compone
   const selectedDay = days.find((day) => day.key === selectedDayKey) ?? days[0];
   const returnTo = `${ROUTES_MAP['company.booking.schedule'].href}?date=${selectedDay.key}`;
 
+  const now = new Date();
+  // "Neste" is the first appointment still to come, across the whole week (like Timebestillinger).
+  const nextAppointmentId = details
+    .filter((appointment) => !appointment.noShow && new Date(appointment.startTime) > now)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))[0]?.id;
+  const previousWeek = previousWeekStart >= getEarliestScheduleWeekStart() ? previousWeekStart : null;
+  const nextWeek = nextWeekStart <= getLatestScheduleWeekStart() ? nextWeekStart : null;
+
+  // Today opens on what's happening: "Nå" (or "Neste") near the top, with half of the row before it peeking above
+  // so it's clear there's more. Other days start at the top.
+  const listRef = useRef<HTMLDivElement>(null);
+  const isToday = selectedDay.isToday;
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const target = isToday
+      ? (list.querySelector<HTMLElement>('[data-marker="now"]') ??
+        list.querySelector<HTMLElement>('[data-marker="next"]'))
+      : null;
+    list.scrollTop = target ? Math.max(0, target.offsetTop - target.offsetHeight / 2) : 0;
+  }, [selectedDay.key, isToday]);
+
   return (
     <CompanyPageTemplate title="Kalender">
-      <BookingDailyToolbar hideChildrenOnPhone>
-        <WeekArrow
-          label="Forrige uke"
-          date={previousWeekStart >= getEarliestScheduleWeekStart() ? previousWeekStart : null}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </WeekArrow>
-        <span className="min-w-16 text-center text-sm font-semibold">
-          {format(selectedWeekStart, "'Uke' I", { locale: nb })}
-        </span>
-        <WeekArrow label="Neste uke" date={nextWeekStart <= getLatestScheduleWeekStart() ? nextWeekStart : null}>
-          <ChevronRight className="h-4 w-4" />
-        </WeekArrow>
-        <span className="hidden text-sm text-text-secondary xl:inline">{formatWeekRange(selectedWeekStart)}</span>
-      </BookingDailyToolbar>
+      {/* Fills the screen (approved sketch B, 2026-11-12): the room the shell leaves between the header and the
+          create button + bottom menu on phones, or the footer on desktop. The week and the day stay put; only the
+          rows scroll. The numbers are the shell's own: main's padding in root.layout.tsx and the header/footer tokens. */}
+      <div className="flex h-[calc(100dvh-var(--app-header-height)-0.75rem-8.875rem-env(safe-area-inset-bottom))] min-h-[26rem] flex-col gap-4 lg:h-[calc(100dvh-var(--app-header-height)-var(--app-footer-height)-4rem)]">
+        <BookingDailyToolbar />
 
-      {loaderData.error ? (
-        <BookingErrorState className="min-h-[36rem]" />
-      ) : (
-        <section
-          aria-label="Kalender"
-          className="flex min-h-[36rem] flex-col overflow-hidden rounded-xl border border-border bg-background p-4 sm:p-5 md:p-0"
-        >
-          {/* Phone: pick a day, see its times. */}
-          <div className="md:hidden">
-            <p className="mb-2 text-center text-sm font-semibold">
-              {format(selectedWeekStart, "'Uke' I", { locale: nb })}
-              <span className="ml-1.5 text-xs font-normal text-text-secondary">
-                · {formatWeekRange(selectedWeekStart, true)}
-              </span>
-            </p>
-            <div className="-mx-2 flex items-center gap-0.5">
-              <WeekArrow
-                bare
-                label="Forrige uke"
-                date={previousWeekStart >= getEarliestScheduleWeekStart() ? previousWeekStart : null}
-              >
-                <ChevronLeft className="h-5 w-5" />
+        {loaderData.error ? (
+          <BookingErrorState className="min-h-0 flex-1" />
+        ) : (
+          <section
+            aria-label="Kalender"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background"
+          >
+            {/* ‹ the week's days › — one strip on phone and desktop (approved sketch 2026-11-12). */}
+            <div className="flex shrink-0 items-center gap-0.5 p-2 sm:gap-1 sm:p-3">
+              <WeekArrow label="Forrige uke" date={previousWeek}>
+                <ChevronLeft className="size-5" />
               </WeekArrow>
-              <div role="group" aria-label="Velg dag" className="grid min-w-0 flex-1 grid-cols-7 gap-1">
+              <div role="group" aria-label="Velg dag" className="grid min-w-0 flex-1 grid-cols-7 gap-0.5 sm:gap-1">
                 {days.map((day) => {
                   const selected = day.key === selectedDay.key;
                   return (
@@ -235,102 +237,32 @@ export default function CompanyBookingSchedulePage({ loaderData }: Route.Compone
                       <span className={cn('font-semibold', day.isToday && !selected && 'text-interactive')}>
                         {format(day.date, 'd')}
                       </span>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'mt-1 h-1 w-7 overflow-hidden rounded-full',
-                          selected ? 'bg-white/30' : 'bg-slate-200',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'block h-full rounded-full',
-                            day.isFull || (day.fill ?? 0) >= 0.8
-                              ? 'bg-amber-400'
-                              : selected
-                                ? 'bg-white'
-                                : 'bg-emerald-500',
-                          )}
-                          style={{ width: `${Math.round((day.fill ?? 0) * 100)}%` }}
-                        />
-                      </span>
                       {day.isFull ? <span className="sr-only">Fullt</span> : null}
                     </button>
                   );
                 })}
               </div>
-              <WeekArrow
-                bare
-                label="Neste uke"
-                date={nextWeekStart <= getLatestScheduleWeekStart() ? nextWeekStart : null}
-              >
-                <ChevronRight className="h-5 w-5" />
+              <WeekArrow label="Neste uke" date={nextWeek}>
+                <ChevronRight className="size-5" />
               </WeekArrow>
             </div>
-            <div className="mt-3">
-              <DaySummary day={selectedDay} detailById={detailById} />
-              <div className="h-[26rem] overflow-y-auto">
-                <DayItems day={selectedDay} returnTo={returnTo} detailById={detailById} />
-              </div>
-            </div>
-          </div>
 
-          {/* Desktop: one list card with a week strip and the selected day's rows. */}
-          <div className="hidden md:block">
-            <div className="border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2" role="group" aria-label="Velg dag">
-                {days.map((day) => {
-                  const selected = day.key === selectedDay.key;
-                  return (
-                    <button
-                      key={day.key}
-                      type="button"
-                      aria-pressed={selected}
-                      aria-label={format(day.date, 'EEEE d. MMMM', { locale: nb })}
-                      onClick={() => selectDay(day.key)}
-                      className={cn(
-                        'flex min-h-16 min-w-20 flex-1 flex-col items-center justify-center rounded-[var(--radius-control)] px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive',
-                        selected ? 'bg-interactive text-text-inverse' : 'text-text-primary hover:bg-surface-variant-1',
-                      )}
-                    >
-                      <span className={cn('text-xs', selected ? 'text-text-inverse' : 'text-text-secondary')}>
-                        {day.label}
-                      </span>
-                      <span className={cn('font-semibold', day.isToday && !selected && 'text-interactive')}>
-                        {format(day.date, 'd')}
-                      </span>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'mt-1 h-1 w-10 overflow-hidden rounded-full',
-                          selected ? 'bg-white/30' : 'bg-slate-200',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'block h-full rounded-full',
-                            day.isFull || (day.fill ?? 0) >= 0.8
-                              ? 'bg-amber-400'
-                              : selected
-                                ? 'bg-white'
-                                : 'bg-emerald-500',
-                          )}
-                          style={{ width: `${Math.round((day.fill ?? 0) * 100)}%` }}
-                        />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <DayStrip day={selectedDay} detailById={detailById} />
+            <div
+              ref={listRef}
+              data-testid="kalender-rows"
+              className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            >
+              <DayItems
+                day={selectedDay}
+                returnTo={returnTo}
+                detailById={detailById}
+                now={now}
+                nextAppointmentId={nextAppointmentId}
+              />
             </div>
-            <div className="p-4 sm:p-5">
-              <DaySummary day={selectedDay} detailById={detailById} />
-              <DayItems day={selectedDay} returnTo={returnTo} detailById={detailById} />
-            </div>
-          </div>
 
-          <div className="mt-auto pt-4 md:pt-0">
-            <div className="border-t border-border pt-3 md:px-4 md:pb-3">
+            <div className="shrink-0 border-t border-border px-4 py-2 sm:px-5">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="px-0">
@@ -349,183 +281,120 @@ export default function CompanyBookingSchedulePage({ loaderData }: Route.Compone
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
     </CompanyPageTemplate>
   );
 }
 
-function WeekArrow({
-  label,
-  date,
-  children,
-  bare = false,
-}: {
-  label: string;
-  date: Date | null;
-  children: React.ReactNode;
-  bare?: boolean;
-}) {
-  const bareClass = 'h-11 w-7 shrink-0 rounded-md px-0';
+function WeekArrow({ label, date, children }: { label: string; date: Date | null; children: React.ReactNode }) {
+  const arrowClass = 'flex h-11 w-7 shrink-0 items-center justify-center rounded-md sm:w-9';
   if (!date) {
-    return bare ? (
-      <span className={cn(bareClass, 'flex items-center justify-center text-text-disabled')} aria-hidden>
+    return (
+      <span className={cn(arrowClass, 'text-text-disabled')} aria-hidden>
         {children}
       </span>
-    ) : (
-      <Button type="button" variant="outline" size="icon" aria-label={label} disabled className="h-9 w-9">
-        {children}
-      </Button>
     );
   }
   return (
-    <Button asChild variant={bare ? 'ghost' : 'outline'} size="icon" className={bare ? bareClass : 'h-9 w-9'}>
-      <Link to={`?date=${format(date, 'yyyy-MM-dd')}`} aria-label={label}>
-        {children}
-      </Link>
-    </Button>
+    <Link
+      to={`?date=${format(date, 'yyyy-MM-dd')}`}
+      aria-label={label}
+      className={cn(
+        arrowClass,
+        'text-interactive hover:bg-surface-variant-1 focus-visible:outline-2 focus-visible:outline-interactive',
+      )}
+    >
+      {children}
+    </Link>
   );
 }
-
-const AVATAR_COLORS = [
-  'bg-purple-100 text-purple-900',
-  'bg-teal-100 text-teal-900',
-  'bg-orange-100 text-orange-900',
-  'bg-pink-100 text-pink-900',
-];
 
 type DetailById = Map<number, AppointmentDto>;
 
-function customerName(appointment?: AppointmentDto) {
-  return [appointment?.user?.givenName, appointment?.user?.familyName].filter(Boolean).join(' ');
-}
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-}
-
-function DaySummary({ day, detailById }: { day: ScheduleDay; detailById: DetailById }) {
+/** The grey strip above the day's rows, like the group strips in Timebestillinger. */
+function DayStrip({ day, detailById }: { day: ScheduleDay; detailById: DetailById }) {
   const booked = day.items.filter((item) => item.kind === 'appointment' && !item.cancelled);
-  const totals = booked.reduce(
-    (sum, item) => {
-      const detail = detailById.get(item.id);
-      if (!detail) return sum;
-      const { duration, price } = getAppointmentTotals(detail);
-      return { duration: sum.duration + duration, price: sum.price + price };
-    },
-    { duration: 0, price: 0 },
-  );
+  const price = booked.reduce((sum, item) => {
+    const detail = detailById.get(item.id);
+    return detail ? sum + getAppointmentTotals(detail).price : sum;
+  }, 0);
   return (
-    <div className="mb-3 flex h-7 items-center justify-between gap-3">
-      <h3 className="text-base font-semibold first-letter:uppercase">
-        {format(day.date, 'EEEE d. MMMM', { locale: nb })}
-      </h3>
-      <p className="flex items-center gap-2 text-right text-xs text-text-secondary">
-        {day.isFull ? (
-          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">Fullt</span>
-        ) : null}
-        <span>
-          {booked.length} {booked.length === 1 ? 'avtale' : 'avtaler'}
-          {totals.price > 0 ? ` · ${formatEstimatedPrice(totals.price)}` : ''}
-        </span>
-      </p>
-    </div>
+    <h3 className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-slate-100 px-4 py-1.5 text-xs font-semibold text-text-primary sm:px-5">
+      <span className="first-letter:uppercase">{format(day.date, 'EEEE d. MMMM', { locale: nb })}</span>
+      <span className="font-normal text-text-secondary">
+        {day.isFull ? 'Fullt · ' : ''}
+        {booked.length} {booked.length === 1 ? 'avtale' : 'avtaler'}
+        {price > 0 ? ` · ${formatEstimatedPrice(price)}` : ''}
+      </span>
+    </h3>
   );
 }
+
+const flatRowClass =
+  'flex h-[3.75rem] w-full items-center gap-3 px-4 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive sm:px-5';
 
 function DayItems({
   day,
   returnTo,
   detailById,
-  compact = false,
+  now,
+  nextAppointmentId,
 }: {
   day: ScheduleDay;
   returnTo: string;
   detailById: DetailById;
-  compact?: boolean;
+  now: Date;
+  nextAppointmentId: number | undefined;
 }) {
   if (day.items.length === 0) {
     const EmptyIcon = day.isOpen ? CalendarCheck : Moon;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="flex flex-col items-center justify-center gap-3 border-t border-border px-6 py-12 text-center">
         <span className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-interactive">
           <EmptyIcon className="size-7" aria-hidden />
         </span>
-        <div className="grid gap-1">
-          <p className="text-base font-semibold text-text-primary">
-            {day.isOpen ? 'Ingen avtaler denne dagen' : 'Stengt denne dagen'}
-          </p>
-          <p className="text-sm text-text-secondary">
-            {day.isOpen ? 'Dagen er ledig. Nye bestillinger dukker opp her.' : 'Det er ingen åpningstid denne dagen.'}
-          </p>
-        </div>
+        <p className="text-base font-semibold text-text-primary">
+          {day.isOpen ? 'Ingen avtaler denne dagen' : 'Stengt denne dagen'}
+        </p>
       </div>
     );
   }
 
-  const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive';
-  let appointmentIndex = -1;
-
   return (
-    <ul className="space-y-2">
+    <ul className="divide-y divide-border border-t border-border">
       {day.items.map((item) => {
         if (item.kind === 'appointment') {
-          appointmentIndex += 1;
           const detail = detailById.get(item.id);
-          const name = customerName(detail);
-          const { services, duration, price } = detail
-            ? getAppointmentTotals(detail)
-            : { services: [], duration: 0, price: 0 };
-          const serviceNames = services
-            .map((service) => service.name)
-            .filter(Boolean)
-            .join(', ');
-          const status = item.cancelled ? 'Avlyst' : item.noShow ? 'Ikke møtt' : null;
+          const href = getAppointmentDetailHref(item.id, returnTo);
+          if (detail && !item.cancelled) {
+            const marker = isAppointmentInProgress(detail, now)
+              ? 'now'
+              : detail.id === nextAppointmentId
+                ? 'next'
+                : new Date(detail.endTime) < now
+                  ? 'past'
+                  : null;
+            return (
+              <li key={`appointment-${item.id}`} data-marker={marker ?? undefined}>
+                <AppointmentListRow appointment={detail} href={href} marker={marker} />
+              </li>
+            );
+          }
+          // Cancelled, or the details didn't load: the same row shape with what the overview knows.
+          const name = [detail?.user?.givenName, detail?.user?.familyName].filter(Boolean).join(' ') || 'Avtale';
           return (
             <li key={`appointment-${item.id}`}>
-              <Link
-                to={getAppointmentDetailHref(item.id, returnTo)}
-                className={cn(
-                  'flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background p-3 transition-colors hover:border-interactive/40',
-                  focusRing,
-                  item.cancelled && 'opacity-60',
-                )}
-              >
-                <span
-                  className={cn(
-                    'flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-                    AVATAR_COLORS[appointmentIndex % AVATAR_COLORS.length],
-                  )}
-                  aria-hidden
-                >
-                  {name ? initials(name) : <UserRound className="size-5" />}
-                </span>
+              <Link to={href} className={cn(flatRowClass, 'bg-background opacity-60 hover:bg-surface-variant-1')}>
+                <span className="w-14 shrink-0 text-base font-semibold tabular-nums">{item.time}</span>
                 <span className="min-w-0 flex-1">
-                  <span
-                    className={cn('flex items-center gap-1.5 text-sm font-semibold', item.cancelled && 'line-through')}
-                  >
-                    <span className="truncate">{name || 'Avtale'}</span>
-                    {item.loyaltyFreeVisit ? (
-                      <Gift className="size-3.5 shrink-0 text-success" aria-label="Gratis time" />
-                    ) : null}
-                  </span>
-                  <span className="block truncate text-xs text-text-secondary">
-                    {status ?? (serviceNames || (compact ? '' : 'Ingen tjenester'))}
-                    {!compact && !status && price > 0 ? ` · ${formatEstimatedPrice(price)}` : ''}
+                  <span className={cn('block truncate font-semibold', item.cancelled && 'line-through')}>{name}</span>
+                  <span className="block truncate text-sm text-text-secondary">
+                    {item.cancelled ? 'Avlyst' : `til ${item.endTime}`}
                   </span>
                 </span>
-                <span className="shrink-0 text-right">
-                  <span className="block text-sm font-semibold tabular-nums">{item.time}</span>
-                  <span className="block text-xs text-text-secondary">
-                    {duration > 0 ? formatEstimatedDuration(duration) : `til ${item.endTime}`}
-                  </span>
-                </span>
+                <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
               </Link>
             </li>
           );
@@ -533,26 +402,22 @@ function DayItems({
 
         const absenceBody = (
           <>
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-900"
-              aria-hidden
-            >
-              <span className="size-2 rounded-full bg-amber-600" />
-            </span>
+            <span className="w-14 shrink-0 text-base font-semibold tabular-nums">{item.time}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">Fravær</span>
-              <span className="block truncate text-xs text-text-secondary">{item.label}</span>
+              <span className="block font-semibold">Fravær</span>
+              <span className="block truncate text-sm text-text-secondary">{item.label}</span>
             </span>
           </>
         );
-        const absenceClass = 'flex min-w-0 items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3';
+        const absenceClass = cn(flatRowClass, 'bg-amber-50 shadow-[inset_4px_0_0_var(--color-amber-500)]');
         return (
           <li key={`unavailability-${item.id}`}>
             {item.isPast ? (
               <div className={absenceClass}>{absenceBody}</div>
             ) : (
-              <Link to={getUnavailabilityEditHref(item, returnTo)} className={cn(absenceClass, focusRing)}>
+              <Link to={getUnavailabilityEditHref(item, returnTo)} className={cn(absenceClass, 'hover:bg-amber-100')}>
                 {absenceBody}
+                <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
               </Link>
             )}
           </li>
@@ -560,12 +425,4 @@ function DayItems({
       })}
     </ul>
   );
-}
-
-function formatWeekRange(weekStart: Date, short = false): string {
-  const weekEnd = addDays(weekStart, 6);
-  if (weekStart.getMonth() === weekEnd.getMonth()) {
-    return `${format(weekStart, 'd.')}–${format(weekEnd, short ? 'd. MMM' : 'd. MMMM yyyy', { locale: nb })}`;
-  }
-  return `${format(weekStart, 'd. MMM', { locale: nb })} – ${format(weekEnd, short ? 'd. MMM' : 'd. MMM yyyy', { locale: nb })}`;
 }

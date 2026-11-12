@@ -40,7 +40,7 @@ test('the admin builds an email from blocks, sees the preview and sends it', asy
   await addOptedInCustomers(db, 'EMAIL', 2);
   await addOptedInCustomers(db, 'SMS', 1);
 
-  await page.goto(`${baseURL}/company/marketing`);
+  await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
   await expect(page.getByText('Ingen kampanjer ennå')).toBeVisible();
   await page.getByRole('link', { name: 'Ny kampanje' }).click();
   await expect(page).toHaveURL(`${baseURL}/company/marketing/create`);

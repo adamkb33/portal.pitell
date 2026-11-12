@@ -1228,6 +1228,15 @@ export type CompanyUserUploadAppointmentImageDto = {
   image: ImageUpload;
 };
 
+export type ApiResponseInteger = {
+  success: boolean;
+  message: ApiMessage;
+  data?: number;
+  errors?: Array<ApiError>;
+  meta?: ApiMeta;
+  timestamp: string;
+};
+
 export type ApiResponseLong = {
   success: boolean;
   message: ApiMessage;
@@ -4196,6 +4205,23 @@ export type SendEmailResponses = {
 };
 
 export type SendEmailResponse = SendEmailResponses[keyof SendEmailResponses];
+
+export type MarkAllInAppNotificationsAsReadData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/notification-service/company-user/notifications/in-app/read-all';
+};
+
+export type MarkAllInAppNotificationsAsReadResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseInteger;
+};
+
+export type MarkAllInAppNotificationsAsReadResponse =
+  MarkAllInAppNotificationsAsReadResponses[keyof MarkAllInAppNotificationsAsReadResponses];
 
 export type MarkInAppNotificationAsReadData = {
   body?: never;

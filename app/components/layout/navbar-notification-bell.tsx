@@ -25,14 +25,15 @@ type NavbarNotificationsState = {
  * `onBrand`: sits on the blue phone bar below `lg` (white icon); desktop keeps the white header's colors.
  */
 export function NavbarNotificationBell({ onBrand = false }: { onBrand?: boolean }) {
-  const { pathname } = useLocation();
+  const { pathname, key: locationKey } = useLocation();
   const [open, setOpen] = React.useState(false);
   const [{ items, unreadCount }, setNotifications] = React.useState<NavbarNotificationsState>({
     items: [],
     unreadCount: 0,
   });
 
-  // Load now, every 15 s, and after every navigation: opening a notification reads it, so the count drops at once.
+  // Load now, every 15 s, and after every navigation or form submission: opening a notification or "Merk alle som
+  // lest" reads them, so the count drops at once.
   React.useEffect(() => {
     let isActive = true;
     let currentController: AbortController | null = null;
@@ -61,7 +62,7 @@ export function NavbarNotificationBell({ onBrand = false }: { onBrand?: boolean 
       currentController?.abort();
       window.clearInterval(intervalId);
     };
-  }, [pathname]);
+  }, [locationKey]);
 
   // A new page closes the panel (Escape and taps outside close it already).
   React.useEffect(() => {
