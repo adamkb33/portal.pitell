@@ -153,9 +153,11 @@ describe('booking pending submission UI', () => {
     expect(timeSlotButtonSource).toContain('name="startTime"');
     expect(timeSlotButtonSource).toContain('value={time}');
     expect(timeSlotButtonSource).toContain('type="submit"');
-    expect(quickBookButtonSource).toContain('name="startTime"');
+    // "Første ledige tid" saves the time and goes straight on; the regular times stay on the page until Fortsett.
+    expect(quickBookButtonSource).toContain('name="quickBookStartTime"');
     expect(quickBookButtonSource).toContain('value={slot.time}');
-    expect(selectTimeSource).toContain('return redirect(returnToOverview ? routes.overview : routes.selectTime)');
+    expect(selectTimeSource).toContain('if (returnToOverview) return redirect(routes.overview);');
+    expect(selectTimeSource).toContain('return redirect(quickBookStartTime ? routes.contact : routes.selectTime);');
     expect(selectTimeSource).toContain('const continueHref = returnToOverview ? routes.overview : routes.contact');
     expect(selectTimeSource).not.toContain('loaderData.navigation');
     expect(selectTimeSource).not.toContain("const intent = formData.get('intent') as string | null");

@@ -31,13 +31,13 @@ export function QuickBookButton({ slot, disabled = false, onSelect }: QuickBookB
     </>
   );
 
-  // Ny time (company side) picks the time in the page; the customer flow submits it.
+  // Ny time (company side) picks the time in the page; the customer flow saves it and goes straight to the next step.
   return onSelect ? (
     <button type="button" disabled={disabled} onClick={() => onSelect(slot.time)} className={className}>
       {body}
     </button>
   ) : (
-    <button type="submit" name="startTime" value={slot.time} disabled={disabled} className={className}>
+    <button type="submit" name="quickBookStartTime" value={slot.time} disabled={disabled} className={className}>
       {body}
     </button>
   );

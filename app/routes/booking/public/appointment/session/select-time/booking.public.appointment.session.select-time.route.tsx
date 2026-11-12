@@ -82,7 +82,9 @@ export async function action({ request }: Route.ActionArgs) {
     const { session } = guardResult;
 
     const formData = await request.formData();
-    const startTime = formData.get('startTime') as string;
+    // "Første ledige tid" skips the Fortsett click: it saves the time and moves on.
+    const quickBookStartTime = formData.get('quickBookStartTime') as string | null;
+    const startTime = (quickBookStartTime || formData.get('startTime')) as string;
     const returnToOverview = shouldReturnToOverview(formData.get('returnTo'));
 
     if (!startTime) {
@@ -114,7 +116,8 @@ export async function action({ request }: Route.ActionArgs) {
         return redirectWithError(request, routes.selectTime, 'Kunne ikke lagre valgt tidspunkt');
       }
 
-      return redirect(returnToOverview ? routes.overview : routes.selectTime);
+      if (returnToOverview) return redirect(routes.overview);
+      return redirect(quickBookStartTime ? routes.contact : routes.selectTime);
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke lagre tidspunkt');
       return redirectWithError(request, routes.selectTime, message);

@@ -55,7 +55,10 @@ test('the refusal says how long to wait, counted from the oldest code in the win
 
   // The oldest code is 50 minutes old, so a slot frees up in roughly ten minutes.
   await expect(page.getByText(/Du har bedt om for mange koder/)).toBeVisible();
-  const text = await page.getByText(/Du har bedt om for mange koder/).first().innerText();
+  const text = await page
+    .getByText(/Du har bedt om for mange koder/)
+    .first()
+    .innerText();
   if (/\d/.test(text)) expect(text).toMatch(/\b(9|10)\s*minutt/);
 });
 
@@ -88,8 +91,8 @@ test('another company is unaffected by the first company’s cap', async ({ page
   await page.getByRole('checkbox', { name: 'Herreklipp' }).check();
   await page.getByRole('button', { name: 'Velg tid', exact: true }).click();
   await page.waitForURL(/\/select-time/);
+  // "Første ledige tid" saves the time and moves on by itself.
   await page.getByRole('button', { name: /Første ledige tid/ }).click();
-  await page.getByRole('link', { name: 'Fortsett', exact: true }).click();
   await page.waitForURL(/\/contact(?:[?/]|$)/);
 
   await submitContactForm(page, { givenName: 'Other', familyName: 'Company', mobileNumber: '90000063' });

@@ -32,8 +32,8 @@ export async function selectServices(page: Page, serviceNames: readonly string[]
 export async function pickFirstAvailableTime(page: Page) {
   await page.getByRole('button', { name: 'Velg tid', exact: true }).click();
   await page.waitForURL(/\/select-time/);
+  // "Første ledige tid" saves the time and moves on by itself; no Fortsett click.
   await page.getByRole('button', { name: /Første ledige tid/ }).click();
-  await page.getByRole('link', { name: 'Fortsett', exact: true }).click();
   // An already verified user skips the contact step entirely.
   await page.waitForURL(/\/(contact|overview)(?:[?/]|$)/);
 }

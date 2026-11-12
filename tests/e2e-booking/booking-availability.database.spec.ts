@@ -29,7 +29,9 @@ test('a provider who is unavailable for the whole window leaves nothing to book'
   // Either the day row says there is nothing, or every day is marked fully booked: never an enabled way forward.
   await expect(page.getByRole('button', { name: /Første ledige tid/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Fortsett', exact: true })).toBeDisabled();
-  await expect(page.locator('[role="group"][aria-label="Dager"] button[data-date]:not([aria-label$="fullbooket"])')).toHaveCount(0);
+  await expect(
+    page.locator('[role="group"][aria-label="Dager"] button[data-date]:not([aria-label$="fullbooket"])'),
+  ).toHaveCount(0);
 });
 
 test('a day with no free times is marked fully booked and points to the next free day', async ({ page, db }) => {
@@ -81,7 +83,7 @@ test('a booked slot disappears from the list for the next customer', async ({ pa
     const other = await context.newPage();
     await openSelectTime(other);
     await other.getByRole('button', { name: /Første ledige tid/ }).click();
-    await other.getByRole('link', { name: 'Fortsett', exact: true }).waitFor();
+    await other.waitForURL(/\/(contact|overview)(?:[?/]|$)/);
     const chosen = await db.query<{ selected_start_time: Date }>(
       'select selected_start_time from booking.appointment_sessions order by id desc limit 1',
     );
