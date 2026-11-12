@@ -226,6 +226,7 @@ export function BookingProfileForm({
                       <Checkbox
                         name="days"
                         value={day}
+                        aria-label={label}
                         checked={active}
                         className="size-5 accent-interactive"
                         onCheckedChange={(checked) =>

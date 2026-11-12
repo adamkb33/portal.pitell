@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Clock3 } from 'lucide-react';
 import { Button } from '~/ui';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '~/ui';
@@ -60,6 +60,15 @@ export function TimePicker({
   minValue,
   maxValue,
 }: TimePickerProps) {
+  const isDesktop = useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia('(min-width: 640px)');
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia('(min-width: 640px)').matches,
+    () => true,
+  );
   const normalized = normalizeTimeValue(value);
   const [selectedHour, selectedMinute] = normalized ? normalized.split(':') : ['00', '00'];
   const [pendingHour, setPendingHour] = useState<string>(selectedHour);
@@ -273,7 +282,7 @@ export function TimePicker({
         <Clock3 className="size-4 text-text-secondary" />
       </Button>
       {panel}
-      {mobileSheet}
+      {!isDesktop && mobileSheet}
     </div>
   );
 }
