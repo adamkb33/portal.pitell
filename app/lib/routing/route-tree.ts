@@ -2,6 +2,7 @@ import { API_ROUTES_TREE } from './api/api.routes';
 import { AUTH_ROUTES } from './auth/auth.routes';
 import { BOOKING_ROUTES } from './booking/booking.routes';
 import { COMPANY_ROUTES } from './company/company.routes';
+import { LEGAL_ROUTES } from './legal/legal.routes';
 import { MARKETING_ROUTES } from './marketing/marketing.routes';
 import { OFFER_ROUTES } from './offer/offer.routes';
 import { SYSTEM_ADMIN_ROUTES } from './system-admin/system-admin.routes';
@@ -29,6 +30,7 @@ export const ROUTE_TREE: RouteBranch[] = [
   ...BOOKING_ROUTES,
   ...OFFER_ROUTES,
   ...MARKETING_ROUTES,
+  ...LEGAL_ROUTES,
 ];
 
 export { API_ROUTES_TREE };

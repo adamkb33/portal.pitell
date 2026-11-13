@@ -267,7 +267,19 @@ export default function AuthSignIn({ loaderData, actionData }: Route.ComponentPr
           </div>
         </Stack>
       }
-      bottom={<span>Ved å logge inn godtar du gjeldende vilkår for bruk av Pitell Portal.</span>}
+      bottom={
+        <span>
+          Ved å logge inn godtar du{' '}
+          <Link to="/vilkar" className="underline">
+            vilkårene
+          </Link>{' '}
+          og har lest{' '}
+          <Link to="/personvern" className="underline">
+            personvernerklæringen
+          </Link>
+          .
+        </span>
+      }
     >
       <Form method="post" aria-busy={isSubmitting}>
         <input type="hidden" name="returnTo" value={loaderData.returnTo ?? ''} />
