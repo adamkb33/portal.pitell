@@ -64,8 +64,11 @@ for (const viewport of [
     await adminPages.getByRole('link', { name: /^Statistikk/ }).click();
     await expect(page).toHaveURL(`${baseURL}/company/admin/statistics`);
     await expect(page.getByRole('heading', { name: 'Statistikk', exact: true })).toBeVisible();
-    await expect(page.getByText('Totalt brukere', { exact: true })).toBeVisible();
-    await page.getByRole('link', { name: 'Tilbake til administrasjon', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Tilgang' })).toContainText('Har tilgang');
+    // Up is in the header (‹ on phones, the breadcrumb on desktop), not a button in the page.
+    await expect(page.getByRole('link', { name: 'Tilbake til administrasjon', exact: true })).toHaveCount(0);
+    await goUp(page, mobile, 'Administrasjon');
+    await expect(page).toHaveURL(`${baseURL}/company/admin`);
 
     const bottom = page.getByRole('navigation', { name: 'Mobil bunnnavigasjon' });
     const sidebar = page.getByRole('navigation', { name: 'Hovednavigasjon', exact: true });
