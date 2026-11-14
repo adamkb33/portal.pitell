@@ -19,6 +19,7 @@ import { serializeQueryParams } from '~/lib/query';
 import { hasBranch } from '~/lib/routing/has-branch';
 import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
 import type { loader as rootLoader } from '~/routes/root.layout';
+import { CompanyRow, OverviewRow } from '~/routes/company/_components/overview-rows';
 import { KeyDestinationCard } from '~/routes/company/booking/_components/key-destination-card';
 import { countTodayAndUpcomingAppointments } from '~/routes/company/booking/_utils/appointment-counts.server';
 import { UNREAD_COUNT_REQUEST } from '~/routes/company/notifications/_utils/query';
@@ -158,7 +159,7 @@ export default function CompanyIndex({ loaderData }: Route.ComponentProps) {
               <ul className="divide-y divide-border">
                 {areas.map((area) => (
                   <li key={area.id}>
-                    <Row
+                    <OverviewRow
                       to={ROUTES_MAP[area.id].href}
                       icon={area.icon}
                       tone={area.tone}
@@ -174,34 +175,11 @@ export default function CompanyIndex({ loaderData }: Route.ComponentProps) {
 
         {companySummary ? (
           <section aria-label="Selskap" className="overflow-hidden rounded-xl border border-border bg-background">
-            <div className="flex min-h-15 items-center gap-3 px-4 py-2.5 sm:px-5">
-              <span
-                aria-hidden
-                className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-interactive text-sm font-bold text-text-inverse"
-              >
-                {initials(companySummary.name)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold text-text-primary">{companySummary.name}</span>
-                <span className="block truncate text-sm text-text-secondary">
-                  {[
-                    companySummary.orgNumber ? `Org.nr ${formatOrgNumber(companySummary.orgNumber)}` : null,
-                    companySummary.organizationType?.description,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </span>
-              {can('company.admin.settings') ? (
-                <Link
-                  to={ROUTES_MAP['company.admin.settings'].href}
-                  aria-label="Endre selskapet"
-                  className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-semibold text-text-primary ring-1 ring-border transition-colors ring-inset hover:bg-surface-variant-1 focus-visible:outline-2 focus-visible:outline-interactive lg:min-h-9"
-                >
-                  Endre
-                </Link>
-              ) : null}
-            </div>
+            <CompanyRow
+              company={companySummary}
+              extra={companySummary.organizationType?.description}
+              editHref={can('company.admin.settings') ? ROUTES_MAP['company.admin.settings'].href : undefined}
+            />
             {address ? (
               <div className="flex min-h-15 items-center gap-3 border-t border-border px-4 py-2.5 sm:px-5">
                 <span
@@ -222,48 +200,6 @@ export default function CompanyIndex({ loaderData }: Route.ComponentProps) {
     </CompanyPageTemplate>
   );
 }
-
-/** One area: its coloured tile, name and one muted line; the whole row opens the area. */
-function Row({
-  to,
-  icon: Icon,
-  tone,
-  title,
-  line,
-}: {
-  to: string;
-  icon: LucideIcon;
-  tone: string;
-  title: string;
-  line: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex h-15 items-center gap-3 px-4 transition-colors hover:bg-surface-variant-1 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive sm:px-5"
-    >
-      <span aria-hidden className={cn('grid size-9 shrink-0 place-items-center rounded-[10px]', tone)}>
-        <Icon className="size-5" strokeWidth={1.8} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold text-text-primary">{title}</span>
-        <span className="block truncate text-sm text-text-secondary">{line}</span>
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
-    </Link>
-  );
-}
-
-const initials = (name?: string) =>
-  (name ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase())
-    .join('') || '?';
-
-/** 927491745 → "927 491 745", as Brønnøysund writes it. */
-const formatOrgNumber = (orgNumber: string) => orgNumber.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
 
 /** "Brogata 12, 1608 Fredrikstad" */
 function formatAddress(address?: AddressDto | null): string {

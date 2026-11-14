@@ -2780,22 +2780,22 @@ export class Notification {
     });
   }
 
-  public static markAllInAppNotificationsAsRead<ThrowOnError extends boolean = false>(
-    options?: Options<MarkAllInAppNotificationsAsReadData, ThrowOnError>,
-  ) {
-    return (options?.client ?? client).post<MarkAllInAppNotificationsAsReadResponses, unknown, ThrowOnError>({
-      security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/notification-service/company-user/notifications/in-app/read-all',
-      ...options,
-    });
-  }
-
   public static markInAppNotificationAsRead<ThrowOnError extends boolean = false>(
     options: Options<MarkInAppNotificationAsReadData, ThrowOnError>,
   ) {
     return (options.client ?? client).post<MarkInAppNotificationAsReadResponses, unknown, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/notification-service/company-user/notifications/in-app/{id}/read',
+      ...options,
+    });
+  }
+
+  public static markAllInAppNotificationsAsRead<ThrowOnError extends boolean = false>(
+    options?: Options<MarkAllInAppNotificationsAsReadData, ThrowOnError>,
+  ) {
+    return (options?.client ?? client).post<MarkAllInAppNotificationsAsReadResponses, unknown, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/notification-service/company-user/notifications/in-app/read-all',
       ...options,
     });
   }

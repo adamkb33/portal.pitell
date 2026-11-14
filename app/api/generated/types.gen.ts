@@ -775,6 +775,15 @@ export type InAppNotificationDto = {
   readAt?: string;
 };
 
+export type ApiResponseInteger = {
+  success: boolean;
+  message: ApiMessage;
+  data?: number;
+  errors?: Array<ApiError>;
+  meta?: ApiMeta;
+  timestamp: string;
+};
+
 export type ApiResponseUnsubscribeInfoDto = {
   success: boolean;
   message: ApiMessage;
@@ -1226,15 +1235,6 @@ export type ApiResponseAppointmentDto = {
 
 export type CompanyUserUploadAppointmentImageDto = {
   image: ImageUpload;
-};
-
-export type ApiResponseInteger = {
-  success: boolean;
-  message: ApiMessage;
-  data?: number;
-  errors?: Array<ApiError>;
-  meta?: ApiMeta;
-  timestamp: string;
 };
 
 export type ApiResponseLong = {
@@ -3229,7 +3229,6 @@ export type CompanyDashboardMetrics = {
   overview: CompanyOverview;
   users: UserMetrics;
   invitations: InvitationMetrics;
-  security: SecurityMetrics;
   contacts: ContactMetrics;
 };
 
@@ -3238,40 +3237,26 @@ export type CompanyOverview = {
   roleDistribution: {
     [key: string]: number;
   };
-  enabledProducts: Array<'BOOKING' | 'EVENT' | 'OFFER' | 'MARKETING' | 'TIMESHEET'>;
-  accountCreatedAt: string;
 };
 
 export type ContactMetrics = {
   totalContacts: number;
-  contactsWithCompleteInfo: number;
-  recentContacts: Array<RecentContact>;
+  withMobile: number;
+  withEmail: number;
+  withNeither: number;
+  newThisMonth: number;
+  newLastMonth: number;
 };
 
 export type InvitationMetrics = {
   pending: number;
-  expired: number;
-  totalSent: number;
-  totalUsed: number;
-  acceptanceRate: number;
-  recentInvites: Array<RecentInvite>;
-};
-
-export type RecentContact = {
-  contactId: number;
-  givenName: string;
-  familyName: string;
-  hasEmail: boolean;
-  hasMobile: boolean;
-  createdAt: string;
+  expiredInvites: Array<RecentInvite>;
 };
 
 export type RecentInvite = {
   email: string;
   sentAt: string;
   expiresAt: string;
-  used: boolean;
-  usedAt?: string;
 };
 
 export type RecentUser = {
@@ -3279,22 +3264,12 @@ export type RecentUser = {
   givenName: string;
   familyName: string;
   email: string;
-  lastActiveAt: string;
-};
-
-export type SecurityMetrics = {
-  passwordResetsLastThirtyDays: number;
-  activeSessions: number;
-  revokedTokensLastThirtyDays: number;
+  lastActiveAt?: string;
 };
 
 export type UserMetrics = {
   totalActive: number;
-  activeLastThirtyDays: number;
-  newThisMonth: number;
-  inactiveUsers: number;
-  lastActiveUsers: Array<RecentUser>;
-  averageAccountAgeDays: number;
+  inactiveUsers: Array<RecentUser>;
 };
 
 export type ApiResponsePublicPendingUserClearedResponseDto = {
@@ -4206,23 +4181,6 @@ export type SendEmailResponses = {
 
 export type SendEmailResponse = SendEmailResponses[keyof SendEmailResponses];
 
-export type MarkAllInAppNotificationsAsReadData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/notification-service/company-user/notifications/in-app/read-all';
-};
-
-export type MarkAllInAppNotificationsAsReadResponses = {
-  /**
-   * OK
-   */
-  200: ApiResponseInteger;
-};
-
-export type MarkAllInAppNotificationsAsReadResponse =
-  MarkAllInAppNotificationsAsReadResponses[keyof MarkAllInAppNotificationsAsReadResponses];
-
 export type MarkInAppNotificationAsReadData = {
   body?: never;
   path: {
@@ -4241,6 +4199,23 @@ export type MarkInAppNotificationAsReadResponses = {
 
 export type MarkInAppNotificationAsReadResponse =
   MarkInAppNotificationAsReadResponses[keyof MarkInAppNotificationAsReadResponses];
+
+export type MarkAllInAppNotificationsAsReadData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/notification-service/company-user/notifications/in-app/read-all';
+};
+
+export type MarkAllInAppNotificationsAsReadResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseInteger;
+};
+
+export type MarkAllInAppNotificationsAsReadResponse =
+  MarkAllInAppNotificationsAsReadResponses[keyof MarkAllInAppNotificationsAsReadResponses];
 
 export type GetData = {
   body?: never;
@@ -5348,6 +5323,7 @@ export type GetContacts1Data = {
     size?: number;
     sort?: string;
     search?: string;
+    missingContactInfo?: boolean;
   };
   url: '/base-service/company-user/contacts';
 };

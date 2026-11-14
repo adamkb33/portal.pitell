@@ -23,6 +23,8 @@ export interface CompanyFormPageTemplateProps
   submit?: FormSubmit;
   /** Older free-form footer; new form pages use `submit`. */
   footer?: React.ReactNode;
+  /** Below the form card, away from Lagre: the edit page's quiet delete button. */
+  after?: React.ReactNode;
 }
 
 /**
@@ -35,6 +37,7 @@ export function CompanyFormPageTemplate({
   children,
   submit,
   footer,
+  after,
   ...props
 }: CompanyFormPageTemplateProps) {
   return (
@@ -50,6 +53,7 @@ export function CompanyFormPageTemplate({
           </CardFooter>
         ) : null}
       </Card>
+      {after}
     </CompanyPageTemplate>
   );
 }

@@ -737,7 +737,7 @@
   }
 
   /* Key destination card [KeyDestinationCard, app/routes/company/booking/_components/key-destination-card.tsx]:
-     <a class="key teal|cyan"><i class="ti ti-… bgi"></i><span class="kt"><i class="ti ti-…"></i></span>
+     <a class="key teal|cyan|sky|plum"><i class="ti ti-… bgi"></i><span class="kt"><i class="ti ti-…"></i></span>
      <span><b class="kn">Kalender</b><span class="kc"><b>4</b> avtaler i dag</span></span></a>. Two side by side in .keys. */
   .pk .keys {
     display: grid;
@@ -766,6 +766,15 @@
   .pk .key.cyan {
     --k1: #0e7490;
     --k2: #155e75;
+  }
+  /* Administrasjon: Ansatte (sky) and Kontakter (plum) [KEY_TONES]. */
+  .pk .key.sky {
+    --k1: #0369a1;
+    --k2: #075985;
+  }
+  .pk .key.plum {
+    --k1: #702963;
+    --k2: #571f4d;
   }
   .pk .key::before {
     content: '';
@@ -940,6 +949,46 @@
     position: absolute;
     inset: 0;
     background: rgb(15 23 42/0.35);
+  }
+  /* Choice row with a checkbox [role-checkboxes.tsx]: <div class="opt on"><span class="cb"><i class="ti ti-check"></i></span>
+     <div><b>Ansatt</b><span>Booking, tilbud, timelister og kontakter</span></div></div>. Chosen = blue border + tint. */
+  .pk .opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 14px;
+    border: 1px solid var(--bd);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .pk .opt.on {
+    border-color: var(--blue);
+    background: var(--bt);
+  }
+  .pk .opt .cb {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid #8592a6;
+    flex: none;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 14px;
+  }
+  .pk .opt.on .cb {
+    background: var(--blue);
+    border-color: var(--blue);
+  }
+  .pk .opt b {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .pk .opt span:not(.cb) {
+    font-size: 13px;
+    color: var(--mut);
   }
 </style>
 <div class="pk">

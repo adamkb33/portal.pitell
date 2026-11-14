@@ -59,7 +59,7 @@ for (const viewport of [
     await page.goto(`${baseURL}/company/admin`, { waitUntil: 'networkidle' });
     await expect(page.getByRole('heading', { name: 'Administrasjon', exact: true })).toBeVisible();
 
-    const adminPages = page.getByRole('navigation', { name: 'Administrasjonssider' });
+    const adminPages = page.getByRole('navigation', { name: 'Administrasjon', exact: true });
     await expect(page.getByText('Totalt brukere', { exact: true })).toHaveCount(0);
     await adminPages.getByRole('link', { name: /^Statistikk/ }).click();
     await expect(page).toHaveURL(`${baseURL}/company/admin/statistics`);
@@ -105,9 +105,8 @@ for (const viewport of [
     }
 
     await expect(page).toHaveURL(`${baseURL}/company/admin`);
-    await expect(adminPages.getByRole('link')).toHaveCount(4);
     await page.screenshot({ path: testInfo.outputPath('admin-index.png'), fullPage: true });
-    await adminPages.getByRole('link', { name: /^Ansatte/ }).click();
+    await page.getByRole('link', { name: /^Ansatte/ }).click();
     await expect(page).toHaveURL(`${baseURL}/company/admin/employees`);
     if (!mobile) {
       await expect(
@@ -125,7 +124,7 @@ for (const viewport of [
     await goUp(page, mobile, 'Ansatte');
     await expect(page).toHaveURL(`${baseURL}/company/admin/employees`);
     await page.reload({ waitUntil: 'networkidle' });
-    await expect(page.getByRole('tab', { name: 'Ansatte', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Ansatte', exact: true })).toBeVisible();
     // Below a section the header shows ‹ instead of the menu.
     if (mobile) await expect(page.getByRole('button', { name: 'Åpne meny', exact: true })).toHaveCount(0);
     await goUp(page, mobile, 'Administrasjon');

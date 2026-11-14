@@ -50,16 +50,8 @@ export const API_ROUTES_TREE: ApiRoute[] = [
                 url: '/company/admin/employees/edit',
               },
               {
-                id: 'company.admin.employees.delete',
-                url: '/company/admin/employees/delete',
-              },
-              {
                 id: 'company.admin.employees.invite',
                 url: '/company/admin/employees/invite',
-              },
-              {
-                id: 'company.admin.employees.cancel-invite',
-                url: '/company/admin/employees/cancel-invite',
               },
             ],
           },
@@ -74,10 +66,6 @@ export const API_ROUTES_TREE: ApiRoute[] = [
               {
                 id: 'company.admin.contacts.update',
                 url: '/company/admin/contacts/update',
-              },
-              {
-                id: 'company.admin.contacts.delete',
-                url: '/company/admin/contacts/delete',
               },
             ],
           },

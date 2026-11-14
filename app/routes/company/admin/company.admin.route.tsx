@@ -1,65 +1,87 @@
-import { Link } from 'react-router';
-import { BarChart3, ChevronRight, Contact, Shield, Users } from 'lucide-react';
+import { data } from 'react-router';
+import { BarChart3, Contact, Users } from 'lucide-react';
+import { AdminCompanyController, AdminCompanyUserController, CompanyUserController } from '~/api/generated';
+import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { cn, CompanyPageTemplate } from '~/ui';
+import { CompanyRow, OverviewRow } from '~/routes/company/_components/overview-rows';
+import { KeyDestinationCard } from '~/routes/company/booking/_components/key-destination-card';
+import { CompanyPageTemplate } from '~/ui';
+import type { Route } from './+types/company.admin.route';
 
-export default function CompanyAdminRoute() {
-  const sectionNavigation = (
-    <nav aria-label="Administrasjonssider" className="grid w-full max-w-5xl gap-4 sm:grid-cols-2 sm:gap-5">
-      {[
-        {
-          id: 'company.admin.employees',
-          label: 'Ansatte',
-          description: 'Administrer ansatte og invitasjoner',
-          icon: Users,
-          iconClassName: 'bg-blue-50 text-interactive',
-        },
-        {
-          id: 'company.admin.contacts',
-          label: 'Kontakter',
-          description: 'Se og oppdater kundekontakter',
-          icon: Contact,
-          iconClassName: 'bg-success-soft text-success',
-        },
-        {
-          id: 'company.admin.settings',
-          label: 'Innstillinger',
-          description: 'Selskapsinformasjon og innstillinger',
-          icon: Shield,
-          iconClassName: 'bg-surface-variant-1 text-text-secondary',
-        },
-        {
-          id: 'company.admin.statistics',
-          label: 'Statistikk',
-          description: 'Brukere, invitasjoner og kontaktinnsikt',
-          icon: BarChart3,
-          iconClassName: 'bg-purple-soft text-purple',
-        },
-      ].map(({ id, label, description, icon: Icon, iconClassName }) => (
-        <Link
-          key={id}
-          to={ROUTES_MAP[id].href}
-          className="group relative flex min-h-28 items-center gap-4 rounded-2xl border border-border bg-background p-5 pr-12 shadow-sm transition-[border-color,box-shadow] hover:border-interactive/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive sm:min-h-48 sm:flex-col sm:items-start sm:gap-5 sm:p-7"
-        >
-          <span className={cn('grid size-12 shrink-0 place-items-center rounded-xl', iconClassName)}>
-            <Icon className="size-6" strokeWidth={1.7} aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="mb-1 block text-base font-semibold tracking-tight sm:text-lg">{label}</span>
-            <span className="block text-sm text-text-secondary">{description}</span>
-          </span>
-          <ChevronRight
-            className="absolute right-5 top-1/2 size-4 -translate-y-1/2 text-text-disabled transition-colors group-hover:text-interactive sm:right-7 sm:top-7 sm:translate-y-0"
-            aria-hidden
-          />
-        </Link>
-      ))}
-    </nav>
-  );
+export async function loader({ request }: Route.LoaderArgs) {
+  // Each part may fail on its own: the cards still open their pages with "–" instead of a number.
+  const [metrics, employeeCount, company] = await Promise.all([
+    withAuth(request, () => AdminCompanyController.getDashboardMetrics())
+      .then((response) => response.data?.data ?? null)
+      .catch(() => null),
+    // Counted the way the Ansatte list counts, so the card and the list always agree.
+    withAuth(request, () =>
+      AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1, includeDeleted: false } }),
+    )
+      .then((response) => response.data?.data?.totalElements ?? null)
+      .catch(() => null),
+    withAuth(request, () => CompanyUserController.getCompanySummary())
+      .then((response) => response.data?.data ?? null)
+      .catch(() => null),
+  ]);
+
+  return data({
+    employeeCount,
+    contactCount: metrics?.contacts.totalContacts ?? null,
+    followUps: metrics ? metrics.users.inactiveUsers.length + metrics.invitations.expiredInvites.length : null,
+    company,
+  });
+}
+
+/**
+ * Administrasjon (Oversikt, approved sketch 2026-11-13): Ansatte and Kontakter are the key destinations (full-colour
+ * cards with one number), then the company with "Endre" and Statistikk as rows.
+ */
+export default function CompanyAdminRoute({ loaderData }: Route.ComponentProps) {
+  const { employeeCount, contactCount, followUps, company } = loaderData;
 
   return (
-    <CompanyPageTemplate title="Administrasjon" description="Velg hva du vil administrere.">
-      {sectionNavigation}
+    <CompanyPageTemplate title="Administrasjon">
+      <div className="flex max-w-140 flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <KeyDestinationCard
+            href={ROUTES_MAP['company.admin.employees'].href}
+            label="Ansatte"
+            icon={Users}
+            tone="sky"
+            count={employeeCount}
+            countLabel={employeeCount === 1 ? 'ansatt' : 'ansatte'}
+          />
+          <KeyDestinationCard
+            href={ROUTES_MAP['company.admin.contacts'].href}
+            label="Kontakter"
+            icon={Contact}
+            tone="plum"
+            count={contactCount}
+            countLabel={contactCount === 1 ? 'kontakt' : 'kontakter'}
+          />
+        </div>
+
+        <nav aria-label="Administrasjon" className="overflow-hidden rounded-xl border border-border bg-background">
+          <ul className="divide-y divide-border">
+            {company ? (
+              <li>
+                <CompanyRow company={company} editHref={ROUTES_MAP['company.admin.settings'].href} />
+              </li>
+            ) : null}
+            <li>
+              <OverviewRow
+                to={ROUTES_MAP['company.admin.statistics'].href}
+                icon={BarChart3}
+                tone="bg-surface-variant-1 text-text-secondary"
+                title="Statistikk"
+                // Something to act on when there is; otherwise what the page covers (no "0 å følge opp").
+                line={followUps ? `${followUps} å følge opp` : 'Tilgang og kontakter'}
+              />
+            </li>
+          </ul>
+        </nav>
+      </div>
     </CompanyPageTemplate>
   );
 }

@@ -51,10 +51,7 @@ describe('whole app', () => {
     [...new Set(violations(files, pattern).map((hit) => hit.split(':')[0]))].sort();
 
   it('shows results as flash toasts, never sonner (no Toaster is mounted, so sonner toasts never show)', () => {
-    const knownViolations = [
-      'components/pickers/contact-picker.tsx',
-      'routes/company/admin/employees/tables/invites.table.tsx',
-    ];
+    const knownViolations = ['components/pickers/contact-picker.tsx'];
     const using = filesUsing(/from ['"]sonner['"]/).filter((file) => file !== 'components/ui/sonner.tsx');
     expect(using).toEqual(knownViolations);
   });

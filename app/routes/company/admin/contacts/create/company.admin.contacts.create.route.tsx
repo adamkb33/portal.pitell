@@ -1,15 +1,15 @@
 import type { FormPageHandle } from '~/lib/routing/create-action';
-import { data, redirect } from 'react-router';
+import { data } from 'react-router';
 import type { Route } from './+types/company.admin.contacts.create.route';
-import { ContactFormSchema, type ContactFormData, type FieldErrors } from '../_schemas/contact.form.schema';
+import { ContactFormSchema, contactMissing, type ContactFormData } from '../_schemas/contact.form.schema';
 import { ContactFormPage } from '../_components/contact-form-page';
 import { CompanyUserContactController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { setFlashMessage } from '~/lib/flash-message.server';
+import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 
-/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */
+/** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 5). */
 export const handle: FormPageHandle = { formPage: true };
 
 const emptyValues: ContactFormData = {
@@ -19,17 +19,12 @@ const emptyValues: ContactFormData = {
   mobileNumber: '',
 };
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  return data({
-    values: emptyValues,
-    returnTo: url.searchParams.get('returnTo'),
-  });
+export async function loader() {
+  return data({ values: emptyValues });
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const returnTo = String(formData.get('returnTo') ?? '') || null;
   const values: ContactFormData = {
     givenName: String(formData.get('givenName') ?? '').trim(),
     familyName: String(formData.get('familyName') ?? '').trim(),
@@ -37,16 +32,12 @@ export async function action({ request }: Route.ActionArgs) {
     mobileNumber: String(formData.get('mobileNumber') ?? '').trim(),
   };
 
+  // The page keeps Lagre disabled until this passes; this guards against a request made around it.
   const parsed = ContactFormSchema.safeParse(values);
   if (!parsed.success) {
-    const fieldErrors: FieldErrors = {};
-    for (const issue of parsed.error.issues) {
-      const path = issue.path[0] as keyof ContactFormData | undefined;
-      if (path) fieldErrors[path] = issue.message;
-    }
-    const error = 'Kontroller feltene og prøv igjen.';
+    const error = contactMissing(values) ?? 'Kontroller feltene.';
     const flashCookie = await setFlashMessage(request, { type: 'error', text: error });
-    return data({ error, fieldErrors, values }, { status: 400, headers: { 'Set-Cookie': flashCookie } });
+    return data({ error, values }, { status: 400, headers: { 'Set-Cookie': flashCookie } });
   }
 
   try {
@@ -61,16 +52,15 @@ export async function action({ request }: Route.ActionArgs) {
       });
     });
 
-    return redirect(returnTo || ROUTES_MAP['company.admin.contacts'].href);
+    // Back to the plain list, no search filled in (user's call 2026-11-14).
+    return redirectWithSuccess(request, ROUTES_MAP['company.admin.contacts'].href, 'Kontakt lagret');
   } catch (error) {
-    const { message } = resolveErrorPayload(error, 'Kunne ikke opprette kontakt');
+    const { message } = resolveErrorPayload(error, 'Kunne ikke lagre kontakten. Prøv igjen.');
     const flashCookie = await setFlashMessage(request, { type: 'error', text: message });
     return data({ error: message, values }, { status: 400, headers: { 'Set-Cookie': flashCookie } });
   }
 }
 
 export default function CompanyAdminContactsCreatePage({ loaderData, actionData }: Route.ComponentProps) {
-  return (
-    <ContactFormPage mode="create" values={loaderData.values} actionData={actionData} returnTo={loaderData.returnTo} />
-  );
+  return <ContactFormPage mode="create" values={loaderData.values} actionData={actionData} />;
 }

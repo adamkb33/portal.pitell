@@ -1,11 +1,17 @@
 import { CompanyRole } from '~/api/clients/types';
-import { Checkbox } from '~/ui';
+import { Checkbox, cn } from '~/ui';
 
+/** What each role can open, from the route access in `company.routes.ts`. */
 export const ROLE_OPTIONS = [
-  { value: CompanyRole.ADMIN as const, label: 'Administrator', description: 'Full tilgang til alle funksjoner' },
-  { value: CompanyRole.EMPLOYEE as const, label: 'Ansatt', description: 'Standard tilgang for medarbeidere' },
+  {
+    value: CompanyRole.ADMIN as const,
+    label: 'Administrator',
+    description: 'Alt, også administrasjon og markedsføring',
+  },
+  { value: CompanyRole.EMPLOYEE as const, label: 'Ansatt', description: 'Booking, tilbud, timelister og kontakter' },
 ];
 
+/** Role choices as selection rows: the whole row toggles; a chosen row gets a blue border and tint. */
 export const RoleCheckboxes = ({
   value,
   onChange,
@@ -13,51 +19,34 @@ export const RoleCheckboxes = ({
   value: CompanyRole[];
   onChange: (roles: CompanyRole[]) => void;
 }) => (
-  <div className="space-y-2">
+  <div className="flex flex-col gap-2">
     {ROLE_OPTIONS.map((role) => {
       const isChecked = value?.includes(role.value);
 
       return (
         <label
           key={role.value}
-          className={`
-            group relative flex items-start gap-3 p-3 md:p-4 rounded border cursor-pointer
-            transition-all duration-200
-            ${
-              isChecked
-                ? 'border-interactive bg-surface'
-                : 'border-border bg-background hover:border-interactive hover:bg-surface'
-            }
-            focus-within:ring-2 focus-within:ring-interactive focus-within:ring-offset-2
-          `}
+          className={cn(
+            'flex min-h-14 cursor-pointer items-center gap-3 rounded-[10px] border px-3.5 py-2 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-interactive',
+            isChecked
+              ? 'border-interactive bg-interactive/10'
+              : 'border-border bg-background hover:bg-surface-variant-1',
+          )}
         >
           <Checkbox
             checked={isChecked}
             onCheckedChange={(checked) => {
               const currentRoles = value || [];
-              const newRoles = checked
-                ? [...currentRoles, role.value]
-                : currentRoles.filter((r: CompanyRole) => r !== role.value);
-              onChange(newRoles);
+              onChange(
+                checked ? [...currentRoles, role.value] : currentRoles.filter((r: CompanyRole) => r !== role.value),
+              );
             }}
-            className="mt-0.5 shrink-0"
+            className="shrink-0"
           />
-
-          <div className="flex-1 min-w-0">
-            <div
-              className={`text-sm font-semibold leading-tight transition-colors duration-200 ${isChecked ? 'text-interactive' : 'text-text-primary'}`}
-            >
-              {role.label}
-            </div>
-            <div className="mt-1 text-xs leading-relaxed text-text-secondary">{role.description}</div>
-          </div>
-
-          {isChecked && (
-            <div
-              className="absolute right-2 top-2 h-2 w-2 rounded-full bg-interactive animate-in fade-in zoom-in duration-200 md:right-3 md:top-3"
-              aria-hidden="true"
-            />
-          )}
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-text-primary">{role.label}</span>
+            <span className="block text-[13px] text-text-secondary">{role.description}</span>
+          </span>
         </label>
       );
     })}

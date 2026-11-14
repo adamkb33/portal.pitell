@@ -32,6 +32,10 @@ What the user has decided about how portal.pitell should look. Newest last. This
 - 2026-11-10 – Notifications: rows like every other list (the domain's colour tile, title, the message on one muted line without links, the time); unread = bold title + a small blue dot, never a coloured row. Group by day like the appointment list. The bell's panel uses the same rows (no chevrons) and ends in "Se alle varsler"; on phones it drops full width under the blue bar and dims the page. No stat tiles, date filters or "rows per page" on the list.
 - 2026-11-11 – Compact views everywhere: no unnecessary padding, margins or gaps. Space only to group or separate things (16px between page blocks on phones, 24px max on desktop), one side gutter per page (the shell's), no wrapper padding, no air under titles. Keep 44px touch targets. Details: `design-language.md` → Space and shape.
 
+- 2026-11-14 – A form's primary button (Lagre, Send invitasjon…) is disabled until the form is valid, with one line in the bar saying what's missing ("Skriv inn en gyldig e-postadresse"), like the booking bar's "Velg minst én tjeneste". No error that only appears after pressing it. A global rule for every form: `ui-rules` rule 5.
+
+- 2026-11-14 – Numbers that are 0 or empty aren't shown: no "0" rows, no empty "Følg opp" lists. A card with nothing left disappears; a page with nothing at all shows one calm empty state. Rule: `ui-rules` rule 1 (Tall).
+
 ## Defaults the user hasn't seen yet
 
 Picked by Claude because the user prefers reacting to a result over more questions. Treat them as the default; move a line to "Decided" when the user confirms it, or replace it when they correct it.

@@ -7,6 +7,9 @@ import { cn } from '~/ui';
 export const KEY_TONES = {
   teal: 'from-category-teal-ink to-category-teal-deep border-category-teal-deep',
   cyan: 'from-category-cyan-ink to-category-cyan-deep border-category-cyan-deep',
+  /** Administrasjon: Ansatte (sky) and Kontakter (plum). */
+  sky: 'from-category-sky-ink to-category-sky-deep border-category-sky-deep',
+  plum: 'from-category-plum-ink to-category-plum-deep border-category-plum-deep',
   /** Varsler on the company Oversikt: the app's own blue (white text 6.6:1 and up). */
   blue: 'from-interactive to-interactive-hover border-interactive-hover',
 } as const;

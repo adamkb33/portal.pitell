@@ -75,6 +75,16 @@ export const COMPANY_ROUTES: RouteBranch[] = [
                 companyRoles: [CompanyRole.ADMIN],
                 hidden: true,
               },
+              {
+                id: 'company.admin.employees.invitation',
+                href: '/company/admin/employees/invitation',
+                label: 'Invitasjon',
+                category: BrachCategory.COMPANY,
+                accessType: Access.ROLE,
+                companyRoles: [CompanyRole.ADMIN],
+                hidden: true,
+                excludeLayout: true,
+              },
             ],
           },
           {
@@ -89,7 +99,7 @@ export const COMPANY_ROUTES: RouteBranch[] = [
               {
                 id: 'company.admin.contacts.create',
                 href: '/company/admin/contacts/create',
-                label: 'Opprett kontakt',
+                label: 'Ny kontakt',
                 category: BrachCategory.COMPANY,
                 accessType: Access.ROLE,
                 companyRoles: [CompanyRole.ADMIN, CompanyRole.EMPLOYEE],
