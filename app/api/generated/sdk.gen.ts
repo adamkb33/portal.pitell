@@ -33,10 +33,6 @@ import type {
   ChallengeStatusResponses,
   ChangePasswordData,
   ChangePasswordResponses,
-  ChangeUnverifiedEmailData,
-  ChangeUnverifiedEmailResponses,
-  ChangeUnverifiedMobileData,
-  ChangeUnverifiedMobileResponses,
   ClearAppointmentSessionUserData,
   ClearAppointmentSessionUserResponses,
   CompanySignInData,
@@ -141,8 +137,6 @@ import type {
   FindByIdsResponses,
   FlowsData,
   FlowsResponses,
-  ForgotPasswordData,
-  ForgotPasswordResponses,
   Get1Data,
   Get1Responses,
   GetAppointmentByCancelTokenData,
@@ -295,8 +289,6 @@ import type {
   InviteCompanyUserResponses,
   InviteUserData,
   InviteUserResponses,
-  JwtClaimsData,
-  JwtClaimsResponses,
   ListCompaniesData,
   ListCompaniesResponses,
   ListData,
@@ -331,12 +323,8 @@ import type {
   ResendChallengeResponses,
   ResendOfferData,
   ResendOfferResponses,
-  ResendVerificationData,
-  ResendVerificationEmailOnlyData,
-  ResendVerificationEmailOnlyResponses,
   ResendVerificationMobileOnlyData,
   ResendVerificationMobileOnlyResponses,
-  ResendVerificationResponses,
   ResetPasswordData,
   ResetPasswordResponses,
   ResolveCustomerData,
@@ -427,8 +415,6 @@ import type {
   UpdateServiceResponses,
   UploadAppointmentImageData,
   UploadAppointmentImageResponses,
-  UserStatusData,
-  UserStatusResponses,
   ValidateCompanyBookingData,
   ValidateCompanyBookingResponses,
   ValidateCompanyData,
@@ -452,8 +438,6 @@ import type {
   VerifyData,
   VerifyEmailData,
   VerifyEmailResponses,
-  VerifyGoogleTokenData,
-  VerifyGoogleTokenResponses,
   VerifyMobileData,
   VerifyMobileLoginData,
   VerifyMobileLoginResponses,
@@ -2285,37 +2269,11 @@ export class Base {
     });
   }
 
-  public static resendVerification<ThrowOnError extends boolean = false>(
-    options: Options<ResendVerificationData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<ResendVerificationResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/resend-verification',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
   public static resendVerificationMobileOnly<ThrowOnError extends boolean = false>(
     options: Options<ResendVerificationMobileOnlyData, ThrowOnError>,
   ) {
     return (options.client ?? client).post<ResendVerificationMobileOnlyResponses, unknown, ThrowOnError>({
       url: '/base-service/auth/resend-verification/mobile',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  public static resendVerificationEmailOnly<ThrowOnError extends boolean = false>(
-    options: Options<ResendVerificationEmailOnlyData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<ResendVerificationEmailOnlyResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/resend-verification/email',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2348,68 +2306,9 @@ export class Base {
     });
   }
 
-  public static jwtClaims<ThrowOnError extends boolean = false>(options?: Options<JwtClaimsData, ThrowOnError>) {
-    return (options?.client ?? client).post<JwtClaimsResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/jwt-claims',
-      ...options,
-    });
-  }
-
-  public static verifyGoogleToken<ThrowOnError extends boolean = false>(
-    options: Options<VerifyGoogleTokenData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<VerifyGoogleTokenResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/google/verify',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  public static forgotPassword<ThrowOnError extends boolean = false>(
-    options: Options<ForgotPasswordData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<ForgotPasswordResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/forgot-password',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
   public static companySignIn<ThrowOnError extends boolean = false>(options: Options<CompanySignInData, ThrowOnError>) {
     return (options.client ?? client).post<CompanySignInResponses, unknown, ThrowOnError>({
       url: '/base-service/auth/company-sign-in',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  public static changeUnverifiedMobile<ThrowOnError extends boolean = false>(
-    options: Options<ChangeUnverifiedMobileData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<ChangeUnverifiedMobileResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/change-unverified-mobile',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  public static changeUnverifiedEmail<ThrowOnError extends boolean = false>(
-    options: Options<ChangeUnverifiedEmailData, ThrowOnError>,
-  ) {
-    return (options.client ?? client).post<ChangeUnverifiedEmailResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/change-unverified-email',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2648,13 +2547,6 @@ export class Base {
   ) {
     return (options.client ?? client).get<VerificationStatusResponses, unknown, ThrowOnError>({
       url: '/base-service/auth/verification-status',
-      ...options,
-    });
-  }
-
-  public static userStatus<ThrowOnError extends boolean = false>(options?: Options<UserStatusData, ThrowOnError>) {
-    return (options?.client ?? client).get<UserStatusResponses, unknown, ThrowOnError>({
-      url: '/base-service/auth/user-status',
       ...options,
     });
   }

@@ -56,14 +56,6 @@ export const AUTH_ROUTES: RouteBranch[] = [
         iconName: 'UserPlus',
       },
       {
-        id: 'auth.check-email',
-        href: '/auth/check-email',
-        label: 'Sjekk e-post',
-        category: BrachCategory.AUTH,
-        accessType: Access.NOT_AUTHENTICATED,
-        hidden: true,
-      },
-      {
         id: 'auth.collect-email',
         href: '/auth/collect-email',
         label: 'Legg til e-post',
@@ -78,22 +70,6 @@ export const AUTH_ROUTES: RouteBranch[] = [
         category: BrachCategory.AUTH,
         accessType: Access.NOT_AUTHENTICATED,
         hidden: true,
-      },
-      {
-        id: 'auth.forgot-password',
-        href: '/auth/forgot-password',
-        label: 'Glemt passord',
-        category: BrachCategory.AUTH,
-        accessType: Access.NOT_AUTHENTICATED,
-        iconName: 'Key',
-      },
-      {
-        id: 'auth.reset-password',
-        href: '/auth/reset-password',
-        label: 'Tilbakestill passord',
-        category: BrachCategory.AUTH,
-        accessType: Access.NOT_AUTHENTICATED,
-        iconName: 'Key',
       },
       {
         id: 'auth.verify-email',

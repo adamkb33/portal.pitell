@@ -16,7 +16,7 @@ type ApiEnvelope<T> = {
 };
 
 type SignInPayload = {
-  nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_EMAIL' | 'VERIFY_MOBILE' | 'DONE';
+  nextStep: 'COLLECT_EMAIL' | 'COLLECT_MOBILE' | 'VERIFY_MOBILE' | 'DONE';
   authTokens?: AuthTokens;
 };
 

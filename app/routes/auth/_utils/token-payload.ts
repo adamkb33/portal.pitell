@@ -1,4 +1,12 @@
-import type { AuthenticatedUserPayload, JwtClaims } from '~/api/generated';
+import type { AuthenticatedUserPayload } from '~/api/generated';
+
+/** What our access token carries (the backend's `JwtClaims`); read from the token itself, not from an endpoint. */
+export type JwtClaims = {
+  sub?: number;
+  companyId?: number;
+  exp?: number;
+  iat?: number;
+};
 
 export const toJwtClaims = (accessToken: string): JwtClaims => {
   const parts = accessToken.split('.');

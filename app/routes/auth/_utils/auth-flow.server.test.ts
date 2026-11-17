@@ -27,16 +27,15 @@ describe('resolveAuthPostRedirect matrix', () => {
 
   it.each([
     {
-      name: 'sign-in verify email with delivery and token',
+      name: 'sign-up verify mobile with token',
       payload: {
         userId: 3,
-        nextStep: 'VERIFY_EMAIL',
-        emailDelivery: { status: 'SENT' as const },
-        mobileDelivery: { status: 'NOT_ATTEMPTED' as const },
-        verificationToken: { value: 'vt-1', expiresAt: '2030-01-01T00:00:00.000Z' },
+        nextStep: 'VERIFY_MOBILE',
+        mobileDelivery: { status: 'SENT' as const },
+        verificationToken: { value: 'vt-1', expiresAt: '2030-01-01T00:00:00' },
       },
       cookie: 'verification=vt-1',
-      expectedHref: '/auth/check-email?emailDelivery=SENT&mobileDelivery=NOT_ATTEMPTED',
+      expectedHref: '/auth/verify-mobile',
     },
     {
       name: 'provider collect mobile',
@@ -45,7 +44,7 @@ describe('resolveAuthPostRedirect matrix', () => {
         nextStep: 'COLLECT_MOBILE',
       },
       cookie: null,
-      expectedHref: '/auth/collect-mobile?userId=10',
+      expectedHref: '/auth/collect-mobile',
     },
     {
       name: 'done',

@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   getCompanyIdFromToken: vi.fn(),
   signUp: vi.fn(),
   verificationStatus: vi.fn(),
-  resendVerificationEmailOnly: vi.fn(),
   resendVerificationMobileOnly: vi.fn(),
   verifyEmail: vi.fn(),
   verifyMobile: vi.fn(),
@@ -16,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   resolveErrorPayload: vi.fn(),
   redirectWithError: vi.fn(),
   redirectWithWarning: vi.fn(),
+  redirectWithSuccess: vi.fn(),
+  setFlashMessage: vi.fn(),
   readVerificationToken: vi.fn(),
   buildVerificationCookieHeader: vi.fn(),
   buildVerificationCookieHeaderFromDto: vi.fn(),
@@ -34,7 +35,6 @@ vi.mock('~/api/generated', () => ({
     companySignIn: mocks.companySignIn,
     signUp: mocks.signUp,
     verificationStatus: mocks.verificationStatus,
-    resendVerificationEmailOnly: mocks.resendVerificationEmailOnly,
     resendVerificationMobileOnly: mocks.resendVerificationMobileOnly,
     verifyEmail: mocks.verifyEmail,
     verifyMobile: mocks.verifyMobile,
@@ -56,9 +56,12 @@ vi.mock('~/lib/api-error', () => ({
 vi.mock('~/lib/flash-message.server', () => ({
   redirectWithError: mocks.redirectWithError,
   redirectWithWarning: mocks.redirectWithWarning,
+  redirectWithSuccess: mocks.redirectWithSuccess,
+  setFlashMessage: mocks.setFlashMessage,
 }));
 
 vi.mock('~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server', () => ({
+  parseVerificationExpiry: (value?: string | null) => (value ? new Date(`${value}Z`) : undefined),
   VerificationTokenService: {
     readVerificationToken: mocks.readVerificationToken,
     buildVerificationCookieHeader: mocks.buildVerificationCookieHeader,
@@ -86,9 +89,9 @@ vi.mock('~/lib/logger', () => ({
 }));
 
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
+import { accessTokenCookie } from './_features/auth.cookies.server';
 import { action as signInAction } from './sign-in/auth.sign-in.route';
 import { action as signUpAction } from './sign-up/auth.sign-up.route';
-import { loader as checkEmailLoader, action as checkEmailAction } from './check-email/auth.check-email.route';
 import { loader as verifyEmailLoader } from './verify-email/auth.verify-email.route';
 import { loader as verifyMobileLoader, action as verifyMobileAction } from './verify-mobile/auth.verify-mobile.route';
 import { loader as collectEmailLoader, action as collectEmailAction } from './collect-email/auth.collect-email.route';
@@ -129,6 +132,10 @@ describe('auth flow routes matrix', () => {
     mocks.redirectWithError.mockImplementation(
       (_request: Request, href: string) => new Response(null, { status: 302, headers: { Location: href } }),
     );
+    mocks.redirectWithSuccess.mockImplementation(
+      (_request: Request, href: string) => new Response(null, { status: 302, headers: { Location: href } }),
+    );
+    mocks.setFlashMessage.mockResolvedValue('__flash=1');
     mocks.setAuthCookies.mockResolvedValue(new Headers([['Set-Cookie', 'auth=1']]));
     mocks.getCompanyIdFromToken.mockReturnValue(undefined);
     mocks.getCompanyContexts.mockResolvedValue({ data: { data: [] } });
@@ -227,15 +234,14 @@ describe('auth flow routes matrix', () => {
         expectedLocation: '/',
       },
       {
-        name: 'verify email redirects to check-email',
+        name: 'verify mobile goes to the code step',
         payload: {
-          nextStep: 'VERIFY_EMAIL',
+          nextStep: 'VERIFY_MOBILE',
           userId: 1,
-          verificationToken: { value: 'vt-1', expiresAt: '2030-01-01T00:00:00.000Z' },
-          emailDelivery: { status: 'SENT' },
-          mobileDelivery: { status: 'NOT_ATTEMPTED' },
+          verificationToken: { value: 'vt-1', expiresAt: '2030-01-01T00:00:00' },
+          mobileDelivery: { status: 'SENT' },
         },
-        expectedLocation: '/auth/check-email?emailDelivery=SENT&mobileDelivery=NOT_ATTEMPTED',
+        expectedLocation: ROUTES_MAP['auth.verify-mobile'].href,
       },
     ])('$name', async ({ payload, expectedLocation, setup }) => {
       setup?.();
@@ -304,12 +310,26 @@ describe('auth flow routes matrix', () => {
   });
 
   describe('sign-up action', () => {
-    it('redirects to next step and sets auth cookies when tokens are present', async () => {
+    function signUpForm(overrides: Partial<Record<string, string>> = {}) {
+      const formData = new FormData();
+      const values = {
+        givenName: 'Ada',
+        familyName: 'Lovelace',
+        mobileNumber: '912 34 567',
+        email: '',
+        password: 'secret12',
+        ...overrides,
+      };
+      Object.entries(values).forEach(([key, value]) => formData.set(key, value ?? ''));
+      return formData;
+    }
+
+    it('sends the new account to the code step with auth cookies and the number for "Sendt på SMS til"', async () => {
       mocks.signUp.mockResolvedValueOnce({
         data: {
           data: {
             userId: 2,
-            nextStep: 'VERIFY_EMAIL',
+            nextStep: 'VERIFY_MOBILE',
             authTokens: {
               accessToken: 'a',
               refreshToken: 'r',
@@ -317,69 +337,46 @@ describe('auth flow routes matrix', () => {
               refreshTokenExpiresAt: 2,
             },
             verificationToken: { value: 'vt-1', expiresAt: '2030-01-01T00:00:00.000Z' },
-            emailDelivery: { status: 'SENT' },
-            mobileDelivery: { status: 'NOT_ATTEMPTED' },
+            emailDelivery: { status: 'NOT_ATTEMPTED' },
+            mobileDelivery: { status: 'SENT' },
           },
         },
       });
 
-      const formData = new FormData();
-      formData.set('givenName', 'Ada');
-      formData.set('familyName', 'Lovelace');
-      formData.set('email', 'ada@example.com');
-      formData.set('password', 'secret');
-      formData.set('password2', 'secret');
-
       const result = await signUpAction({
-        request: new Request('http://localhost/auth/sign-up', { method: 'POST', body: formData }),
+        request: new Request('http://localhost/auth/sign-up', { method: 'POST', body: signUpForm() }),
       } as never);
 
       expect(getStatus(result)).toBe(302);
-      expect(getLocation(result)).toBe('/auth/check-email?emailDelivery=SENT&mobileDelivery=NOT_ATTEMPTED');
+      expect(getLocation(result)).toBe(ROUTES_MAP['auth.verify-mobile'].href);
       expect(mocks.setAuthCookies).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe('check-email loader/action', () => {
-    it('loader parses delivery params and reads status', async () => {
-      mocks.verificationStatus.mockResolvedValueOnce({
-        data: { data: { nextStep: 'VERIFY_EMAIL' } },
-      });
-
-      const result = await checkEmailLoader({
-        request: new Request('http://localhost/auth/check-email?emailDelivery=SENT&mobileDelivery=FAILED'),
-      } as never);
-
-      expect(unwrapData(result)).toMatchObject({
-        emailDelivery: 'SENT',
-        mobileDelivery: 'FAILED',
-        verificationSessionToken: 'vt-1',
-        nextStep: 'VERIFY_EMAIL',
-      });
-    });
-
-    it('action returns resend payload with delivery statuses', async () => {
-      mocks.resendVerificationEmailOnly.mockResolvedValueOnce({
-        data: {
-          message: { value: 'sent' },
-          data: {
-            verificationToken: { value: 'vt-2', expiresAt: '2030-01-01T00:00:00.000Z' },
-            emailDelivery: { status: 'SENT' },
-            mobileDelivery: { status: 'NOT_ATTEMPTED' },
-          },
+      expect(mocks.signUp).toHaveBeenCalledWith({
+        body: {
+          givenName: 'Ada',
+          familyName: 'Lovelace',
+          mobileNumber: '912 34 567',
+          email: undefined,
+          password: 'secret12',
+          password2: 'secret12',
         },
       });
+      const cookies = (result as Response).headers.get('Set-Cookie') ?? '';
+      expect(cookies).toContain('sign_in_flow=');
+    });
 
-      const result = await checkEmailAction({
-        request: new Request('http://localhost/auth/check-email', { method: 'POST' }),
+    it.each([
+      { overrides: { givenName: '' }, text: 'Skriv inn fornavn.' },
+      { overrides: { mobileNumber: '' }, text: 'Skriv inn mobilnummer.' },
+      { overrides: { email: 'ada@' }, text: 'Skriv inn en gyldig e-postadresse.' },
+      { overrides: { password: 'kort' }, text: 'Passordet må ha minst 8 tegn.' },
+    ])('stays on the page with a toast when $text', async ({ overrides, text }) => {
+      const result = await signUpAction({
+        request: new Request('http://localhost/auth/sign-up', { method: 'POST', body: signUpForm(overrides) }),
       } as never);
 
-      expect(unwrapData(result)).toMatchObject({
-        success: true,
-        message: 'sent',
-        emailDelivery: 'SENT',
-        mobileDelivery: 'NOT_ATTEMPTED',
-      });
+      expect(getStatus(result)).toBe(400);
+      expect(mocks.signUp).not.toHaveBeenCalled();
+      expect(mocks.setFlashMessage).toHaveBeenCalledWith(expect.any(Request), { type: 'error', text });
     });
   });
 
@@ -410,6 +407,30 @@ describe('auth flow routes matrix', () => {
       expect((result as Response).headers.get('Location')).toBe(
         `${ROUTES_MAP['auth.verify-mobile'].href}?verificationSessionToken=vt-1`,
       );
+      expect(mocks.redirectWithSuccess).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.any(String),
+        'E-post bekreftet',
+        expect.any(Headers),
+      );
+    });
+
+    it('signs a customer straight in to Mine bookinger with the toast when nothing else is needed', async () => {
+      mocks.verifyEmail.mockResolvedValueOnce({
+        data: {
+          data: {
+            nextStep: 'DONE',
+            authTokens: { accessToken: 'a', refreshToken: 'r', accessTokenExpiresAt: 1, refreshTokenExpiresAt: 2 },
+          },
+        },
+      });
+
+      const result = await verifyEmailLoader({
+        request: new Request('http://localhost/auth/verify-email?token=t'),
+      } as never);
+
+      expect((result as Response).headers.get('Location')).toBe(ROUTES_MAP['booking.public.my-appointments'].href);
+      expect(mocks.setAuthCookies).toHaveBeenCalledOnce();
     });
   });
 
@@ -437,10 +458,10 @@ describe('auth flow routes matrix', () => {
             data: { verificationToken: { value: 'vt-2', expiresAt: '2030-01-01T00:00:00.000Z' } },
           },
         },
-        expected: { message: 'resent' },
+        expected: { ok: true, message: 'Ny kode sendt.' },
       },
       {
-        name: 'verify with tokens redirects home',
+        name: 'verify with tokens signs a customer in to Mine bookinger',
         form: { intent: 'verify', code: '123456' },
         mockResponse: {
           data: {
@@ -455,7 +476,7 @@ describe('auth flow routes matrix', () => {
             },
           },
         },
-        expectedLocation: '/',
+        expectedLocation: ROUTES_MAP['booking.public.my-appointments'].href,
       },
     ])('$name', async ({ form, mockResponse, expected, expectedLocation }) => {
       if (form.intent === 'resend') {
@@ -485,25 +506,42 @@ describe('auth flow routes matrix', () => {
       { loader: collectEmailLoader, action: collectEmailAction, field: 'email', value: 'user@example.com' },
       { loader: collectMobileLoader, action: collectMobileAction, field: 'mobileNumber', value: '+4712345678' },
     ])(
-      'loader redirects without valid userId and action handles provider complete profile ($field)',
+      'signed out goes to sign-in; signed in saves on the signed-in account ($field)',
       async ({ loader, action, field, value }) => {
         const loaderResult = await loader({
-          request: new Request('http://localhost/auth/collect?userId='),
+          request: new Request('http://localhost/auth/collect'),
         } as never);
         expect(loaderResult).toBeInstanceOf(Response);
         expect((loaderResult as Response).headers.get('Location')).toBe(ROUTES_MAP['auth.sign-in'].href);
+
+        const signedOutForm = new FormData();
+        signedOutForm.set(field, value);
+        const signedOutResult = await action({
+          request: new Request('http://localhost/auth/collect', { method: 'POST', body: signedOutForm }),
+        } as never);
+        expect(getLocation(signedOutResult)).toBe(ROUTES_MAP['auth.sign-in'].href);
+        expect(mocks.providerCompleteProfile).not.toHaveBeenCalled();
+
+        const cookie = (await accessTokenCookie.serialize('access-token')).split(';')[0];
+        expect(
+          await loader({ request: new Request('http://localhost/auth/collect', { headers: { cookie } }) } as never),
+        ).toBeNull();
 
         mocks.providerCompleteProfile.mockResolvedValueOnce({
           data: { data: { userId: 1, nextStep: 'DONE' } },
         });
 
         const formData = new FormData();
-        formData.set('userId', '1');
         formData.set(field, value);
 
         const actionResult = await action({
-          request: new Request('http://localhost/auth/collect', { method: 'POST', body: formData }),
+          request: new Request('http://localhost/auth/collect', {
+            method: 'POST',
+            body: formData,
+            headers: { cookie },
+          }),
         } as never);
+        expect(mocks.providerCompleteProfile).toHaveBeenCalledWith({ body: { [field]: value } });
         expect(getStatus(actionResult)).toBe(302);
         expect(getLocation(actionResult)).toBe('/');
       },

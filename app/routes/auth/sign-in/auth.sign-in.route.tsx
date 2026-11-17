@@ -10,7 +10,6 @@ import type { Route } from './+types/auth.sign-in.route';
 import { authService } from '~/lib/auth-service';
 import { redirectWithError, redirectWithWarning } from '~/lib/flash-message.server';
 import { logger } from '~/lib/logger';
-import React from 'react';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
 import { FormField, AuthPageTemplate, Stack } from '~/ui';
 import { User } from 'lucide-react';
@@ -42,13 +41,9 @@ function redactIdentifier(value: string) {
   return `***${digitsOnly.slice(-4)}`;
 }
 
-function buildSignInHref(redirectUrl?: string, returnTo?: string | null) {
-  const params = new URLSearchParams();
-  if (redirectUrl) params.set('redirectUrl', redirectUrl);
-  if (returnTo) params.set('returnTo', returnTo);
-
-  const search = params.toString();
-  return search ? `${ROUTES_MAP['auth.sign-in'].href}?${search}` : ROUTES_MAP['auth.sign-in'].href;
+function buildSignInHref(returnTo?: string | null) {
+  const href = ROUTES_MAP['auth.sign-in'].href;
+  return returnTo ? `${href}?${new URLSearchParams({ returnTo })}` : href;
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -98,11 +93,9 @@ export async function action({ request }: Route.ActionArgs) {
   const idToken = String(formData.get('idToken') || '');
   const emailOrMobile = String(formData.get('emailOrMobile') || '');
   const password = String(formData.get('password') || '');
-  const redirectUrl = String(formData.get('redirectUrl') || '');
   const returnTo = getSafeReturnTo(String(formData.get('returnTo') || ''));
-  // The booking flow has its own sign-in form that posts here; failures send the customer back to that form.
-  const signInHref =
-    getSafeReturnTo(String(formData.get('retryTo') || '')) ?? buildSignInHref(redirectUrl || undefined, returnTo);
+  // The password step posts here; a wrong password sends them back to that step (retryTo).
+  const signInHref = getSafeReturnTo(String(formData.get('retryTo') || '')) ?? buildSignInHref(returnTo);
   const isGoogleLogin = provider === 'GOOGLE';
 
   if (!isGoogleLogin && !formData.has('password')) {
@@ -115,21 +108,15 @@ export async function action({ request }: Route.ActionArgs) {
     emailOrMobile: redactIdentifier(emailOrMobile),
     hasPassword: password.length > 0,
     hasIdToken: idToken.length > 0,
-    redirectUrl: redirectUrl || null,
   });
 
   if (isGoogleLogin && !idToken) {
-    logger.warn('[auth.sign-in] Missing Google idToken', {
-      redirectUrl: redirectUrl || null,
-    });
+    logger.warn('[auth.sign-in] Missing Google idToken');
     return redirectWithError(request, signInHref, 'Kunne ikke logge inn med Google. Prøv igjen.');
   }
 
   try {
     const response = await AuthController.signIn({
-      query: {
-        redirectUrl: redirectUrl || undefined,
-      },
       body: isGoogleLogin ? { provider: 'GOOGLE', idToken } : { provider: 'LOCAL', emailOrMobile, password },
     });
     const payload = response.data?.data;
@@ -200,7 +187,6 @@ export async function action({ request }: Route.ActionArgs) {
     logger.error('[auth.sign-in] Sign-in failed', {
       provider,
       emailOrMobile: redactIdentifier(emailOrMobile),
-      redirectUrl: redirectUrl || null,
       status: 400,
       error,
     });

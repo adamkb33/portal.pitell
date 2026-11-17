@@ -70,6 +70,7 @@ export function AuthPageTemplate({
   );
 }
 
+/** The blue desktop panel: the logo and one headline (no uppercase micro labels, design-language → Avoid). */
 function DefaultAuthAside() {
   return (
     <>
@@ -77,26 +78,14 @@ function DefaultAuthAside() {
         <span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-white/14 text-lg font-bold shadow-[var(--shadow-card)]">
           P
         </span>
-        <span>
-          <span className="block font-display text-lg font-bold leading-none">Pitell</span>
-          <span className="block pt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">Portal</span>
-        </span>
+        <span className="font-display text-lg font-bold leading-none">Pitell</span>
       </div>
 
-      <div className="max-w-xl space-y-5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/65">Pitell · arbeidsflate</span>
-        <h2 className="font-display text-4xl font-bold leading-tight tracking-tight">
-          Drift selskap, booking og varsler fra ett sted.
-        </h2>
-        <p className="max-w-md text-base leading-relaxed text-white/78">
-          En ryddig portal for administrasjon, kundeflyt og daglige operasjoner.
-        </p>
-      </div>
+      <h2 className="max-w-xl font-display text-4xl font-bold leading-tight tracking-tight">
+        Drift selskap, booking og varsler fra ett sted.
+      </h2>
 
-      <div className="flex items-center justify-between gap-4 border-t border-white/16 pt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
-        <span>© 2026</span>
-        <span>Pitell portal</span>
-      </div>
+      <span aria-hidden="true" />
     </>
   );
 }

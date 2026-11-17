@@ -2,7 +2,8 @@ import { Button } from '~/ui';
 
 /**
  * The one primary button of an auth step. While the step isn't ready it stays disabled and says, in one line,
- * what's missing (ui-rules rule 5).
+ * what's missing (ui-rules rule 5). Disabled looks neutral grey with readable text, never faded blue
+ * (design-language → Copy).
  */
 export function AuthSubmitBar({
   label,
@@ -22,6 +23,8 @@ export function AuthSubmitBar({
   name?: string;
   value?: string;
 }) {
+  const isOff = (Boolean(missing) || Boolean(disabled)) && !loading;
+
   return (
     <div className="space-y-2">
       {missing ? (
@@ -37,6 +40,7 @@ export function AuthSubmitBar({
         value={value}
         loading={loading}
         disabled={Boolean(missing) || disabled}
+        className={isOff ? 'border-border bg-slate-100 text-text-secondary opacity-100 hover:bg-slate-100' : undefined}
       >
         {loading && loadingLabel ? loadingLabel : label}
       </Button>

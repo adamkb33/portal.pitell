@@ -1,28 +1,24 @@
-// auth.verify-mobile.route.tsx
-import * as React from 'react';
-import { Link, data, redirect, Form, useActionData, useNavigation } from 'react-router';
+import { data, redirect } from 'react-router';
 import type { Route } from './+types/auth.verify-mobile.route';
 
-import { AuthController, type VerificationStatusResponseDto } from '~/api/generated';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
+import { AuthController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { ROUTES_MAP } from '~/lib/routing/route-tree';
+import { readRetryAfterSeconds } from '~/routes/booking/public/appointment/session/contact/verify-mobile/_utils/sms-code-message';
 import { requireVerificationToken } from '~/routes/booking/public/appointment/session/contact/_utils/auth.utils.server';
-import { resolveAuthNextStepHref } from '../_utils/auth-flow';
-import { authService } from '~/lib/auth-service';
-import { redirectWithError } from '~/lib/flash-message.server';
-import { AuthPageTemplate, Button, Label, Notice, VerificationCodeInput } from '~/ui';
 import { VerificationTokenService } from '~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server';
+import { AuthPageTemplate } from '~/ui';
+import { CodeStepForm, type CodeActionData } from '../_components/code-step-form';
+import { resolveAuthNextStepHref } from '../_utils/auth-flow';
+import { finishSignIn } from '../_utils/finish-sign-in.server';
+import { maskMobile } from '../_utils/mask-mobile';
+import { describeSignInCodeError } from '../_utils/sign-in-code-errors';
+import { clearSignInFlow, readSignInFlow } from '../_utils/sign-in-flow.cookie.server';
 
-type VerifyMobileLoaderData = {
-  verificationSessionToken: string;
-  status?: VerificationStatusResponseDto;
-  error?: string | null;
-};
-
-type VerifyMobileActionData = {
-  message: string;
-};
-
+/**
+ * The mobile check after sign-up (and after a sign-in or Google profile that still has an unchecked number): the
+ * same code step as sign-in. The number shows when this browser typed it (sign-up, sign-in, Legg til mobilnummer).
+ */
 export async function loader({ request }: Route.LoaderArgs) {
   const verificationSessionToken = await requireVerificationToken(request);
   if (verificationSessionToken instanceof Response) {
@@ -30,207 +26,76 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await AuthController.verificationStatus({
-      query: { verificationSessionToken },
-    });
-    const status = response.data?.data;
-    if (!status) {
-      return data(
-        {
-          verificationSessionToken,
-          error: 'Kunne ikke hente verifiseringsstatus. Prøv igjen.',
-        },
-        { status: 400 },
-      );
-    }
-
-    if (status.nextStep !== 'VERIFY_MOBILE') {
+    const status = (await AuthController.verificationStatus({ query: { verificationSessionToken } })).data?.data;
+    if (status && status.nextStep !== 'VERIFY_MOBILE') {
       const nextStepHref = resolveAuthNextStepHref(status.nextStep);
-      if (nextStepHref) {
-        return redirect(nextStepHref);
-      }
+      if (nextStepHref) return redirect(nextStepHref);
     }
-
-    return data({
-      verificationSessionToken,
-      status,
-      error: null,
-    } satisfies VerifyMobileLoaderData);
-  } catch (error) {
-    const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente verifiseringsstatus. Prøv igjen.');
-    return data(
-      {
-        verificationSessionToken,
-        error: message,
-      },
-      { status: status ?? 400 },
-    );
+  } catch {
+    // The code can still be checked; a stale session shows up as an error when they press Bekreft.
   }
+
+  return { sentTo: maskMobile((await readSignInFlow(request))?.identifier) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const currentHref = new URL(request.url);
-  const currentPath = `${currentHref.pathname}${currentHref.search}`;
   const formData = await request.formData();
-  const intent = String(formData.get('intent') || 'verify');
-
   const verificationSessionToken = await VerificationTokenService.readVerificationToken(request);
-
   if (!verificationSessionToken) {
-    return redirectWithError(request, currentPath, 'Mangler verifiseringsinformasjon. Prøv igjen.');
+    return redirect(ROUTES_MAP['auth.sign-in'].href);
+  }
+
+  if (formData.get('intent') === 'resend') {
+    try {
+      const response = await AuthController.resendVerificationMobileOnly({
+        body: { verificationSessionToken, sendEmail: false, sendMobile: true },
+      });
+      const nextToken = response.data?.data?.verificationToken;
+      const headers = new Headers();
+      if (nextToken?.value) {
+        headers.append(
+          'Set-Cookie',
+          await VerificationTokenService.buildVerificationCookieHeader(
+            nextToken.value,
+            nextToken.expiresAt ?? undefined,
+          ),
+        );
+      }
+      return data<CodeActionData>({ ok: true, message: 'Ny kode sendt.' }, { headers });
+    } catch (error) {
+      const payload = resolveErrorPayload(error, 'Kunne ikke sende ny kode. Prøv igjen.');
+      return data<CodeActionData>(
+        { ok: false, error: describeSignInCodeError(payload), retryAfterSeconds: readRetryAfterSeconds(payload) },
+        { status: 400 },
+      );
+    }
   }
 
   try {
-    if (intent === 'resend') {
-      const response = await AuthController.resendVerificationMobileOnly({
-        body: {
-          verificationSessionToken,
-          sendEmail: false,
-          sendMobile: true,
-        },
-      });
-
-      const nextToken = response.data?.data?.verificationToken?.value ?? verificationSessionToken;
-      const nextTokenExpiresAt = response.data?.data?.verificationToken?.expiresAt ?? null;
-      const successMessage = response.data?.message?.value ?? 'Ny SMS sendt.';
-      const headers = new Headers();
-
-      if (nextToken) {
-        const cookie = await VerificationTokenService.buildVerificationCookieHeader(
-          nextToken,
-          nextTokenExpiresAt ?? undefined,
-        );
-        headers.append('Set-Cookie', cookie);
-      }
-
-      return data({ message: successMessage } satisfies VerifyMobileActionData, { headers });
-    }
-
-    const code = String(formData.get('code') || '');
-    const response = await AuthController.verifyMobile({
-      body: {
-        verificationSessionToken,
-        code,
-      },
-    });
-
-    const payload = response.data?.data;
+    const code = String(formData.get('code') ?? '').trim();
+    const payload = (await AuthController.verifyMobile({ body: { verificationSessionToken, code } })).data?.data;
 
     if (payload?.authTokens) {
-      const headers = await authService.setAuthCookies(
-        payload.authTokens.accessToken,
-        payload.authTokens.refreshToken,
-        payload.authTokens.accessTokenExpiresAt,
-        payload.authTokens.refreshTokenExpiresAt,
-      );
-      return redirect('/', { headers });
+      const flow = await readSignInFlow(request);
+      const { href, headers } = await finishSignIn(payload.authTokens, flow?.returnTo ?? null);
+      headers.append('Set-Cookie', await clearSignInFlow());
+      return redirect(href, { headers });
     }
 
-    const nextStepHref = resolveAuthNextStepHref(payload?.nextStep ?? null);
-    return redirect(nextStepHref ?? ROUTES_MAP['auth.sign-in'].href);
+    return redirect(resolveAuthNextStepHref(payload?.nextStep ?? null) ?? ROUTES_MAP['auth.sign-in'].href);
   } catch (error) {
-    const { message } = resolveErrorPayload(error, 'Kunne ikke bekrefte mobilnummer. Prøv igjen.');
-    return redirectWithError(request, currentPath, message);
+    const payload = resolveErrorPayload(error, 'Kunne ikke bekrefte koden. Prøv igjen.');
+    return data<CodeActionData>({ ok: false, error: describeSignInCodeError(payload) }, { status: 400 });
   }
 }
 
-export default function AuthVerifyMobile({ loaderData }: Route.ComponentProps) {
-  const dataValues = loaderData as VerifyMobileLoaderData;
-  const actionData = useActionData<typeof action>() as VerifyMobileActionData | undefined;
-  const navigation = useNavigation();
-  const [code, setCode] = React.useState('');
-
-  const isSubmitting = navigation.state === 'submitting';
-  const errorMessage = dataValues.error;
-  const isMobileVerified = false;
-  const status = dataValues.status;
-  const canVerifyMobile =
-    status?.emailVerified && status?.mobileRequired && !status.mobileVerified && !isMobileVerified;
-  const resendMessage = actionData?.message ? String(actionData.message) : null;
-  const description = !status?.emailVerified
-    ? 'Bekreft e-posten din før du verifiserer mobilnummer.'
-    : status?.mobileRequired
-      ? 'E-posten din er bekreftet. Skriv inn engangskoden fra SMS for å fullføre registreringen.'
-      : 'Du trenger ikke verifisere mobilnummer. Du kan gå videre til innlogging.';
-
+export default function AuthVerifyMobile({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <AuthPageTemplate
-      title="Bekreft mobilnummer"
-      description={description}
-      error={errorMessage}
-      topRight={
-        <span>
-          Trenger du å logge inn?{' '}
-          <Link
-            to={ROUTES_MAP['auth.sign-in'].href}
-            className="font-semibold text-interactive hover:text-interactive-hover"
-          >
-            Logg inn
-          </Link>
-        </span>
-      }
-      bottom={
-        canVerifyMobile
-          ? 'Skriv inn koden fra SMS-en vi sendte deg.'
-          : 'Du kan fortsette når verifiseringen er fullført.'
-      }
+      title="Skriv inn koden"
+      description={loaderData.sentTo ? `Sendt på SMS til ${loaderData.sentTo}` : 'Sendt på SMS'}
     >
-      <div className="space-y-4">
-        {!status?.emailVerified ? (
-          <Notice message="Du må bekrefte e-posten din før mobilnummeret kan verifiseres." />
-        ) : null}
-
-        {status && !status.mobileRequired ? (
-          <Notice message="Du la ikke til et mobilnummer. Du kan gå videre til innlogging." />
-        ) : null}
-
-        {isMobileVerified ? (
-          <Notice message="Mobilnummeret ditt er bekreftet. Du kan gå videre til innlogging." />
-        ) : null}
-        {resendMessage ? <Notice message={resendMessage} /> : null}
-
-        {canVerifyMobile ? (
-          <>
-            <Form method="post" className="space-y-4">
-              <input type="hidden" name="intent" value="verify" />
-
-              <div className="space-y-3">
-                <Label htmlFor="code">Engangskode</Label>
-                <VerificationCodeInput
-                  id="code"
-                  name="code"
-                  value={code}
-                  onChange={setCode}
-                  required
-                  disabled={isSubmitting}
-                  aria-invalid={Boolean(errorMessage)}
-                />
-              </div>
-
-              <Button type="submit" fullWidth loading={isSubmitting}>
-                Bekreft mobilnummer
-              </Button>
-            </Form>
-
-            <Form method="post">
-              <input type="hidden" name="intent" value="resend" />
-              <button
-                type="submit"
-                className="text-sm font-medium text-foreground hover:underline"
-                disabled={isSubmitting}
-              >
-                Send SMS på nytt
-              </button>
-            </Form>
-          </>
-        ) : null}
-
-        {(status?.mobileVerified || isMobileVerified || !status?.mobileRequired) && (
-          <Button asChild variant="secondary" fullWidth>
-            <Link to={ROUTES_MAP['auth.sign-in'].href}>Gå til innlogging</Link>
-          </Button>
-        )}
-      </div>
+      <CodeStepForm actionData={actionData} />
     </AuthPageTemplate>
   );
 }

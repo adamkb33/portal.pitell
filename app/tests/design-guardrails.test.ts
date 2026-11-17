@@ -62,7 +62,6 @@ describe('whole app', () => {
       'components/layout/sidebar-breadcrums.tsx',
       'components/pickers/contact-picker.tsx',
       'components/pickers/service-picker.tsx',
-      'routes/auth/sign-in/_forms/sign-in.form.tsx',
       'ui/primitives/alert-dialog.tsx',
       'ui/primitives/carousel.tsx',
       'ui/primitives/dialog.tsx',

@@ -160,12 +160,7 @@ test.describe('desktop', () => {
     await page.getByRole('button', { name: 'Fortsett', exact: true }).click();
 
     await expect(page).toHaveURL(/\/auth\/sign-up$/);
-    await expect(page.getByLabel('Mobilnummer (valgfritt)')).toHaveValue(mobile);
-  });
-
-  test('the old forgot-password page leads to sign-in', async ({ page }) => {
-    await page.goto('/auth/forgot-password');
-    await expect(page).toHaveURL(/\/auth\/sign-in$/);
+    await expect(page.getByLabel('Mobilnummer', { exact: true })).toHaveValue(mobile);
   });
 });
 

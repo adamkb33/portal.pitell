@@ -1,131 +1,54 @@
-// auth.verify-email.route.tsx
-import { Link, data, redirect } from 'react-router';
+import { redirect } from 'react-router';
 import type { Route } from './+types/auth.verify-email.route';
 
 import { AuthController } from '~/api/generated';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { verificationSessionToken } from '~/lib/auth.server';
+import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
+import { ROUTES_MAP } from '~/lib/routing/route-tree';
+import { parseVerificationExpiry } from '~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server';
 import { resolveAuthNextStepHref } from '../_utils/auth-flow';
-import { authService } from '~/lib/auth-service';
-import { redirectWithError } from '~/lib/flash-message.server';
-import { AuthPageTemplate, Button } from '~/ui';
+import { finishSignIn } from '../_utils/finish-sign-in.server';
 
+const CONFIRMED = 'E-post bekreftet';
+
+/**
+ * The link in the email. It shows no page: the address is confirmed and the person goes straight on (the code step if
+ * the mobile number isn't checked yet, otherwise in) with the toast "E-post bekreftet".
+ */
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const token = url.searchParams.get('token');
-  const redirectUrl = url.searchParams.get('redirectUrl');
-
-  if (!token) {
-    return redirect(ROUTES_MAP['auth.sign-in'].href);
-  }
+  const token = new URL(request.url).searchParams.get('token');
+  if (!token) return redirect(ROUTES_MAP['auth.sign-in'].href);
 
   try {
-    const response = await AuthController.verifyEmail({
-      query: { token },
-    });
-
-    const payload = response.data?.data;
-    const headers = new Headers();
-
-    if (payload?.authTokens) {
-      const authCookieHeaders = await authService.setAuthCookies(
-        payload.authTokens.accessToken,
-        payload.authTokens.refreshToken,
-        payload.authTokens.accessTokenExpiresAt,
-        payload.authTokens.refreshTokenExpiresAt,
-      );
-      for (const [key, value] of new Headers(authCookieHeaders).entries()) {
-        headers.append(key, value);
-      }
-    }
+    const payload = (await AuthController.verifyEmail({ query: { token } })).data?.data;
 
     if (payload?.nextStep === 'VERIFY_MOBILE' && payload.verificationToken?.value) {
-      const cookie = await verificationSessionToken.serialize(payload.verificationToken.value, {
-        expires: new Date(payload.verificationToken.expiresAt),
-      });
-      headers.append('Set-Cookie', cookie);
-      const params = new URLSearchParams({
-        verificationSessionToken: payload.verificationToken?.value,
-      });
-
-      if (redirectUrl === 'booking') {
-        return data(
-          {
-            error: null,
-            nextStep: payload.nextStep,
-            redirectUrl,
-          },
-          { headers: headers.entries().next().done ? undefined : headers },
-        );
-      }
-
-      return redirect(`${ROUTES_MAP['auth.verify-mobile'].href}?${params.toString()}`, { headers });
+      const headers = new Headers();
+      headers.append(
+        'Set-Cookie',
+        await verificationSessionToken.serialize(payload.verificationToken.value, {
+          expires: parseVerificationExpiry(payload.verificationToken.expiresAt),
+        }),
+      );
+      const params = new URLSearchParams({ verificationSessionToken: payload.verificationToken.value });
+      return redirectWithSuccess(request, `${ROUTES_MAP['auth.verify-mobile'].href}?${params}`, CONFIRMED, headers);
     }
 
-    if (payload?.nextStep) {
-      const nextStepHref = resolveAuthNextStepHref(payload.nextStep);
-      if (nextStepHref) {
-        return redirect(nextStepHref, { headers: headers.entries().next().done ? undefined : headers });
-      }
+    if (payload?.authTokens && (payload.nextStep ?? 'DONE') === 'DONE') {
+      const { href, headers } = await finishSignIn(payload.authTokens, null);
+      return redirectWithSuccess(request, href, CONFIRMED, headers);
     }
 
-    return data(
-      {
-        error: null,
-        nextStep: payload?.nextStep ?? 'DONE',
-        redirectUrl,
-      },
-      { headers: headers.entries().next().done ? undefined : headers },
-    );
+    const nextStepHref =
+      payload?.nextStep && payload.nextStep !== 'DONE' ? resolveAuthNextStepHref(payload.nextStep) : null;
+    return redirectWithSuccess(request, nextStepHref ?? ROUTES_MAP['auth.sign-in'].href, CONFIRMED);
   } catch (error) {
-    const { message } = resolveErrorPayload(error, 'Ugyldig eller utløpt verifiseringslenke.');
+    const { message } = resolveErrorPayload(error, 'Ugyldig eller utløpt lenke.');
     return redirectWithError(request, ROUTES_MAP['auth.sign-in'].href, message);
   }
 }
 
-export default function AuthVerifyEmail({ loaderData }: Route.ComponentProps) {
-  const isSuccess = !loaderData?.error;
-  const isBookingRedirect =
-    !!loaderData &&
-    typeof loaderData === 'object' &&
-    'redirectUrl' in loaderData &&
-    loaderData.redirectUrl === 'booking';
-
-  return (
-    <AuthPageTemplate
-      title={isSuccess ? 'E-post bekreftet' : 'Kunne ikke bekrefte e-post'}
-      description={
-        isSuccess
-          ? isBookingRedirect
-            ? 'E-postadressen din er nå verifisert. Gå tilbake til bookingen for å fortsette.'
-            : 'E-postadressen din er nå verifisert.'
-          : 'Vi klarte ikke å bekrefte e-posten din. Be om en ny lenke eller prøv igjen senere.'
-      }
-      error={loaderData?.error}
-      topRight={
-        <Link to="/" className="font-semibold text-interactive hover:text-interactive-hover">
-          Forsiden
-        </Link>
-      }
-      bottom="Bruk den nyeste lenken fra e-posten hvis bekreftelsen feiler."
-    >
-      <div className="space-y-4">
-        <p className="text-sm text-form-text-muted">
-          {isSuccess
-            ? isBookingRedirect
-              ? 'Gå tilbake til bookingsteget ditt for å fullføre registreringen.'
-              : 'Du kan nå gå videre til innlogging.'
-            : 'Sjekk at du brukte den nyeste lenken fra e-posten, eller be om en ny verifisering.'}
-        </p>
-        {isBookingRedirect ? (
-          <></>
-        ) : (
-          <Button asChild variant="secondary" fullWidth>
-            <Link to={ROUTES_MAP['auth.sign-in'].href}>Gå til innlogging</Link>
-          </Button>
-        )}
-      </div>
-    </AuthPageTemplate>
-  );
+export default function AuthVerifyEmail() {
+  return null;
 }
