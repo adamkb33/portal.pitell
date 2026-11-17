@@ -39,7 +39,8 @@ Source: `app/routes/company/booking/appointments/_components/appointment.list-ro
 ## Group header
 
 - Appointment list (days): strip `bg-slate-100`, 12px semibold, `border-y`, label left, count right ("3 avtaler").
-- Category groups (services, channels, types) with Fargenivå B: strip tinted with the group's category color, a strong-color dot before the name, count right in muted text. Built example: the Tjenester list (`app/routes/company/booking/admin/service-groups/services/company.booking.admin.service-groups.services.route.tsx`, grouping in `_utils/group-services.ts`). Booking flow version: `select-services` route, `GROUP_TONES`.
+- Category groups (services, types): since 2026-11-17 the same plain grey strip as the day strips, no dot, no color per group (preferences). Built in the booking flow (`select-services` route: all groups in one card, `bg-booking-surface-subtle` strips). Still the old way (tinted strip + dot) in the Tjenester list (`app/routes/company/booking/admin/service-groups/services/company.booking.admin.service-groups.services.route.tsx`); change it when you touch it.
+- Jumping between groups (`select-services/_components/service-group-nav.tsx`): with 2+ groups, chips stuck under the header on phones jump to a group and fill for the group in view (with a count of what's chosen in it). When they don't fit on one line, a fixed "Grupper" chip comes first and opens a bottom sheet listing every group (name, chosen count, service count; the group in view tinted). Desktop (`lg`): the same rows in a card that stays on the left, services on the right.
 - Two related admin lists share one page top with a switch (`app/routes/company/booking/admin/_components/service-admin-switch.tsx`, Tjenester | Grupper).
 
 ## Toolbar and filters
@@ -101,6 +102,7 @@ Source: `app/ui/templates/booking-step-template.tsx`, routes under `app/routes/b
 Source: `select-services/_components/service-row.tsx`, `select-time/_components/*`.
 
 - Multi-select = checkbox square (20px, 2px border, filled indigo with a check when on); the whole row toggles. Selected row gets `bg-booking-action-muted`.
+- Service rows are 60px like list rows: checkbox, name with "ca. 20 min" under it (no clock icon), price right. No "Prisene er veiledende" note; every price already says "ca.".
 - Quantity stepper (− n +, 44px buttons, pill) appears under the row only once selected.
 - Single choices like days and times: tiles, selected = filled indigo; unavailable = transparent and faded with an accessible "fullbooket" label. Days scroll horizontally in one strip with a calendar button for further dates.
 - Shortcut card for the obvious choice ("Første ledige tid") with a dashed indigo border and a "Velg →" link.

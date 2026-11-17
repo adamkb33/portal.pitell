@@ -12,7 +12,7 @@ What the user has decided about how portal.pitell should look. Newest last. This
 - 2026-11-07 – Create and edit forms open on their own page, not in a dialog or side panel.
 - 2026-11-07 – Company pages start with a toolbar, not a big title (the breadcrumb names the page): switch/filters on the left, one primary button on the right.
 - 2026-11-07 – Sketches are real-looking (app colors, Inter, Norwegian copy, real data), not grey wireframes.
-- 2026-11-07 – More color to tell different things apart and make pages feel alive: "Fargenivå B (Tonet)". Groups/categories, people and app sections get a soft tint of their own category color; blue stays for actions and "now"; green/red/amber stay for status. Details in `design-language.md` → Color by category.
+- 2026-11-07 – More color to tell different things apart and make pages feel alive: "Fargenivå B (Tonet)". Groups/categories, people and app sections get a soft tint of their own category color; blue stays for actions and "now"; green/red/amber stay for status. Details in `design-language.md` → Color by category. (Groups changed 2026-11-17, see below.)
 
 - 2026-11-07 – The phone create button creates what the current page lists (look changed 2026-11-10, see below); no create button on pages with nothing to create. Form pages on phones hide the bottom menu and show a floating Lagre bar. Every result message is the flash toast. Full rules: the `ui-rules` skill.
 - 2026-11-07 – The user hates design variance between pages. The page system in the `ui-rules` skill (page types, areas with a switch and color, page top) is for the whole app. The code is rewritten domain by domain, booking first; booking is the blueprint the other domains copy. Per domain: survey every page, sketch the whole domain on the app-wide rules (phone frames, real data), get approval, write the domain map (`ui-rules` → `references/<domain>-domain.md`), then build.
@@ -35,6 +35,7 @@ What the user has decided about how portal.pitell should look. Newest last. This
 - 2026-11-14 – A form's primary button (Lagre, Send invitasjon…) is disabled until the form is valid, with one line in the bar saying what's missing ("Skriv inn en gyldig e-postadresse"), like the booking bar's "Velg minst én tjeneste". No error that only appears after pressing it. A global rule for every form: `ui-rules` rule 5.
 
 - 2026-11-14 – Numbers that are 0 or empty aren't shown: no "0" rows, no empty "Følg opp" lists. A card with nothing left disappears; a page with nothing at all shows one calm empty state. Rule: `ui-rules` rule 1 (Tall).
+- 2026-11-17 – Groups (service groups and the like) get no colored dots and no color per group: the user found many colors with circles ugly. A group is a plain grey strip like the appointment list's day strips (name left, count right); lists of groups (the group sheet, the desktop group list) are plain rows with name and count. Color only marks what is active or chosen (the booking action color). People and app sections keep their category colors.
 
 ## Defaults the user hasn't seen yet
 

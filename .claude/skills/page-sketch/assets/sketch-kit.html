@@ -1125,6 +1125,151 @@
     letter-spacing: -0.01em;
     max-width: 480px;
   }
+  /* ── Public booking step pieces (added 2026-11-17). Use the .pub header, no sidebar or bottom menu. ── */
+  /* Step title [BookingStepTemplate → PageHeader]: <p class="blbl">Fredrikstad Barbershop</p><h1 class="bq">Hva vil du bestille?</h1> */
+  .pk .blbl {
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .bq {
+    margin: 0;
+    font: 600 30px/1.2 Inter;
+    letter-spacing: -0.01em;
+  }
+  /* Service groups in the booking flow are the plain .strip (no dots, no group colors; preferences 2026-11-17)
+     [select-services route]. .gh is only for lists still built the old way (the company Tjenester list). */
+  /* Service checkbox [service-row.tsx]: <span class="bcb"></span>; chosen: <span class="bcb on"><i class="ti ti-check"></i></span>
+     on a <div class="row sel">. The − n + stepper shows under a chosen row: <span class="stp"><i class="ti ti-minus"></i>
+     <b>1</b><i class="ti ti-plus"></i></span>. */
+  .pk .bcb {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    border-radius: 6px;
+    border: 2px solid #8592a6;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    color: #fff;
+  }
+  .pk .bcb.on {
+    background: var(--indigo);
+    border-color: var(--indigo);
+  }
+  .pk .row.sel {
+    background: var(--indigo-t);
+  }
+  .pk .stp {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #8592a6;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 14px;
+  }
+  .pk .stp i {
+    width: 44px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .pk .stp b {
+    min-width: 20px;
+    text-align: center;
+  }
+  /* Group chips [select-services/_components/service-group-nav.tsx → ServiceGroupChips]: stuck under the header,
+     tap = jump to the group; .on = the group in view; a count when something in it is chosen:
+     <span class="cat on">Menn<b>1</b></span>. When they don't fit, a fixed first chip
+     <span class="cat"><i class="ti ti-list"></i>Grupper</span> opens a .sheet of .grow rows; desktop shows the .grow
+     rows in a card on the left instead (ServiceGroupList). */
+  .pk .cats {
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .pk .cat {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid #8592a6;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .pk .cat.on {
+    background: var(--indigo);
+    border-color: var(--indigo);
+    color: #fff;
+  }
+  .pk .cat b {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--indigo);
+    color: #fff;
+  }
+  .pk .cat.on b {
+    background: #fff;
+    color: var(--indigo);
+  }
+  /* Phone bottom sheet [appointment.table-header-slot.tsx → SheetContent side="bottom"]: put it last in a .ph, after
+     the page wrapped in .scrim. <div class="sheet"><span class="grab"></span><div class="sht">Filtrer</div>…</div> */
+  .pk .sheet {
+    position: relative;
+    z-index: 2;
+    margin-top: -340px;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 8px 16px 16px;
+  }
+  .pk .sheet .grab {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bd);
+    margin: 0 auto 8px;
+  }
+  .pk .sheet .sht {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  /* Group row in a list of groups (group sheet, desktop group list). No dots or group colors (preferences 2026-11-17);
+     the group in view is .on. <div class="grow on">Farge<b>1</b><span>5</span></div> (b = chosen count, span = services) */
+  .pk .grow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 12px;
+    border-top: 1px solid var(--bd);
+    font-weight: 500;
+  }
+  .pk .grow span {
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--mut);
+  }
+  .pk .grow.on {
+    background: var(--indigo-t);
+    font-weight: 600;
+  }
+  .pk .grow b {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--indigo);
+    color: #fff;
+  }
 </style>
 <div class="pk">
   <p class="cap">Desktop</p>

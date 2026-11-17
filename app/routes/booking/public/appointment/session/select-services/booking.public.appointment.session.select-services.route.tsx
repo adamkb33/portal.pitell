@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Form, data, redirect, useNavigation } from 'react-router';
 import { Search, X } from 'lucide-react';
 import type { GroupedServiceDto } from '~/api/generated';
@@ -17,9 +17,15 @@ import {
 } from '~/routes/booking/public/_utils/booking-return-to';
 import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
 import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
-import { BookingStepTemplate, Container, Input, PageHeader } from '~/ui';
+import { BookingStepTemplate, Container, Input, PageHeader, cn } from '~/ui';
 import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
 import { ServiceRow } from './_components/service-row';
+import { ServiceGroupChips, ServiceGroupList, type ServiceGroupNavItem } from './_components/service-group-nav';
+import {
+  serviceGroupSectionId,
+  serviceGroupTitleId,
+  useServiceGroupScroll,
+} from './_components/use-service-group-scroll';
 import { ServiceImageDialog } from './_components/service-image-dialog';
 import type { Route } from './+types/booking.public.appointment.session.select-services.route';
 
@@ -121,13 +127,6 @@ export async function action({ request }: Route.ActionArgs) {
   });
 }
 
-// Each group gets its own tint from the salon's theme colours, so groups are easy to tell apart.
-const GROUP_TONES = [
-  { header: 'bg-booking-action-muted', dot: 'bg-booking-action' },
-  { header: 'bg-booking-accent-muted', dot: 'bg-booking-accent' },
-  { header: 'bg-booking-highlight-muted', dot: 'bg-booking-highlight' },
-];
-
 export default function BookingSelectServicesPage({ loaderData }: Route.ComponentProps) {
   const serviceGroups = loaderData.serviceGroups ?? [];
   const session = loaderData.session;
@@ -139,6 +138,7 @@ export default function BookingSelectServicesPage({ loaderData }: Route.Componen
   const [selectedServiceQuantities, setSelectedServiceQuantities] = useState<Map<number, number>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogService, setDialogService] = useState<GroupedServiceDto | null>(null);
+  const chipBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!session) {
@@ -167,6 +167,10 @@ export default function BookingSelectServicesPage({ loaderData }: Route.Componen
       }))
       .filter((group) => group.services.length > 0);
   }, [serviceGroups, searchQuery]);
+
+  const visibleGroups = useMemo(() => filteredGroups.filter((group) => group.services.length > 0), [filteredGroups]);
+  const visibleGroupIds = useMemo(() => visibleGroups.map((group) => group.id), [visibleGroups]);
+  const { activeId, stuck, goToGroup, scrollBehavior } = useServiceGroupScroll(visibleGroupIds, chipBarRef);
 
   const selectedServicesList = useMemo(() => {
     const services = serviceGroups.flatMap((group) => group.services);
@@ -214,84 +218,87 @@ export default function BookingSelectServicesPage({ loaderData }: Route.Componen
   const hasSelections = selectedServicesList.length > 0;
   const submitFormId = 'booking-select-services-submit-form';
   const totalServices = serviceGroups.reduce((sum, group) => sum + group.services.length, 0);
+  const groupNavItems: ServiceGroupNavItem[] = visibleGroups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    serviceCount: group.services.length,
+    selectedCount: selectedInGroup(group),
+  }));
+  // Chips (phones) and the group list (desktop) only help when there is more than one group to jump between.
+  const showGroupNav = groupNavItems.length > 1;
 
   return (
     <BookingStepTemplate label={companyName} title="Hva vil du bestille?">
       <fieldset disabled={isSubmitting} className="contents">
-        <div className="space-y-3">
-          {totalServices > 6 && (
-            <div className="relative">
-              <Input
-                type="text"
-                aria-label="Søk etter tjenester"
-                placeholder="Søk etter tjenester"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                variant="booking"
-                startIcon={<Search className="text-booking-text-muted" />}
-                className="pr-11"
-              />
-
-              {searchQuery && (
-                <button
-                  type="button"
-                  aria-label="Tøm søk"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[var(--radius-booking-badge)] p-1 transition-colors hover:bg-booking-surface-strong"
-                >
-                  <X className="size-4 text-booking-text-muted" />
-                </button>
-              )}
-            </div>
+        <div
+          className={cn(
+            'flex flex-col gap-3',
+            showGroupNav && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6',
           )}
+        >
+          {showGroupNav ? <ServiceGroupList groups={groupNavItems} activeId={activeId} onSelect={goToGroup} /> : null}
 
-          {totalServices > 6 && filteredGroups.length > 1 && (
-            <nav aria-label="Kategorier" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-              {filteredGroups.map((group) => {
-                const count = selectedInGroup(group);
-                return (
+          <div className="flex min-w-0 flex-col gap-3">
+            {totalServices > 6 && (
+              <div className="relative">
+                <Input
+                  type="text"
+                  aria-label="Søk etter tjenester"
+                  placeholder="Søk etter tjenester"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  variant="booking"
+                  startIcon={<Search className="text-booking-text-muted" />}
+                  className="pr-11"
+                />
+
+                {searchQuery && (
                   <button
-                    key={group.id}
                     type="button"
-                    onClick={() =>
-                      document
-                        .getElementById(`service-group-${group.id}`)
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    }
-                    className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-booking-badge)] border-[length:var(--border-booking-control)] border-booking-border-strong bg-booking-surface-raised px-4 text-sm font-medium text-booking-text transition-colors hover:bg-booking-action-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-booking-action-text"
+                    aria-label="Tøm søk"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[var(--radius-booking-badge)] p-1 transition-colors hover:bg-booking-surface-strong"
                   >
-                    {group.name}
-                    {count > 0 && (
-                      <span className="rounded-full bg-booking-highlight px-1.5 text-xs font-medium text-booking-highlight-contrast">
-                        {count}
-                      </span>
-                    )}
+                    <X className="size-4 text-booking-text-muted" />
                   </button>
-                );
-              })}
-            </nav>
-          )}
+                )}
+              </div>
+            )}
 
-          {filteredGroups.length > 0 ? (
-            filteredGroups
-              .filter((group) => group.services.length > 0)
-              .map((group, groupIndex) => {
-                const tone = GROUP_TONES[groupIndex % GROUP_TONES.length];
-                return (
-                  <section key={group.id} aria-labelledby={`service-group-${group.id}`} className="scroll-mt-4">
-                    <ul className="divide-y divide-booking-border overflow-hidden rounded-[var(--radius-booking-panel)] border-[length:var(--border-booking-card)] border-booking-border bg-booking-surface-raised">
-                      <li className={`flex items-center justify-between gap-3 px-4 py-2.5 ${tone.header}`}>
-                        <h2
-                          id={`service-group-${group.id}`}
-                          className="flex items-center gap-2 font-semibold text-booking-text"
-                        >
-                          <span aria-hidden className={`size-2.5 shrink-0 rounded-full ${tone.dot}`} />
-                          {group.name}
-                        </h2>
-                        <span className="text-sm text-booking-text-muted">
-                          {group.services.length} {group.services.length === 1 ? 'tjeneste' : 'tjenester'}
-                        </span>
-                      </li>
+            {showGroupNav ? (
+              <ServiceGroupChips
+                groups={groupNavItems}
+                activeId={activeId}
+                stuck={stuck}
+                onSelect={goToGroup}
+                barRef={chipBarRef}
+                scrollBehavior={scrollBehavior}
+              />
+            ) : null}
+
+            {visibleGroups.length > 0 ? (
+              <div className="overflow-hidden rounded-[var(--radius-booking-panel)] border-[length:var(--border-booking-card)] border-booking-border bg-booking-surface-raised">
+                {visibleGroups.map((group) => (
+                  <section
+                    key={group.id}
+                    id={serviceGroupSectionId(group.id)}
+                    aria-labelledby={serviceGroupTitleId(group.id)}
+                    // Lands under the sticky chips on phones, under the app header on desktop.
+                    className="scroll-mt-[calc(var(--app-header-height)+4rem)] border-t border-booking-border first:border-t-0 lg:scroll-mt-[calc(var(--app-header-height)+1.5rem)]"
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-booking-border bg-booking-surface-subtle px-4 py-1.5 text-xs sm:px-5">
+                      <h2
+                        id={serviceGroupTitleId(group.id)}
+                        tabIndex={-1}
+                        className="font-semibold text-booking-text focus:outline-none"
+                      >
+                        {group.name}
+                      </h2>
+                      <span className="text-booking-text-muted">
+                        {group.services.length} {group.services.length === 1 ? 'tjeneste' : 'tjenester'}
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-booking-border">
                       {group.services.map((service) => (
                         <ServiceRow
                           key={service.id}
@@ -304,22 +311,49 @@ export default function BookingSelectServicesPage({ loaderData }: Route.Componen
                       ))}
                     </ul>
                   </section>
-                );
-              })
-          ) : (
-            <div className="rounded-[var(--radius-booking-panel)] border-[length:var(--border-booking-card)] border-booking-border bg-booking-surface-raised p-4 text-center">
-              <p className="text-sm text-booking-text-muted">Ingen tjenester passer søket.</p>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="mt-2 text-sm font-medium text-booking-action-text hover:underline"
-              >
-                Tøm søk
-              </button>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[var(--radius-booking-panel)] border-[length:var(--border-booking-card)] border-booking-border bg-booking-surface-raised p-4 text-center">
+                <p className="text-sm text-booking-text-muted">Ingen tjenester passer søket.</p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-sm font-medium text-booking-action-text hover:underline"
+                >
+                  Tøm søk
+                </button>
+              </div>
+            )}
 
-          <p className="px-1 text-sm text-booking-text-muted">Prisene er veiledende og kan variere.</p>
+            {/* Desktop: the bar sits at the end of the services column, not under the group list. */}
+            <BookingFooterNav
+              message={
+                hasSelections ? (
+                  <>
+                    {`${totalSelectedQuantity} valgt · ${formatEstimatedDuration(totalDuration)} · ${formatEstimatedPrice(totalPrice)}`}
+                    {atServiceLimit ? (
+                      <span className="block text-xs text-booking-text-muted">
+                        Du kan velge opptil {MAX_TOTAL_SERVICES} tjenester.
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  'Velg minst én tjeneste'
+                )
+              }
+            >
+              <BookingActionButton
+                type="submit"
+                form={submitFormId}
+                variant="primary"
+                loading={isSubmitting}
+                disabled={!hasSelections || isSubmitting}
+              >
+                {isSubmitting ? 'Finner ledige tider...' : 'Velg tid'}
+              </BookingActionButton>
+            </BookingFooterNav>
+          </div>
         </div>
       </fieldset>
 
@@ -331,32 +365,6 @@ export default function BookingSelectServicesPage({ loaderData }: Route.Componen
           <input key={serviceId} type="hidden" name={`serviceQuantity:${serviceId}`} value={quantity} />
         ))}
       </Form>
-      <BookingFooterNav
-        message={
-          hasSelections ? (
-            <>
-              {`${totalSelectedQuantity} valgt · ${formatEstimatedDuration(totalDuration)} · ${formatEstimatedPrice(totalPrice)}`}
-              {atServiceLimit ? (
-                <span className="block text-xs text-booking-text-muted">
-                  Du kan velge opptil {MAX_TOTAL_SERVICES} tjenester.
-                </span>
-              ) : null}
-            </>
-          ) : (
-            'Velg minst én tjeneste'
-          )
-        }
-      >
-        <BookingActionButton
-          type="submit"
-          form={submitFormId}
-          variant="primary"
-          loading={isSubmitting}
-          disabled={!hasSelections || isSubmitting}
-        >
-          {isSubmitting ? 'Finner ledige tider...' : 'Velg tid'}
-        </BookingActionButton>
-      </BookingFooterNav>
     </BookingStepTemplate>
   );
 }

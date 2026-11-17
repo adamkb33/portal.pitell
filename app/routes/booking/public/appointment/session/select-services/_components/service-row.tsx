@@ -1,4 +1,4 @@
-import { Check, Clock, Image as ImageIcon, Minus, Plus } from 'lucide-react';
+import { Check, Image as ImageIcon, Minus, Plus } from 'lucide-react';
 import type { GroupedServiceDto } from '~/api/generated';
 import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
 import { cn } from '~/ui';
@@ -12,7 +12,8 @@ type ServiceRowProps = {
 };
 
 /**
- * One service: tap the row to choose it; a chosen row gets − n + for booking it more than once.
+ * One service, 60px like the appointment list rows: name with the duration under it, price on the right.
+ * Tap the row to choose it; a chosen row gets − n + for booking it more than once.
  * The − / + and photo buttons are 44px so they're easy to hit with a thumb.
  * Several can be chosen, so the control is a checkbox, not a radio.
  */
@@ -23,20 +24,20 @@ export function ServiceRow({ service, quantity, onQuantityChange, onViewImages, 
     'grid size-11 place-items-center text-booking-text transition-colors hover:bg-booking-action-muted disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-booking-action-text';
 
   return (
-    <li className={cn('px-4 py-3', selected && 'bg-booking-action-muted')}>
-      <div className="flex items-start gap-3">
+    <li className={cn('px-4 py-2 sm:px-5', selected && 'bg-booking-action-muted')}>
+      <div className="flex items-center gap-3">
         <button
           type="button"
           role="checkbox"
           aria-checked={selected}
           disabled={!selected && disableIncrement}
           onClick={() => onQuantityChange(selected ? 0 : 1)}
-          className="flex min-h-11 min-w-0 flex-1 items-start gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-booking-action-text disabled:opacity-50"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-booking-action-text disabled:opacity-50"
         >
           <span
             aria-hidden
             className={cn(
-              'mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border-2 transition-colors',
+              'grid size-5 shrink-0 place-items-center rounded-md border-2 transition-colors',
               selected
                 ? 'border-booking-action bg-booking-action text-booking-action-contrast'
                 : 'border-booking-border-strong bg-booking-surface-raised',
@@ -46,10 +47,7 @@ export function ServiceRow({ service, quantity, onQuantityChange, onViewImages, 
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold text-booking-text">{service.name}</span>
-            <span className="mt-0.5 flex items-center gap-1 text-sm text-booking-text-muted">
-              <Clock className="size-3.5" aria-hidden />
-              {formatEstimatedDuration(service.duration)}
-            </span>
+            <span className="block text-sm text-booking-text-muted">{formatEstimatedDuration(service.duration)}</span>
           </span>
           <span className="shrink-0 text-right">
             <span className="block whitespace-nowrap font-semibold tabular-nums text-booking-text">

@@ -51,7 +51,7 @@ In code, use `categoryTone(position)` from `~/ui` (`app/ui/lib/category-tones.ts
 
 Where it goes:
 
-- **Groups/categories** (service groups, channels like email vs SMS, schedule types): tinted header strip with a strong-color dot, group name in normal ink. Marketing already has `marketing-email` (blue) and `marketing-sms` (plum).
+- **Groups/categories** (service groups, schedule types): since 2026-11-17 no color per group and no dots — a plain grey strip (`slate-100`, like the appointment list's day strips) with the name left and the count right. Color only marks the active or chosen group. Marketing channels keep `marketing-email` (blue) and `marketing-sms` (plum), since the channel is the content there.
 - **People** (customers, employees): initials circle with tint background and ink letters.
 - **App sections** (sidebar, overview tiles): icon in a rounded tile with tint background and ink icon.
 - **Status chips**: soft status colors as today.
