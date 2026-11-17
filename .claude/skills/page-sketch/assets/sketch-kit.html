@@ -990,6 +990,141 @@
     font-size: 13px;
     color: var(--mut);
   }
+  /* Disabled primary button (design-language → Copy: neutral grey with readable text, never faded brand colour).
+     The line saying what's missing sits right above it: <p class="miss">Skriv inn fornavn</p>. */
+  .pk .btn.off {
+    background: var(--strip);
+    border-color: var(--bd);
+    color: var(--mut);
+  }
+  .pk .miss {
+    text-align: center;
+    font-size: 14px;
+    color: var(--mut);
+  }
+  /* ── Auth pages [app/ui/templates/auth-page-template.tsx; steps in app/routes/auth/*]. No sidebar or bottom menu.
+     Phone: <div class="ph"><div class="pub"><b class="lg">Pitell</b><span class="btn pri">Bestill time</span></div>
+     <div class="pmain"><span class="home">Til forsiden</span><div class="ac"><h1 class="at">Logg inn</h1>…</div>
+     <p class="terms">…</p></div></div>. Desktop: .pub across the top, then <div class="aside"> (blue panel) and the
+     card centred on the right. Fields: <div class="af"><label>Fornavn</label><div class="box"><i class="ti ti-user">
+     </i>Ola</div></div> (.ph0 = placeholder). Code: <div class="acode">482913</div> [verification-code-input.tsx]. */
+  .pk .pub {
+    height: 60px;
+    flex: none;
+    background: #fff;
+    border-bottom: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+  .pk .pub .lg {
+    font: 700 22px 'Inter Tight';
+    color: var(--ink);
+  }
+  .pk .pub .lg::first-letter {
+    color: var(--blue);
+  }
+  .pk .home {
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .ac {
+    background: #fff;
+    border: 1px solid var(--bd);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 1px 2px rgb(15 23 42/0.05);
+  }
+  .pk .at {
+    margin: 0;
+    font: 700 24px/1.2 'Inter Tight';
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .pk .at + .asub {
+    margin-top: -12px;
+  }
+  .pk .asub {
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .af {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .pk .af label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .pk .af .box {
+    height: 44px;
+    border: 1px solid #8592a6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    font-size: 15px;
+    background: #fff;
+  }
+  .pk .af .box i {
+    color: var(--lt);
+    font-size: 17px;
+  }
+  .pk .ph0 {
+    color: #64748b;
+  }
+  .pk .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .pk .acode {
+    height: 56px;
+    border: 2px solid #8592a6;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font:
+      500 24px ui-monospace,
+      Menlo,
+      monospace;
+    letter-spacing: 0.5em;
+    text-indent: 0.5em;
+  }
+  .pk .ac .btn {
+    height: 48px;
+    width: 100%;
+    font-size: 16px;
+  }
+  .pk .terms {
+    text-align: center;
+    font-size: 12px;
+    color: var(--mut);
+    margin-top: auto;
+  }
+  .pk .aside {
+    width: 50%;
+    flex: none;
+    background: linear-gradient(145deg, #2455d6, #1c43b0);
+    color: #fff;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .pk .aside h2 {
+    margin: 0;
+    font: 700 36px/1.15 'Inter Tight';
+    letter-spacing: -0.01em;
+    max-width: 480px;
+  }
 </style>
 <div class="pk">
   <p class="cap">Desktop</p>

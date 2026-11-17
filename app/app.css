@@ -36,6 +36,26 @@
   }
 }
 
+/* iOS Safari can zoom when a focused form field uses text smaller than 16px. */
+@media (hover: none) and (pointer: coarse) {
+  input:not(
+    [type='button'],
+    [type='checkbox'],
+    [type='color'],
+    [type='file'],
+    [type='hidden'],
+    [type='image'],
+    [type='radio'],
+    [type='range'],
+    [type='reset'],
+    [type='submit']
+  ),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @layer components {
   .google-sign-in-button {
     color-scheme: normal;
