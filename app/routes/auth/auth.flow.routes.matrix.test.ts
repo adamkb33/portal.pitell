@@ -160,7 +160,7 @@ describe('auth flow routes matrix', () => {
 
     it.each([
       {
-        name: 'done with auth tokens redirects home',
+        name: 'done for a customer without a company goes to Mine bookinger',
         payload: {
           nextStep: 'DONE',
           userId: 1,
@@ -171,7 +171,7 @@ describe('auth flow routes matrix', () => {
             refreshTokenExpiresAt: 2,
           },
         },
-        expectedLocation: '/',
+        expectedLocation: ROUTES_MAP['booking.public.my-appointments'].href,
       },
       {
         name: 'done with multiple company contexts redirects to company-context page',

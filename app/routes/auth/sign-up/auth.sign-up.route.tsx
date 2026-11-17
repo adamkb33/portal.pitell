@@ -9,6 +9,17 @@ import { authService } from '~/lib/auth-service';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
 import { Lock, Mail, Phone, User } from 'lucide-react';
+import { clearSignInFlow, readSignInFlow } from '../_utils/sign-in-flow.cookie.server';
+
+/** Someone whose number or email had no account arrives from sign-in with it filled in. */
+export async function loader({ request }: Route.LoaderArgs) {
+  const identifier = (await readSignInFlow(request))?.identifier ?? '';
+  const isEmail = identifier.includes('@');
+  return data(
+    { email: isEmail ? identifier : '', mobileNumber: isEmail ? '' : identifier },
+    identifier ? { headers: { 'Set-Cookie': await clearSignInFlow() } } : undefined,
+  );
+}
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -64,7 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 }
 
-export default function AuthSignUp() {
+export default function AuthSignUp({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
 
@@ -118,6 +129,7 @@ export default function AuthSignUp() {
           type="email"
           autoComplete="email"
           placeholder="deg@firma.no"
+          defaultValue={loaderData.email}
           startIcon={<Mail />}
           required
           disabled={isSubmitting}
@@ -129,6 +141,7 @@ export default function AuthSignUp() {
           label="Mobilnummer (valgfritt)"
           autoComplete="tel"
           placeholder="mobilnummer"
+          defaultValue={loaderData.mobileNumber}
           startIcon={<Phone />}
           disabled={isSubmitting}
         />

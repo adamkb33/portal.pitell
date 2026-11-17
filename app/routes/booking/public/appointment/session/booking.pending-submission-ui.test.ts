@@ -54,14 +54,13 @@ describe('booking pending submission UI', () => {
     expect(source).not.toContain('ProviderButtons');
   });
 
-  it('booking sign-in posts to the real sign-in action and comes back to the contact step', () => {
+  it('booking sign-in sends the customer through the app sign-in and back to the contact step', () => {
     const signInSource = readSessionRoute(
       'contact/sign-in/booking.public.appointment.session.contact.sign-in.route.tsx',
     );
 
-    expect(signInSource).toContain("action={ROUTES_MAP['auth.sign-in'].href}");
-    expect(signInSource).toContain('name="returnTo" value={routes.contact}');
-    expect(signInSource).toContain('name="retryTo" value={routes.contactSignIn}');
+    expect(signInSource).toContain("ROUTES_MAP['auth.sign-in'].href");
+    expect(signInSource).toContain('const returnTo = getBookingRouteMap().contact');
     expect(signInSource).toContain("'Set-Cookie': await clearManualContactOverride()");
   });
 

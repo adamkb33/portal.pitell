@@ -1,6 +1,7 @@
 // auth.sign-in.route.tsx
 import { Link, Form, useNavigation, redirect } from 'react-router';
 import { data } from 'react-router';
+import { useState } from 'react';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { SocialButtonRow } from '../_components/social-button-row';
 import { AuthController } from '~/api/generated';
@@ -11,9 +12,13 @@ import { redirectWithError, redirectWithWarning } from '~/lib/flash-message.serv
 import { logger } from '~/lib/logger';
 import React from 'react';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
-import { Button, FormField, AuthPageTemplate, Stack } from '~/ui';
-import { Lock, User } from 'lucide-react';
+import { FormField, AuthPageTemplate, Stack } from '~/ui';
+import { User } from 'lucide-react';
 import { getSafeReturnTo } from '~/utils';
+import { AuthSubmitBar } from '../_components/auth-submit-bar';
+import { finishSignIn } from '../_utils/finish-sign-in.server';
+import { clearSignInFlow, readSignInFlow, writeSignInFlow } from '../_utils/sign-in-flow.cookie.server';
+import { sendCodeAndContinue } from '../_utils/send-sign-in-code.server';
 
 function redactIdentifier(value: string) {
   const normalized = value.trim();
@@ -48,7 +53,43 @@ function buildSignInHref(redirectUrl?: string, returnTo?: string | null) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  return { returnTo: getSafeReturnTo(url.searchParams.get('returnTo')) };
+  const flow = await readSignInFlow(request);
+  // "Endre" on a later step comes back here with the number or email still filled in.
+  return {
+    returnTo: getSafeReturnTo(url.searchParams.get('returnTo')) ?? flow?.returnTo ?? null,
+    identifier: flow?.identifier ?? '',
+  };
+}
+
+/**
+ * Step one: only the mobile number or email. An account with a password goes on to the password step, an account
+ * without one (a guest from a booking) gets a code, and someone unknown goes to sign-up with the field filled in.
+ */
+async function lookupAction(request: Request, emailOrMobile: string, returnTo: string | null) {
+  const identifier = emailOrMobile.trim();
+  const signInHref = ROUTES_MAP['auth.sign-in'].href;
+  if (!identifier) return redirectWithError(request, signInHref, 'Skriv inn mobilnummer eller e-post.');
+
+  try {
+    const method = (await AuthController.signInLookup({ body: { emailOrMobile: identifier } })).data?.data?.method;
+
+    if (method === 'PASSWORD') {
+      return redirect(ROUTES_MAP['auth.sign-in-password'].href, {
+        headers: { 'Set-Cookie': await writeSignInFlow({ identifier, returnTo }) },
+      });
+    }
+
+    if (method === 'SIGN_UP') {
+      return redirect(ROUTES_MAP['auth.sign-up'].href, {
+        headers: { 'Set-Cookie': await writeSignInFlow({ identifier, returnTo }) },
+      });
+    }
+
+    return await sendCodeAndContinue(request, identifier, returnTo);
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke logge inn. Prøv igjen.');
+    return redirectWithError(request, signInHref, message);
+  }
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -63,6 +104,10 @@ export async function action({ request }: Route.ActionArgs) {
   const signInHref =
     getSafeReturnTo(String(formData.get('retryTo') || '')) ?? buildSignInHref(redirectUrl || undefined, returnTo);
   const isGoogleLogin = provider === 'GOOGLE';
+
+  if (!isGoogleLogin && !formData.has('password')) {
+    return lookupAction(request, emailOrMobile, returnTo);
+  }
 
   logger.info('[auth.sign-in] Action started', {
     provider,
@@ -99,73 +144,32 @@ export async function action({ request }: Route.ActionArgs) {
       mobileDelivery: payload?.mobileDelivery?.status ?? null,
     });
 
+    if (payload?.nextStep === 'DONE' && payload.authTokens) {
+      const { href, headers } = await finishSignIn(payload.authTokens, returnTo);
+      headers.append('Set-Cookie', await clearSignInFlow());
+      logger.info('[auth.sign-in] Signed in', { emailOrMobile: redactIdentifier(emailOrMobile), nextStepHref: href });
+      return redirect(href, { headers });
+    }
+
     if (payload?.nextStep) {
       const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(payload);
       const headers = new Headers();
-      let resolvedNextStepHref = nextStepHref;
-      let authTokens = payload.authTokens ?? null;
-      let forcedCompanyContextSelection = false;
+      const resolvedNextStepHref = nextStepHref;
 
       if (payload.authTokens) {
-        if (payload.nextStep === 'DONE') {
-          const existingCompanyId = authService.getCompanyIdFromToken(payload.authTokens.accessToken);
-
-          if (!existingCompanyId) {
-            try {
-              const companyContextsResponse = await AuthController.getCompanyContexts({
-                headers: {
-                  Authorization: `Bearer ${payload.authTokens.accessToken}`,
-                },
-              });
-              const companyContexts = companyContextsResponse.data?.data ?? [];
-
-              if (companyContexts.length === 1) {
-                const companySignInResponse = await AuthController.companySignIn({
-                  body: { companyId: companyContexts[0].id },
-                  headers: {
-                    Authorization: `Bearer ${payload.authTokens.accessToken}`,
-                  },
-                });
-
-                if (companySignInResponse.data?.data) {
-                  authTokens = companySignInResponse.data.data;
-                }
-              } else if (companyContexts.length > 1) {
-                resolvedNextStepHref = returnTo
-                  ? `${ROUTES_MAP['user.company-context'].href}?returnTo=${encodeURIComponent(returnTo)}`
-                  : ROUTES_MAP['user.company-context'].href;
-                forcedCompanyContextSelection = true;
-              }
-            } catch (companyContextError) {
-              logger.warn('[auth.sign-in] Failed to resolve company context after DONE', {
-                emailOrMobile: redactIdentifier(emailOrMobile),
-                error: companyContextError,
-              });
-            }
-          }
-        }
-
-        if (authTokens) {
-          const authCookieHeaders = await authService.setAuthCookies(
-            authTokens.accessToken,
-            authTokens.refreshToken,
-            authTokens.accessTokenExpiresAt,
-            authTokens.refreshTokenExpiresAt,
-          );
-          for (const [key, value] of new Headers(authCookieHeaders).entries()) {
-            headers.append(key, value);
-          }
+        const authCookieHeaders = await authService.setAuthCookies(
+          payload.authTokens.accessToken,
+          payload.authTokens.refreshToken,
+          payload.authTokens.accessTokenExpiresAt,
+          payload.authTokens.refreshTokenExpiresAt,
+        );
+        for (const [key, value] of new Headers(authCookieHeaders).entries()) {
+          headers.append(key, value);
         }
       }
 
       if (verificationCookieHeader) {
         headers.append('Set-Cookie', verificationCookieHeader);
-      }
-
-      // Send them back to exactly where they were, but never skip a required step
-      // (verification, company selection) to get there.
-      if (payload.nextStep === 'DONE' && !forcedCompanyContextSelection && returnTo) {
-        resolvedNextStepHref = returnTo;
       }
 
       logger.info('[auth.sign-in] Redirecting to auth next step', {
@@ -207,111 +211,53 @@ export async function action({ request }: Route.ActionArgs) {
 export default function AuthSignIn({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
-
+  const [identifier, setIdentifier] = useState(loaderData.identifier);
   const errorMessage =
     actionData && typeof actionData === 'object' && 'error' in actionData ? String(actionData.error) : undefined;
 
-  React.useEffect(() => {
-    if (navigation.state === 'submitting') {
-      logger.info('[auth.sign-in.client] Submission started');
-    }
-  }, [navigation.state]);
-
-  React.useEffect(() => {
-    if (!actionData || typeof actionData !== 'object') {
-      return;
-    }
-
-    if ('error' in actionData) {
-      logger.warn('[auth.sign-in.client] Action returned error', {
-        error: String(actionData.error),
-      });
-      return;
-    }
-
-    logger.info('[auth.sign-in.client] Action returned payload', {
-      nextStep: 'nextStep' in actionData ? String(actionData.nextStep) : null,
-      emailDelivery:
-        'emailDelivery' in actionData && actionData.emailDelivery ? String(actionData.emailDelivery.status) : null,
-      mobileDelivery:
-        'mobileDelivery' in actionData && actionData.mobileDelivery ? String(actionData.mobileDelivery.status) : null,
-      hasVerificationToken: 'verificationToken' in actionData && Boolean(actionData.verificationToken),
-    });
-  }, [actionData]);
-
   return (
-    <AuthPageTemplate
-      title="Velkommen tilbake"
-      description="Logg inn for å administrere ditt selskap og kundeforhold."
-      error={errorMessage}
-      topRight={
-        <span>
-          Ny bruker?{' '}
-          <Link
-            to={ROUTES_MAP['auth.sign-up'].href}
-            className="font-semibold text-interactive hover:text-interactive-hover"
-          >
-            Opprett konto
-          </Link>
-        </span>
-      }
-      footer={
-        <Stack space="md">
-          <div className="text-center">
-            <Link
-              to={ROUTES_MAP['auth.forgot-password'].href}
-              className="inline-block text-sm font-medium text-interactive hover:text-interactive-hover"
-            >
-              Tilbakestill passord
-            </Link>
-          </div>
-        </Stack>
-      }
-      bottom={
-        <span>
-          Ved å logge inn godtar du{' '}
-          <Link to="/vilkar" className="underline">
-            vilkårene
-          </Link>{' '}
-          og har lest{' '}
-          <Link to="/personvern" className="underline">
-            personvernerklæringen
-          </Link>
-          .
-        </span>
-      }
-    >
+    <AuthPageTemplate title="Logg inn" error={errorMessage} bottom={<TermsLine />}>
       <Form method="post" aria-busy={isSubmitting}>
         <input type="hidden" name="returnTo" value={loaderData.returnTo ?? ''} />
         <Stack space="md">
           <FormField
             id="emailOrMobile"
             name="emailOrMobile"
-            label="E-post eller mobilnummer"
+            label="Mobilnummer eller e-post"
             type="text"
             autoComplete="username"
-            placeholder="deg@firma.no eller 40 00 00 00"
             startIcon={<User />}
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            autoFocus
             disabled={isSubmitting}
           />
 
-          <FormField
-            id="password"
-            name="password"
-            label="Passord"
-            type="password"
-            autoComplete="current-password"
-            startIcon={<Lock />}
-            disabled={isSubmitting}
+          <AuthSubmitBar
+            label="Fortsett"
+            missing={identifier.trim() ? null : 'Skriv inn mobilnummer eller e-post'}
+            loading={isSubmitting}
           />
-
-          <Button type="submit" size="lg" fullWidth loading={isSubmitting}>
-            Logg inn
-          </Button>
 
           <SocialButtonRow disabled={isSubmitting} />
         </Stack>
       </Form>
     </AuthPageTemplate>
+  );
+}
+
+function TermsLine() {
+  return (
+    <span>
+      Ved å logge inn godtar du{' '}
+      <Link to="/vilkar" className="underline">
+        vilkårene
+      </Link>{' '}
+      og har lest{' '}
+      <Link to="/personvern" className="underline">
+        personvernerklæringen
+      </Link>
+      .
+    </span>
   );
 }

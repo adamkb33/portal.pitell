@@ -369,6 +369,8 @@ import type {
   SendInAppResponses,
   SendOfferData,
   SendOfferResponses,
+  SendSignInCodeData,
+  SendSignInCodeResponses,
   SendSmsData,
   SendSmsResponses,
   SetAppointmentNoShowData,
@@ -378,6 +380,8 @@ import type {
   SetRecipientsData,
   SetRecipientsResponses,
   SignInData,
+  SignInLookupData,
+  SignInLookupResponses,
   SignInResponses,
   SignOutData,
   SignOutResponses,
@@ -455,6 +459,8 @@ import type {
   VerifyMobileLoginResponses,
   VerifyMobileResponses,
   VerifyResponses,
+  VerifySignInCodeData,
+  VerifySignInCodeResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -2197,6 +2203,43 @@ export class Base {
   public static signIn<ThrowOnError extends boolean = false>(options: Options<SignInData, ThrowOnError>) {
     return (options.client ?? client).post<SignInResponses, unknown, ThrowOnError>({
       url: '/base-service/auth/sign-in',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  public static signInLookup<ThrowOnError extends boolean = false>(options: Options<SignInLookupData, ThrowOnError>) {
+    return (options.client ?? client).post<SignInLookupResponses, unknown, ThrowOnError>({
+      url: '/base-service/auth/sign-in/lookup',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  public static sendSignInCode<ThrowOnError extends boolean = false>(
+    options: Options<SendSignInCodeData, ThrowOnError>,
+  ) {
+    return (options.client ?? client).post<SendSignInCodeResponses, unknown, ThrowOnError>({
+      url: '/base-service/auth/sign-in/code',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  public static verifySignInCode<ThrowOnError extends boolean = false>(
+    options: Options<VerifySignInCodeData, ThrowOnError>,
+  ) {
+    return (options.client ?? client).post<VerifySignInCodeResponses, unknown, ThrowOnError>({
+      url: '/base-service/auth/sign-in/code/verify',
       ...options,
       headers: {
         'Content-Type': 'application/json',
