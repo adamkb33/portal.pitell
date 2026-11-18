@@ -97,7 +97,7 @@ describe('list URL', () => {
   it('shows all by default and only unread with ?vis=uleste', () => {
     expect(parseNotificationListRequest(new URL('http://x/company/notifications')).requestPayload).toEqual({
       page: 0,
-      size: 20,
+      size: 25,
       sortBy: 'createdAt',
       sortDirection: 'DESC',
     });

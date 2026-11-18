@@ -62,7 +62,7 @@ beforeEach(() => {
   mocks.messages.mockResolvedValue({
     data: {
       data: [{ id: 1, recipientName: 'Kari Hansen', recipientAddress: 'kunde1@example.com', status: 'SENT' }],
-      meta: { pagination: { page: 0, size: 10, totalElements: 29, totalPages: 3 } },
+      meta: { pagination: { page: 0, size: 25, totalElements: 29, totalPages: 3 } },
     },
   });
   mocks.preview.mockResolvedValue({ data: { data: { html: '<p>God jul</p>' } } });
@@ -74,7 +74,7 @@ describe('campaign detail loader', () => {
     const result = await load();
     expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
     expect(mocks.get1).toHaveBeenCalledWith({ path: { id: 7 } });
-    expect(mocks.messages).toHaveBeenCalledWith({ path: { id: 7 }, query: { page: 0, size: 10 } });
+    expect(mocks.messages).toHaveBeenCalledWith({ path: { id: 7 }, query: { page: 0, size: 25 } });
     expect(mocks.preview).toHaveBeenCalledWith({ body: { subject: 'Book juleklippen', blocks } });
     expect(result).toMatchObject({
       campaign: { id: 7 },
@@ -91,11 +91,11 @@ describe('campaign detail loader', () => {
     await load('http://localhost/company/marketing/7?status=FAILED&page=1');
     expect(mocks.messages).toHaveBeenLastCalledWith({
       path: { id: 7 },
-      query: { page: 1, size: 10, status: 'FAILED' },
+      query: { page: 1, size: 25, status: 'FAILED' },
     });
 
     const result = await load('http://localhost/company/marketing/7?status=OPENED');
-    expect(mocks.messages).toHaveBeenLastCalledWith({ path: { id: 7 }, query: { page: 0, size: 10 } });
+    expect(mocks.messages).toHaveBeenLastCalledWith({ path: { id: 7 }, query: { page: 0, size: 25 } });
     expect(result.status).toBeNull();
   });
 

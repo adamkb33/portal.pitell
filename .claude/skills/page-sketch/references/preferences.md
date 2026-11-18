@@ -37,6 +37,8 @@ What the user has decided about how portal.pitell should look. Newest last. This
 - 2026-11-14 – Numbers that are 0 or empty aren't shown: no "0" rows, no empty "Følg opp" lists. A card with nothing left disappears; a page with nothing at all shows one calm empty state. Rule: `ui-rules` rule 1 (Tall).
 - 2026-11-17 – Groups (service groups and the like) get no colored dots and no color per group: the user found many colors with circles ugly. A group is a plain grey strip like the appointment list's day strips (name left, count right); lists of groups (the group sheet, the desktop group list) are plain rows with name and count. Color only marks what is active or chosen (the booking action color). People and app sections keep their category colors.
 
+- 2026-11-18 – Lists on phones are smaller: they run edge to edge (no card or side margin), rows are 56px with 15px/13px text and 32px initials, the line between rows starts at the text, ordinary rows have no grey bar, dates sit in the group strips (pinned under the header on phones), not on every row. Desktop keeps one card with the same rows. 25 rows per page everywhere. Full rule: `ui-rules` rule 7; kit pieces `fl`, `fs`, `fr`.
+
 ## Defaults the user hasn't seen yet
 
 Picked by Claude because the user prefers reacting to a result over more questions. Treat them as the default; move a line to "Decided" when the user confirms it, or replace it when they correct it.

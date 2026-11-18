@@ -59,19 +59,24 @@ export const pluralize = (count: number, one: string, many: string) => `${count}
 
 export type CampaignMonthGroup<T> = { key: string; label: string; items: T[] };
 
-/** Groups campaigns by the month they started, keeping the backend's newest-first order. */
-export function groupCampaignsByMonth<T extends Pick<CampaignSummaryDto, 'startedAt'>>(
-  campaigns: T[],
-): CampaignMonthGroup<T>[] {
+/** Groups items by month ("November 2026"), keeping the order given (newest first from the backend). */
+export function groupByMonth<T>(items: T[], dateOf: (item: T) => string): CampaignMonthGroup<T>[] {
   const groups = new Map<string, CampaignMonthGroup<T>>();
-  for (const campaign of campaigns) {
-    const date = parseISO(campaign.startedAt);
+  for (const item of items) {
+    const date = parseISO(dateOf(item));
     const key = format(date, 'yyyy-MM');
     if (!groups.has(key)) {
       const label = format(date, 'LLLL yyyy', { locale: nb });
       groups.set(key, { key, label: label.charAt(0).toUpperCase() + label.slice(1), items: [] });
     }
-    groups.get(key)!.items.push(campaign);
+    groups.get(key)!.items.push(item);
   }
   return Array.from(groups.values());
+}
+
+/** Groups campaigns by the month they started, keeping the backend's newest-first order. */
+export function groupCampaignsByMonth<T extends Pick<CampaignSummaryDto, 'startedAt'>>(
+  campaigns: T[],
+): CampaignMonthGroup<T>[] {
+  return groupByMonth(campaigns, (campaign) => campaign.startedAt);
 }

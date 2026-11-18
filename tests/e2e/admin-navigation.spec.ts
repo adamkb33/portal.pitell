@@ -161,11 +161,14 @@ test('appointments: open an appointment on its own page, go back, paginate, sear
   await goUp(page, false, 'Timebestillinger');
   await expect(page).toHaveURL(listUrl);
 
-  if (await list.getByRole('button', { name: 'Neste side', exact: true }).isEnabled()) {
-    await list.getByRole('button', { name: 'Neste side', exact: true }).click();
+  // With 25 per page the E2E company may fit on one page; page only when there is a second one.
+  // The pages are links (the shared list footer); the first page has no ?page= in the URL.
+  const nextPage = list.getByRole('link', { name: 'Neste side', exact: true });
+  if ((await nextPage.count()) > 0) {
+    await nextPage.click();
     await expect(page).toHaveURL(/page=1/);
-    await list.getByRole('button', { name: 'Forrige side', exact: true }).click();
-    await expect(page).toHaveURL(/page=0/);
+    await list.getByRole('link', { name: 'Forrige side', exact: true }).click();
+    await expect(page).not.toHaveURL(/page=1/);
   }
 
   await list.getByRole('textbox', { name: 'Søk etter kunde' }).fill(selectedName);

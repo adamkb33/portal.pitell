@@ -10,6 +10,9 @@ export const KEY_TONES = {
   /** Administrasjon: Ansatte (sky) and Kontakter (plum). */
   sky: 'from-category-sky-ink to-category-sky-deep border-category-sky-deep',
   plum: 'from-category-plum-ink to-category-plum-deep border-category-plum-deep',
+  /** Markedsføring: Kampanjer (pink, the domain's colour) and Mottakere (fuchsia). */
+  pink: 'from-category-pink-ink to-category-pink-deep border-category-pink-deep',
+  fuchsia: 'from-category-fuchsia-ink to-category-fuchsia-deep border-category-fuchsia-deep',
   /** Varsler on the company Oversikt: the app's own blue (white text 6.6:1 and up). */
   blue: 'from-interactive to-interactive-hover border-interactive-hover',
 } as const;

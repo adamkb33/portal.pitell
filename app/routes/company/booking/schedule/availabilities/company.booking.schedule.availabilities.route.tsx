@@ -90,7 +90,7 @@ export default function CompanyBookingScheduleAvailabilitiesPage({ loaderData }:
                               ? undefined
                               : `${ROUTES_MAP['company.booking.schedule.availabilities.edit'].href}?id=${item.id}`
                           }
-                          muted={past}
+                          state={past ? 'done' : undefined}
                           title={dayTitle(toZonedTime(start, TIME_ZONE))}
                           line={`${formatInTimeZone(start, TIME_ZONE, 'HH:mm')}–${formatInTimeZone(end, TIME_ZONE, 'HH:mm')} · ${durationLabel(differenceInMinutes(end, start))}`}
                         />

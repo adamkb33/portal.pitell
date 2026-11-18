@@ -26,6 +26,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  ListRow,
+  ListRows,
   PageNotice,
 } from '~/ui';
 import { BookingDailyToolbar } from '~/routes/company/booking/_components/booking-daily-switch';
@@ -332,9 +334,6 @@ function DayStrip({ day, detailById }: { day: ScheduleDay; detailById: DetailByI
   );
 }
 
-const flatRowClass =
-  'flex h-[3.75rem] w-full items-center gap-3 px-4 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive sm:px-5';
-
 function DayItems({
   day,
   returnTo,
@@ -363,7 +362,7 @@ function DayItems({
   }
 
   return (
-    <ul className="divide-y divide-border border-t border-border">
+    <ListRows className="border-t border-border">
       {day.items.map((item) => {
         if (item.kind === 'appointment') {
           const detail = detailById.get(item.id);
@@ -382,47 +381,34 @@ function DayItems({
               </li>
             );
           }
-          // Cancelled, or the details didn't load: the same row shape with what the overview knows.
+          // Cancelled, or the details didn't load: the same row with what the overview knows.
           const name = [detail?.user?.givenName, detail?.user?.familyName].filter(Boolean).join(' ') || 'Avtale';
           return (
             <li key={`appointment-${item.id}`}>
-              <Link to={href} className={cn(flatRowClass, 'bg-background opacity-60 hover:bg-surface-variant-1')}>
-                <span className="w-14 shrink-0 text-base font-semibold tabular-nums">{item.time}</span>
-                <span className="min-w-0 flex-1">
-                  <span className={cn('block truncate font-semibold', item.cancelled && 'line-through')}>{name}</span>
-                  <span className="block truncate text-sm text-text-secondary">
-                    {item.cancelled ? 'Avlyst' : `til ${item.endTime}`}
-                  </span>
-                </span>
-                <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
-              </Link>
+              <ListRow
+                to={href}
+                state={item.cancelled ? 'done' : undefined}
+                lead={<span className="block w-11 text-sm font-semibold tabular-nums">{item.time}</span>}
+                title={<span className={cn(item.cancelled && 'line-through')}>{name}</span>}
+                line={item.cancelled ? 'Avlyst' : `til ${item.endTime}`}
+              />
             </li>
           );
         }
 
-        const absenceBody = (
-          <>
-            <span className="w-14 shrink-0 text-base font-semibold tabular-nums">{item.time}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">Fravær</span>
-              <span className="block truncate text-sm text-text-secondary">{item.label}</span>
-            </span>
-          </>
-        );
-        const absenceClass = cn(flatRowClass, 'bg-amber-50 shadow-[inset_4px_0_0_var(--color-amber-500)]');
+        // An absence: amber, and it opens its edit page unless it is over.
         return (
           <li key={`unavailability-${item.id}`}>
-            {item.isPast ? (
-              <div className={absenceClass}>{absenceBody}</div>
-            ) : (
-              <Link to={getUnavailabilityEditHref(item, returnTo)} className={cn(absenceClass, 'hover:bg-amber-100')}>
-                {absenceBody}
-                <ChevronRight className="size-4 shrink-0 text-text-secondary" aria-hidden />
-              </Link>
-            )}
+            <ListRow
+              to={item.isPast ? undefined : getUnavailabilityEditHref(item, returnTo)}
+              state="away"
+              lead={<span className="block w-11 text-sm font-semibold tabular-nums">{item.time}</span>}
+              title="Fravær"
+              line={item.label}
+            />
           </li>
         );
       })}
-    </ul>
+    </ListRows>
   );
 }

@@ -62,14 +62,14 @@ test('phone: the create button floats above the menu on the list and stops on th
   await expect(bottom.getByRole('link', { name: 'Booking', exact: true })).toHaveAttribute('aria-current', 'page');
   expect(await backgroundOf(bottom)).not.toBe(WHITE);
 
-  // The end of the list scrolls clear of the button.
+  // The end of the list (its count line, with the pages when there is more than one) scrolls clear of the button.
   await page.getByRole('button', { name: 'Tidligere', exact: true }).click();
-  const nextPage = page.getByRole('button', { name: 'Neste side' });
-  await expect(nextPage).toBeVisible();
+  const listEnd = page.getByText(/^[\d\s]+ avtaler?$/).last();
+  await expect(listEnd).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  const nextPageBox = await nextPage.boundingBox();
+  const listEndBox = await listEnd.boundingBox();
   const createBoxScrolled = await create.boundingBox();
-  expect(nextPageBox!.y + nextPageBox!.height).toBeLessThanOrEqual(createBoxScrolled!.y);
+  expect(listEndBox!.y + listEndBox!.height).toBeLessThanOrEqual(createBoxScrolled!.y);
 
   // One level down (an appointment's own page) the create button is gone; the menu stays.
   await page

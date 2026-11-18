@@ -514,7 +514,29 @@ export const COMPANY_ROUTES: RouteBranch[] = [
         iconName: 'Megaphone',
         children: [
           {
+            id: 'company.marketing.campaigns',
+            href: '/company/marketing/kampanjer',
+            label: 'Kampanjer',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            companyRoles: [CompanyRole.ADMIN],
+            hidden: true,
+            excludeLayout: true,
+          },
+          {
+            id: 'company.marketing.recipients',
+            href: '/company/marketing/mottakere',
+            label: 'Mottakere',
+            category: BrachCategory.COMPANY,
+            accessType: Access.PRODUCT,
+            companyRoles: [CompanyRole.ADMIN],
+            hidden: true,
+            excludeLayout: true,
+          },
+          {
             id: 'company.marketing.create',
+            // A new campaign belongs to Kampanjer in the domain map, not to the Markedsføring Oversikt.
+            up: 'company.marketing.campaigns',
             href: '/company/marketing/create',
             label: 'Ny kampanje',
             category: BrachCategory.COMPANY,
@@ -524,6 +546,7 @@ export const COMPANY_ROUTES: RouteBranch[] = [
           },
           {
             id: 'company.marketing.detail',
+            up: 'company.marketing.campaigns',
             href: '/company/marketing/:campaignId',
             label: 'Kampanjedetaljer',
             category: BrachCategory.COMPANY,

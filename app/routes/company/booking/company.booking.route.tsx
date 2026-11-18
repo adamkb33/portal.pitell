@@ -79,9 +79,9 @@ export default function CompanyBookingPage({ loaderData }: Route.ComponentProps)
 
   return (
     <CompanyPageTemplate title="Booking">
-      <nav aria-label="Booking" className="space-y-4">
+      <nav aria-label="Booking" className="flex max-w-140 flex-col gap-4">
         {showKeyCards ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <KeyDestinationCard
               href={ROUTES_MAP['company.booking.schedule'].href}
               label="Kalender"

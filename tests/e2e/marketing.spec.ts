@@ -40,7 +40,7 @@ test('the admin builds an email from blocks, sees the preview and sends it', asy
   await addOptedInCustomers(db, 'EMAIL', 2);
   await addOptedInCustomers(db, 'SMS', 1);
 
-  await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseURL}/company/marketing/kampanjer`, { waitUntil: 'networkidle' });
   await expect(page.getByText('Ingen kampanjer ennå')).toBeVisible();
   await page.getByRole('link', { name: 'Ny kampanje' }).click();
   await expect(page).toHaveURL(`${baseURL}/company/marketing/create`);
@@ -123,9 +123,79 @@ test('the admin builds an email from blocks, sees the preview and sends it', asy
     expect.objectContaining({ type: 'BUTTON', text: 'Bestill time', url: 'https://pitell.no' }),
   ]);
 
-  await page.getByRole('link', { name: 'Markedsføring' }).first().click();
+  await page.getByRole('link', { name: 'Kampanjer' }).first().click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/kampanjer`);
   await expect(page.getByRole('region', { name: 'Kampanjer' })).toContainText('Julekampanje');
   await page.screenshot({ path: 'test-results/marketing-list-desktop.png', fullPage: true });
+});
+
+test('the overview leads to Kampanjer and to Mottakere per channel', async ({ page, context, db }) => {
+  await signIn(context);
+  const [both] = await addOptedInCustomers(db, 'EMAIL', 2);
+  await addOptedInCustomers(db, 'SMS', 1);
+  // One customer said yes to both channels and is still one customer; an opt-out is nobody.
+  await db.query(
+    `insert into marketing.marketing_consents
+       (company_id, channel, address, status, source, user_id, given_name, family_name, wording_version)
+     select 1, 'SMS', '+4798765432', 'OPTED_IN', 'BOOKING_CHECKBOX', user_id, given_name, family_name, wording_version
+     from marketing.marketing_consents where id = $1`,
+    [both.consentId],
+  );
+  const [optedOut] = await addOptedInCustomers(db, 'EMAIL', 1);
+  await db.query(`update marketing.marketing_consents set status = 'OPTED_OUT' where id = $1`, [optedOut.consentId]);
+  await db.query(
+    `insert into marketing.marketing_campaigns
+       (company_id, name, channel, status, subject, body, completed_at, eligible_count, created_by_user_id)
+     values (1, 'Julebooking', 'EMAIL', 'COMPLETED', 'Julebooking', '[{"type":"PARAGRAPH","text":"Hei"}]', now(), 2, 1)`,
+  );
+
+  await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
+  const overview = page.getByRole('navigation', { name: 'Markedsføring' });
+  await expect(overview.getByRole('link', { name: /^Kampanjer/ })).toContainText('1denne måneden');
+  await expect(overview.getByRole('link', { name: /^Mottakere/ })).toContainText('3kunder');
+  await expect(overview.getByRole('link', { name: /^E-post/ })).toContainText('2 mottakere');
+  await expect(overview.getByRole('link', { name: /^SMS/ })).toContainText('2 mottakere');
+  // An Oversikt creates nothing.
+  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/marketing-overview-desktop.png', fullPage: true });
+
+  await overview.getByRole('link', { name: /^SMS/ }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/mottakere?kanal=sms`);
+  const recipients = page.getByRole('region', { name: 'Mottakere' });
+  await expect(recipients.getByRole('link', { name: 'SMS 2' })).toHaveAttribute('aria-current', 'page');
+  await expect(recipients.getByRole('listitem')).toHaveCount(2);
+  await expect(recipients.getByRole('listitem').filter({ hasText: 'E-post · SMS' })).toHaveCount(1);
+  await recipients.getByRole('link', { name: 'Alle 3' }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/mottakere`);
+  await expect(recipients.getByRole('listitem')).toHaveCount(3);
+  await expect(recipients).toContainText('3 kunder');
+
+  await page.getByRole('link', { name: 'Markedsføring' }).last().click();
+  await page
+    .getByRole('navigation', { name: 'Markedsføring' })
+    .getByRole('link', { name: /^Kampanjer/ })
+    .click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/kampanjer`);
+  await expect(page.getByRole('region', { name: 'Kampanjer' })).toContainText('Julebooking');
+  await page.getByRole('link', { name: 'Ny kampanje' }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/create`);
+
+  // Phone: ≡ on the overview and no create button; Kampanjer has ‹ and its create button above the bottom menu.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('button', { name: 'Åpne meny' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/marketing-overview-mobile.png', fullPage: true });
+  await page.goto(`${baseURL}/company/marketing/kampanjer`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('link', { name: 'Tilbake til Markedsføring' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/marketing-campaigns-mobile.png', fullPage: true });
+  await page.goto(`${baseURL}/company/marketing/mottakere`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/marketing-recipients-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
 });
 
 test('the admin sends an SMS campaign', async ({ page, context, db }) => {
@@ -246,9 +316,9 @@ test('the admin cancels a campaign while it is sending', async ({ page, context,
 
   const recipients = page.getByRole('region', { name: 'Mottakere' });
   await recipients.getByText('Mottakere (30)', { exact: true }).click();
-  await expect(recipients.getByRole('listitem')).toHaveCount(10);
+  await expect(recipients.getByRole('listitem')).toHaveCount(25);
   await recipients.getByRole('link', { name: 'Neste side' }).click();
-  await expect(recipients).toContainText('Side 2 av 3');
+  await expect(recipients).toContainText('Side 2 av 2');
   await recipients.getByRole('link', { name: /^Hoppet over \(/ }).click();
   await expect(recipients.getByRole('link', { name: /^Hoppet over \(/ })).toHaveAttribute('aria-current', 'page');
   await expect(recipients).toContainText('Side 1 av');

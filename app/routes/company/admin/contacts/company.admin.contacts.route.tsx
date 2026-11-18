@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
 import { Link, data, useLocation, useSearchParams } from 'react-router';
 import { ChevronLeft, ChevronRight, Contact, Search, SearchX, X } from 'lucide-react';
 import type { Route } from './+types/company.admin.contacts.route';
@@ -15,7 +16,7 @@ export const handle = {
   createAction: { label: 'Ny kontakt', to: ROUTES_MAP['company.admin.contacts.create'].href },
 } satisfies CreateActionHandle;
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = LIST_PAGE_SIZE;
 const MISSING_INFO = 'uten-kontaktinfo';
 
 export async function loader({ request }: Route.LoaderArgs) {

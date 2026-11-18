@@ -27,6 +27,7 @@ export const DailyScheduleController = BookingSdk;
 export const PublicAppointmentSessionController = BookingSdk;
 export const ServiceController = BookingSdk;
 export const CompanyUserMarketingCampaignController = MarketingSdk;
+export const CompanyUserMarketingRecipientController = MarketingSdk;
 export const PublicUnsubscribeController = MarketingSdk;
 export const CompanyUserInAppNotificationController = NotificationSdk;
 export const AdminTimeSheetEntryController = TimesheetSdk;
@@ -106,6 +107,7 @@ export type {
   ApiResponseListLong,
   ApiResponseListLoyaltyCardDto,
   ApiResponseListMarketingMessageDto,
+  ApiResponseListMarketingRecipientDto,
   ApiResponseListOfferCatalogItemDto,
   ApiResponseListOfferCustomerContactDto,
   ApiResponseListOfferDto,
@@ -727,6 +729,8 @@ export type {
   MarkAllInAppNotificationsAsReadResponse,
   MarkAllInAppNotificationsAsReadResponses,
   MarketingMessageDto,
+  MarketingRecipientChannelDto,
+  MarketingRecipientDto,
   MarkInAppNotificationAsReadData,
   MarkInAppNotificationAsReadResponse,
   MarkInAppNotificationAsReadResponses,
@@ -806,6 +810,9 @@ export type {
   RangeDayRequest,
   RecentInvite,
   RecentUser,
+  RecipientsData,
+  RecipientsResponse,
+  RecipientsResponses,
   RefreshData,
   RefreshResponse,
   RefreshResponses,

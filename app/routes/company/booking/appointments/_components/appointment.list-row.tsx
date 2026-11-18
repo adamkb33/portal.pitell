@@ -1,10 +1,9 @@
 import { formatInTimeZone } from 'date-fns-tz';
-import { Check, Gift, ImageIcon, ChevronRight, UserX } from 'lucide-react';
-import { Link } from 'react-router';
+import { Check, Gift, ImageIcon, UserX } from 'lucide-react';
 import type { AppointmentDto } from '~/api/generated';
 import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { formatEstimatedDuration, formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
-import { cn } from '~/ui';
+import { ListRow, cn, type ListRowState } from '~/ui';
 import { getAppointmentTotals } from '../_utils/appointments.utils';
 
 type AppointmentListRowProps = {
@@ -15,23 +14,12 @@ type AppointmentListRowProps = {
   marker?: 'now' | 'next' | 'past' | null;
 };
 
-// Color means time, not decoration. Blue is time that matters now: solid for "Nå", tinted for "Neste".
-// Everything else is neutral. Past appointments are greyed: Fullført (green chip) unless marked "ikke møtt"
-// (still grey, with a red bar and chip).
-// Full class names so Tailwind can see them.
-const rowStyles = {
-  now: 'bg-interactive text-white hover:bg-interactive-hover',
-  next: 'bg-interactive/10 shadow-[inset_4px_0_0_var(--color-interactive)] hover:bg-interactive/15',
-  upcoming: 'bg-background shadow-[inset_4px_0_0_var(--color-border)] hover:bg-surface-variant-1',
-  past: 'bg-surface-variant-1 hover:bg-surface-variant-2',
-  noShow: 'bg-surface-variant-1 shadow-[inset_4px_0_0_var(--color-danger-text)] hover:bg-surface-variant-2',
-} as const;
-
 const chipClass = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold';
 
 /**
- * Fixed height, three columns. Time (with "Nå"/"Neste" under it), who and what, then price (with "Ikke møtt",
- * "Fullført" or "Gratis" above it). Status never shares a line with the name, so the name always has room.
+ * An appointment in the list standard (ui-rules rule 7), the same in every list it appears in. Time (with "Nå" or
+ * "Neste" under it), who and what, then the price (with "Ikke møtt", "Fullført" or "Gratis" above it). Colour means
+ * time: solid blue now, a blue tint and bar for the next one, grey when over, grey with a red bar for a no-show.
  */
 export function AppointmentListRow({ appointment, href, marker }: AppointmentListRowProps) {
   const { services, duration, price } = getAppointmentTotals(appointment);
@@ -40,11 +28,17 @@ export function AppointmentListRow({ appointment, href, marker }: AppointmentLis
   const imageCount = appointment.images?.length ?? 0;
   const noShow = Boolean(appointment.noShow);
   const isFree = Boolean(appointment.loyaltyFreeVisit);
-  const state = noShow ? 'noShow' : (marker ?? 'upcoming');
-  const solid = state === 'now';
-  const muted = state === 'past' || state === 'noShow';
-  const subText = solid ? 'text-white/90' : 'text-text-secondary';
-  const strongText = solid ? 'text-white' : muted ? 'text-text-secondary' : 'text-text-primary';
+  const state: ListRowState | undefined = noShow
+    ? 'alert'
+    : marker === 'now'
+      ? 'now'
+      : marker === 'next'
+        ? 'next'
+        : marker === 'past'
+          ? 'done'
+          : undefined;
+  const timeColour =
+    state === 'now' ? 'text-white' : state === 'done' || state === 'alert' ? 'text-text-secondary' : '';
   const serviceLine = [
     serviceNames.length ? serviceNames.join(', ') : 'Ingen tjenester',
     formatEstimatedDuration(duration),
@@ -53,24 +47,21 @@ export function AppointmentListRow({ appointment, href, marker }: AppointmentLis
     .join(' · ');
 
   return (
-    <Link
+    <ListRow
       to={href}
-      className={cn(
-        'flex h-[3.75rem] w-full items-center gap-3 px-4 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-interactive sm:px-5',
-        rowStyles[state],
-      )}
-    >
-      <time dateTime={appointment.startTime} className="block w-14 shrink-0">
-        <span className={cn('block text-base font-semibold tabular-nums leading-tight', strongText)}>
-          {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm')}
-        </span>
-        {state === 'now' ? <span className="block text-xs font-semibold text-white">Nå</span> : null}
-        {state === 'next' ? <span className="block text-xs font-semibold text-interactive">Neste</span> : null}
-      </time>
-
-      <span className="min-w-0 flex-1">
-        <span className={cn('block truncate font-semibold', strongText)}>{name}</span>
-        <span className={cn('flex items-center gap-1.5 text-sm', subText)}>
+      state={state}
+      lead={
+        <time dateTime={appointment.startTime} className="block w-11 leading-tight">
+          <span className={cn('block text-sm font-semibold tabular-nums', timeColour)}>
+            {formatInTimeZone(appointment.startTime, DEFAULT_QUERY_TIMEZONE, 'HH:mm')}
+          </span>
+          {state === 'now' ? <span className="block text-xs font-semibold text-white">Nå</span> : null}
+          {state === 'next' ? <span className="block text-xs font-semibold text-interactive">Neste</span> : null}
+        </time>
+      }
+      title={name}
+      line={
+        <span className="flex items-center gap-1.5">
           <span className="truncate">{serviceLine}</span>
           {imageCount > 0 ? (
             <span className="inline-flex shrink-0 items-center gap-0.5 text-xs">
@@ -80,36 +71,30 @@ export function AppointmentListRow({ appointment, href, marker }: AppointmentLis
             </span>
           ) : null}
         </span>
-      </span>
-
-      <span className="flex shrink-0 flex-col items-end gap-0.5">
-        {noShow ? (
-          <span className={cn(chipClass, 'bg-danger-soft text-danger-text')}>
-            <UserX className="size-3" aria-hidden />
-            Ikke møtt
+      }
+      trailing={
+        <span className="flex flex-col items-end gap-0.5">
+          {noShow ? (
+            <span className={cn(chipClass, 'bg-danger-soft text-danger-text')}>
+              <UserX className="size-3" aria-hidden />
+              Ikke møtt
+            </span>
+          ) : marker === 'past' ? (
+            <span className={cn(chipClass, 'bg-flash-success-bg text-flash-success-text')}>
+              <Check className="size-3" aria-hidden />
+              Fullført
+            </span>
+          ) : isFree ? (
+            <span className={cn(chipClass, 'bg-flash-success-bg text-flash-success-text')}>
+              <Gift className="size-3" aria-hidden />
+              Gratis
+            </span>
+          ) : null}
+          <span className={noShow || isFree ? 'text-xs font-normal line-through opacity-80' : undefined}>
+            {formatEstimatedPrice(price)}
           </span>
-        ) : state === 'past' ? (
-          <span className={cn(chipClass, 'bg-flash-success-bg text-flash-success-text')}>
-            <Check className="size-3" aria-hidden />
-            Fullført
-          </span>
-        ) : isFree ? (
-          <span className={cn(chipClass, 'bg-flash-success-bg text-flash-success-text')}>
-            <Gift className="size-3" aria-hidden />
-            Gratis
-          </span>
-        ) : null}
-        <span
-          className={cn(
-            'whitespace-nowrap tabular-nums',
-            noShow || isFree ? 'text-xs line-through opacity-80' : 'text-sm font-semibold',
-            strongText,
-          )}
-        >
-          {formatEstimatedPrice(price)}
         </span>
-      </span>
-      <ChevronRight className={cn('size-4 shrink-0', subText)} aria-hidden />
-    </Link>
+      }
+    />
   );
 }

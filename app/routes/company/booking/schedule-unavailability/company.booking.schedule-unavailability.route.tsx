@@ -86,7 +86,7 @@ export default function CompanyBookingScheduleUnavailabilityRoute({ loaderData }
                       <ListRow
                         // Past absence is history: nothing to open or delete.
                         to={past ? undefined : absenceHref(group)}
-                        muted={past}
+                        state={past ? 'done' : undefined}
                         title={absenceTitle(group)}
                         line={absenceLine(group)}
                       />

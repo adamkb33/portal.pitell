@@ -82,11 +82,18 @@ What stays on the page instead of a toast:
 
 ## 7. Lists and rows
 
-- One card per list, rows that open the item (whole row is the link, chevron at the end), no buttons inside rows.
-- One row style per kind of thing across the whole app: an appointment looks the same in every list it appears in (the Timebestillinger row), and so on.
-- Everything else: lead (tile, time or initials) + title + one muted line + trailing value + chevron.
-- Search at the top of the card when it helps; group strips with category colors when items belong to groups; a count at the bottom; an empty state with at most one action (never a second create button; the page's create button already does that).
-- Look and exact anatomy: page-sketch skill, `references/patterns.md`.
+The list standard (2026-11-18, from Apple HIG, Material, Android edge-to-edge, NN/g, Baymard and WCAG). Build every list from the shared parts in `~/ui` (`ListCard`, `ListToolbar`, `ListBody`, `ListStrip`, `ListRows`, `ListRow`, `ListEmpty`, `ListFooter`, see `app/ui/organisms/list-parts.tsx`); never hand-write a list surface, row or footer.
+
+- **Phones (below `sm`): the list runs edge to edge.** No card, no side margin, no rounded corners. The switch or search sits on the page above the list; the count and pages in one quiet line under it. Cards stay for Oversikt pages, which work as menus (like iPhone Settings vs. Mail).
+- **From `sm`: one card** with the toolbar on top, the rows, and the count and pages at the bottom.
+- **Rows:** 56px with two lines, 48px with one. Title 15px semibold, second line 13px muted, trailing value 14px semibold, initials and tiles 32px. Only the title and the trailing value are bold. The whole row is the link with a chevron at the end; no buttons inside rows. The line between rows starts at the text.
+- **No grey bar on ordinary rows.** Colour on a row only marks state (`ListRow`'s `state`): `now` solid blue, `next` a blue tint and bar, `done` greyed (over or stopped), `alert` greyed with a red bar (a no-show), `away` an amber tint and bar (an absence in a day list).
+- **Dates go in the group strips, not on every row** ("November 2026 · 7 kunder"). Strips are 26px, plain grey, and stay under the header on phones while their group scrolls past.
+- **25 rows per page** (`LIST_PAGE_SIZE`), pages in the URL. Lists that are small by nature show everything.
+- One row style per kind of thing across the whole app: an appointment looks the same in every list it appears in (the Timebestillinger row), and so on. Everything else: lead (tile, time or initials) + title + one muted line + trailing value + chevron.
+- An empty state with at most one action (never a second create button; the page's create button already does that).
+- Lists move onto the standard as they are touched. On it (2026-11-18): Kampanjer, Mottakere, Timebestillinger (the reference), and Kalender's day rows (inside its own card for now). Rows already on `ListRow` (statistics, Bookbar tid, Fravær, Bookingprofil) have the new size but still sit in hand-written cards; Kontakter, Ansatte, Varsler, Tjenester and Grupper still hand-write theirs.
+- Look and exact anatomy: page-sketch skill, `references/patterns.md`, and the sketch kit's `fl` / `fs` / `fr` pieces.
 
 ## 8. Every screen gets an e2e test of its flow
 
@@ -146,3 +153,6 @@ Newest last. Add a dated line when the user decides something new about how the 
 - 2026-11-14 – Statistics never show 0: a stat or list with nothing in it is left out, a card with nothing left disappears, and a page with nothing at all shows one empty state. Applies to every Tall page and stat card.
 - 2026-11-14 – Sign-in asks for the mobile number or email first. An account with a password gets the password step; an account without one (a guest from a booking) and "Glemt passord?" get a 6-digit code by SMS or email (60 s resend wait shown as a countdown), then "Velg passord", then straight in. Unknown numbers or emails go to sign-up with the field filled in. Customers land on Mine bookinger; business users keep their landing. A guest who sets a password stays a guest, so no email is asked for.
 - 2026-11-17 – Sign-up asks for Fornavn, Etternavn, Mobilnummer, E-post (valgfritt) and one Passord, with no text under the title and no corner link ("Har du konto? Logg inn" under the button). The mobile number is checked with the same code step as sign-in ("Skriv inn koden", "Sendt på SMS til +47 ••• 67"), then straight in. Accounts missing a mobile number or an email get one-field steps (Legg til mobilnummer / Legg til e-post). The email link shows no page: it confirms and moves on with the toast "E-post bekreftet". Auth pages' disabled primary button is neutral grey, not faded blue.
+- 2026-11-18 – Markedsføring is a domain Oversikt like Booking and Administrasjon: key cards Kampanjer ("n denne måneden") and Mottakere ("n kunder", each customer once), then one row per channel (E-post, SMS: "n mottakere"), because customers say yes to each channel separately. The campaign list moved to Kampanjer (`/company/marketing/kampanjer`, create action "Ny kampanje"); Mottakere is a new list with Alle | E-post | SMS. Map: `references/marketing-domain.md`.
+- 2026-11-18 – Paged lists show 25 rows per page, the same everywhere (one shared setting), with pages in the URL ("Side 1 av 3" and arrows) so up returns to the same page; no endless scrolling or "Vis flere". Short lists that are small by nature (Tjenester, Grupper, Ansatte) show everything without paging; previews like the bell's panel stay small. Replaces today's mix of 5, 10 and 20. Research: Baymard (15–30 items first on phones), NN/g (pages or "Vis flere" over endless scrolling when people look for one item).
+- 2026-11-18 – The list standard (rule 7): on phones lists run edge to edge with the toolbar above and the count/pages below; from `sm` one card. 56px two-line rows (48px one-line), 15px/13px text, 32px initials, dividers that start at the text, no grey bar on ordinary rows, dates in 26px group strips that stay under the header on phones, 25 per page. Built into the shared list parts; Kampanjer and Mottakere first, the rest as they are touched.

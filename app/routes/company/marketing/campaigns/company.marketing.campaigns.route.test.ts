@@ -7,17 +7,17 @@ const mocks = vi.hoisted(() => ({
   withAuth: vi.fn(),
 }));
 
-vi.mock('./company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
+vi.mock('../company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
 vi.mock('~/api/generated', () => ({ CompanyUserMarketingCampaignController: { list: mocks.list } }));
 vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.withAuth }));
 vi.mock('~/lib/api-error', () => ({
   resolveErrorPayload: (_error: unknown, fallback: string) => ({ message: fallback }),
 }));
 
-import { loader } from './company.marketing.route';
-import { groupCampaignsByMonth } from './_utils/campaigns';
+import { loader } from './company.marketing.campaigns.route';
+import { groupCampaignsByMonth } from '../_utils/campaigns';
 
-const load = (url = 'http://localhost/company/marketing') => loader({ request: new Request(url) } as never);
+const load = (url = 'http://localhost/company/marketing/kampanjer') => loader({ request: new Request(url) } as never);
 
 function campaign(id: number, startedAt: string): CampaignSummaryDto {
   return {
@@ -38,19 +38,19 @@ beforeEach(() => {
   mocks.list.mockResolvedValue({
     data: {
       data: [campaign(2, '2026-11-05T14:02:00+01:00')],
-      meta: { pagination: { page: 1, size: 10, totalElements: 11, totalPages: 2 } },
+      meta: { pagination: { page: 1, size: 25, totalElements: 30, totalPages: 2 } },
     },
   });
 });
 
 describe('campaign list loader', () => {
   it('checks access before loading and reads the page from the URL', async () => {
-    const result = await load('http://localhost/company/marketing?page=1');
+    const result = await load('http://localhost/company/marketing/kampanjer?page=1');
     expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
-    expect(mocks.list).toHaveBeenCalledWith({ query: { page: 1, size: 10 } });
+    expect(mocks.list).toHaveBeenCalledWith({ query: { page: 1, size: 25 } });
     expect(result).toEqual({
       campaigns: [expect.objectContaining({ id: 2 })],
-      pagination: { page: 1, totalElements: 11, totalPages: 2 },
+      pagination: { page: 1, totalElements: 30, totalPages: 2 },
       error: null,
     });
   });
@@ -62,10 +62,10 @@ describe('campaign list loader', () => {
   });
 
   it('falls back to the first page for a missing or invalid page number', async () => {
-    await load('http://localhost/company/marketing?page=-3');
-    await load('http://localhost/company/marketing?page=abc');
-    expect(mocks.list).toHaveBeenNthCalledWith(1, { query: { page: 0, size: 10 } });
-    expect(mocks.list).toHaveBeenNthCalledWith(2, { query: { page: 0, size: 10 } });
+    await load('http://localhost/company/marketing/kampanjer?page=-3');
+    await load('http://localhost/company/marketing/kampanjer?page=abc');
+    expect(mocks.list).toHaveBeenNthCalledWith(1, { query: { page: 0, size: 25 } });
+    expect(mocks.list).toHaveBeenNthCalledWith(2, { query: { page: 0, size: 25 } });
   });
 
   it('returns an error instead of throwing when the backend fails', async () => {

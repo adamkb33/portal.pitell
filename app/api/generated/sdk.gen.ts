@@ -311,6 +311,8 @@ import type {
   PublicGetCompanyByIdResponses,
   PublicGetCreateOrUpdateContactData,
   PublicGetCreateOrUpdateContactResponses,
+  RecipientsData,
+  RecipientsResponses,
   RefreshData,
   RefreshResponses,
   ReplaceOfferLinesData,
@@ -2808,6 +2810,14 @@ export class Marketing {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  public static recipients<ThrowOnError extends boolean = false>(options?: Options<RecipientsData, ThrowOnError>) {
+    return (options?.client ?? client).get<RecipientsResponses, unknown, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/marketing-service/company-user/marketing/recipients',
+      ...options,
     });
   }
 

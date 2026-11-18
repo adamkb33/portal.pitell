@@ -98,7 +98,9 @@ export async function action({ request }: Route.ActionArgs) {
         CompanyUserMarketingCampaignController.create({ body: parsed.data }),
       );
       const campaignId = response.data?.data?.id;
-      return campaignId ? redirect(getCampaignDetailHref(campaignId)) : redirect(ROUTES_MAP['company.marketing'].href);
+      return campaignId
+        ? redirect(getCampaignDetailHref(campaignId))
+        : redirect(ROUTES_MAP['company.marketing.campaigns'].href);
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke sende kampanjen.');
       return data<ActionResult>({ intent: 'send', error: message }, { status: 400 });
@@ -220,8 +222,8 @@ export default function CompanyMarketingCreateRoute({ loaderData, actionData }: 
       size="xl"
       routeLinks={
         <Button asChild variant="ghost" size="sm">
-          <Link to={ROUTES_MAP['company.marketing'].href}>
-            <ArrowLeft className="h-4 w-4" /> Markedsføring
+          <Link to={ROUTES_MAP['company.marketing.campaigns'].href}>
+            <ArrowLeft className="h-4 w-4" /> Kampanjer
           </Link>
         </Button>
       }

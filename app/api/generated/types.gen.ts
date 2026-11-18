@@ -2189,6 +2189,28 @@ export type PaginatedResponseInAppNotificationDto = {
   hasPrevious: boolean;
 };
 
+export type ApiResponseListMarketingRecipientDto = {
+  success: boolean;
+  message: ApiMessage;
+  data?: Array<MarketingRecipientDto>;
+  errors?: Array<ApiError>;
+  meta?: ApiMeta;
+  timestamp: string;
+};
+
+export type MarketingRecipientChannelDto = {
+  channel: 'EMAIL' | 'SMS';
+  address: string;
+  since: string;
+};
+
+export type MarketingRecipientDto = {
+  userId: number;
+  givenName?: string;
+  familyName?: string;
+  channels: Array<MarketingRecipientChannelDto>;
+};
+
 export type ApiResponseListCampaignSummaryDto = {
   success: boolean;
   message: ApiMessage;
@@ -5870,6 +5892,26 @@ export type GetInAppNotificationByIdResponses = {
 
 export type GetInAppNotificationByIdResponse =
   GetInAppNotificationByIdResponses[keyof GetInAppNotificationByIdResponses];
+
+export type RecipientsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    channel?: 'EMAIL' | 'SMS';
+    page?: number;
+    size?: number;
+  };
+  url: '/marketing-service/company-user/marketing/recipients';
+};
+
+export type RecipientsResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseListMarketingRecipientDto;
+};
+
+export type RecipientsResponse = RecipientsResponses[keyof RecipientsResponses];
 
 export type Get1Data = {
   body?: never;

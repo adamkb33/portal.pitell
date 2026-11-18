@@ -9,7 +9,7 @@ import { portalCookieValue, signInAsCompanyAdmin } from './loyalty.helpers';
  */
 
 const DOMAIN = 'kontakter.e2e.invalid';
-// 12 contacts so the search for this domain fills one page of 10 and spills onto a second.
+// 27 contacts so the search for this domain fills one page of 25 and spills onto a second.
 const NAMES = [
   ['Aksel', 'Berg'],
   ['Anna', 'Dahl'],
@@ -21,6 +21,21 @@ const NAMES = [
   ['Geir', 'Jensen'],
   ['Hanne', 'Krogh'],
   ['Ivar', 'Lie'],
+  ['Camilla', 'Strand'],
+  ['Cato', 'Vik'],
+  ['Dag', 'Ruud'],
+  ['Dorthe', 'Lund'],
+  ['Ebba', 'Næss'],
+  ['Elin', 'Haug'],
+  ['Fredrik', 'Sæther'],
+  ['Gro', 'Bakke'],
+  ['Gunn', 'Moen'],
+  ['Hans', 'Lien'],
+  ['Helge', 'Ødegård'],
+  ['Hilde', 'Vang'],
+  ['Ida', 'Foss'],
+  ['Ingrid', 'Hauge'],
+  ['Iver', 'Dale'],
   ['Jonas', 'Moe'],
   ['Kari', 'Nygård'],
 ] as const;
@@ -65,11 +80,11 @@ for (const [device, width] of [
     const list = page.getByRole('region', { name: 'Kontakter', exact: true });
     await list.getByRole('textbox', { name: 'Søk etter navn, e-post eller mobil' }).fill(DOMAIN);
     await expect(page).toHaveURL(/search=kontakter\.e2e\.invalid/);
-    await expect(list).toContainText('12 kontakter');
+    await expect(list).toContainText('27 kontakter');
 
-    // A–Å by first name, under letter strips; 10 on the first page.
+    // A–Å by first name, under letter strips; 25 on the first page.
     const rows = list.getByRole('listitem').getByRole('link');
-    await expect(rows).toHaveCount(10);
+    await expect(rows).toHaveCount(25);
     await expect(rows.first()).toContainText('Aksel Berg');
     await expect(rows.first()).toContainText(`912 34 567 · aksel@${DOMAIN}`);
     // A strip names its letter and how many on this page have it.

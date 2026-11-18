@@ -10,9 +10,8 @@ import {
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyPageTemplate, ConfirmDialog, Notice, cn, PageNotice } from '~/ui';
+import { Button, CompanyPageTemplate, ConfirmDialog, ListFooter, Notice, cn, PageNotice } from '~/ui';
 import { loader as requireMarketingAdmin } from '../company.marketing.layout';
-import { ListFooter } from '../_components/list-footer';
 import { StatusChip } from '../_components/status-chip';
 import {
   CHANNEL_LABELS,
@@ -28,7 +27,9 @@ import {
   type MessageStatus,
 } from '../_utils/campaigns';
 
-const PAGE_SIZE = 10;
+import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
+
+const PAGE_SIZE = LIST_PAGE_SIZE;
 const REFRESH_MS = 1000;
 
 const parseCampaignId = (value: string | undefined) => {
@@ -166,8 +167,8 @@ export default function CompanyMarketingDetailRoute({ loaderData }: Route.Compon
 
   const backLink = (
     <Button asChild variant="ghost" size="sm">
-      <Link to={ROUTES_MAP['company.marketing'].href}>
-        <ArrowLeft className="h-4 w-4" /> Markedsføring
+      <Link to={ROUTES_MAP['company.marketing.campaigns'].href}>
+        <ArrowLeft className="h-4 w-4" /> Kampanjer
       </Link>
     </Button>
   );
