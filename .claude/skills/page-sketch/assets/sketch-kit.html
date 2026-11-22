@@ -1439,7 +1439,7 @@
     padding: 12px 20px;
     font-size: 14px;
   }
-  /* ── Step flows and full-screen panels (2026-11-19) [Ny e-post: email-campaign-create-page.tsx; FullScreenSheet,
+  /* ── Step flows and full-screen panels (2026-11-19) [Ny e-post: marketing/email/create/* routes; FullScreenSheet,
      FloatingActionBar in app/ui/organisms]. Progress: <div class="prog"><div class="ln"><span class="on"></span>
      <span class="on"></span><span></span></div>2 av 3</div>. A finished step: <div class="card"><div class="chosen">
      <span class="tile purple">…</span>Kunngjøring<span class="edit">Endre</span></div></div>. A full-screen panel on
@@ -1573,6 +1573,36 @@
   .pk .ck.on {
     background: var(--blue);
     border-color: var(--blue);
+  }
+  /* Leaving people out of a group (2026-11-22) [email/create/_components/recipients-card.tsx]: in one .card, a
+     .chosen row ("Alle som har sagt ja" + count), then <div class="box"><p class="lbl">Ikke send til</p>
+     <div class="in">search</div><div class="dd">matching rows</div></div> (.in.on while typing), then the left-out
+     rows (.fr with .fi, name, e-mail and <i class="ti ti-x x"></i>). */
+  .pk .box {
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--bd);
+  }
+  .pk .in.on {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px var(--bt);
+    color: var(--ink);
+  }
+  .pk .dd {
+    margin-top: 6px;
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 15px -3px rgb(15 23 42/0.1);
+    overflow: hidden;
+  }
+  .pk .x {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    color: var(--mut);
   }
 </style>
 <div class="pk">

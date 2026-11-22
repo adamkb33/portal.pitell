@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useFetcher, useNavigate } from 'react-router';
-import { Send, Users } from 'lucide-react';
-import { Button, ConfirmDialog, FloatingActionBar, Notice } from '~/ui';
+import { Eye, Mail, Send } from 'lucide-react';
+import { Button, ConfirmDialog, FloatingActionBar, FullScreenSheet, Notice } from '~/ui';
 import { getCampaignDetailHref, pluralize } from '../../../_utils/campaigns';
 import type { EmailCampaignActionResult } from '../company.marketing.email.create.layout';
 import { ChosenRow, EditButton } from '../_components/chosen-row';
 import { EmailPreview } from '../_components/email-preview';
 import { PreviewColumns } from '../_components/preview-columns';
-import { RecipientsSheet } from '../_components/recipients-sheet';
+import { RecipientsCard } from '../_components/recipients-card';
 import { useEmailDraft } from '../_utils/email-draft-context';
 import { checkDraft, stepHref } from '../_utils/email-flow';
 
 /**
- * Ny e-post, step 3 Send: who gets it (all who said yes, "Endre" leaves some out), the e-mail as it will be sent, and
- * "Send til n kunder" behind a confirmation.
+ * Ny e-post, step 3 Send (approved sketch 2026-11-22): who gets it (everyone who said yes, "Ikke send til" leaves
+ * someone out), the e-mail as it will be sent beside it on desktop ("Forhåndsvis" on phones), and "Send til n kunder"
+ * behind a confirmation.
  */
 export default function CompanyMarketingEmailCreateSendRoute() {
   const { draft, update, goTo, preview, customers, recipients, discardDraft } = useEmailDraft();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [recipientsOpen, setRecipientsOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const sendFetcher = useFetcher<EmailCampaignActionResult>();
   const navigate = useNavigate();
   const { blocks, missing } = checkDraft(draft);
@@ -59,55 +60,70 @@ export default function CompanyMarketingEmailCreateSendRoute() {
     );
   };
 
+  const editEmail = <EditButton label="Endre e-posten" onClick={() => goTo('write')} disabled={sending} />;
+
   return (
-    <PreviewColumns
-      previewOnPhone
-      preview={
-        <EmailPreview
-          {...preview}
-          action={<EditButton label="Endre e-posten" onClick={() => goTo('write')} disabled={sending} />}
-        />
-      }
-    >
+    <PreviewColumns preview={<EmailPreview {...preview} action={editEmail} />}>
       {sendError ? <Notice tone="emphasis" title="Kunne ikke sende e-posten" message={sendError} /> : null}
-      <ChosenRow
-        label="Mottakere"
-        lead={
-          <span
-            aria-hidden
-            className="grid size-7 shrink-0 place-items-center rounded-lg bg-category-sky-tint text-category-sky-ink"
-          >
-            <Users className="size-4" />
-          </span>
-        }
-        value={`${excludedCount ? 'Valgte kunder' : 'Alle påmeldte kunder'} · ${count}`}
-      >
-        <EditButton label="Endre mottakere" onClick={() => setRecipientsOpen(true)} disabled={sending || nobody} />
-      </ChosenRow>
+      {/* Phones: the e-mail as one row; on desktop the preview stands beside the list. */}
+      <div className="lg:hidden">
+        <ChosenRow
+          label="E-posten"
+          lead={
+            <span
+              aria-hidden
+              className="grid size-7 shrink-0 place-items-center rounded-lg bg-marketing-email-soft text-marketing-email"
+            >
+              <Mail className="size-4" />
+            </span>
+          }
+          value={draft.subject}
+        >
+          {editEmail}
+        </ChosenRow>
+      </div>
+      {nobody ? null : (
+        <RecipientsCard
+          customers={customers}
+          total={recipients}
+          excludedUserIds={draft.excludedUserIds}
+          onChange={(excludedUserIds) => update({ excludedUserIds })}
+          disabled={sending}
+        />
+      )}
       <FloatingActionBar
         message={nobody ? 'Ingen har sagt ja til e-post ennå' : count === 0 ? 'Velg minst én mottaker' : null}
         className="lg:mt-0 lg:border-t-0 lg:pt-0"
       >
-        <Button
-          type="button"
-          size="lg"
-          loading={sending}
-          disabled={count === 0 || Boolean(missing)}
-          onClick={() => setConfirmOpen(true)}
-          className="lg:h-10 lg:text-sm"
-        >
-          <Send aria-hidden />
-          Send til {pluralize(count, 'kunde', 'kunder')}
-        </Button>
+        {/* One child, so Send gets the width "Send til 27 kunder" needs on a phone and the preview a square button. */}
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            aria-label="Forhåndsvis"
+            className="w-12 shrink-0 px-0 lg:hidden"
+            onClick={() => setPreviewOpen(true)}
+          >
+            <Eye aria-hidden />
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            loading={sending}
+            disabled={count === 0 || Boolean(missing)}
+            onClick={() => setConfirmOpen(true)}
+            className="flex-1 lg:h-10 lg:text-sm"
+          >
+            <Send aria-hidden />
+            Send til {pluralize(count, 'kunde', 'kunder')}
+          </Button>
+        </div>
       </FloatingActionBar>
 
-      <RecipientsSheet
-        open={recipientsOpen}
-        onOpenChange={setRecipientsOpen}
-        customers={customers}
-        excludedUserIds={draft.excludedUserIds}
-        onApply={(excludedUserIds) => update({ excludedUserIds })}
-      />
+      <FullScreenSheet open={previewOpen} onOpenChange={setPreviewOpen} title="Forhåndsvisning">
+        <EmailPreview {...preview} framed={false} />
+      </FullScreenSheet>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

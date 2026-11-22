@@ -39,9 +39,11 @@ What the user has decided about how portal.pitell should look. Newest last. This
 
 - 2026-11-18 – Lists on phones are smaller: they run edge to edge (no card or side margin), rows are 56px with 15px/13px text and 32px initials, the line between rows starts at the text, ordinary rows have no grey bar, dates sit in the group strips (pinned under the header on phones), not on every row. Desktop keeps one card with the same rows. 25 rows per page everywhere. Full rule: `ui-rules` rule 7; kit pieces `fl`, `fs`, `fr`.
 
-- 2026-11-19 – Creating something that people do now and then (an e-mail campaign) is a short step flow like Ny time: a progress line ("2 av 3"), one job per step, a chosen row with "Endre" for finished steps, the action in the floating bar. On phones, a preview or a picker opens as a full-screen panel (✕ to close, its one action at the bottom); on desktop the preview stands beside the form. Previews show what the receiver sees first (the subject) and the content at its real height.
+- 2026-11-19 – Creating something that people do now and then (an e-mail campaign) is a short step flow like Ny time: a progress line ("2 av 3"), one job per step, a chosen row with "Endre" for finished steps, the action in the floating bar. On phones, a preview opens as a full-screen panel (✕ to close, its one action at the bottom); on desktop the preview stands beside the form. Previews show what the receiver sees first (the subject) and the content at its real height.
 
 - 2026-11-19 – Don't ask before something that loses nothing: changing a template or an option keeps what the user wrote, so it needs no "Are you sure?" (the user found the "Bytte mal?" modal wonky). Save confirmations for real risks (sending, deleting). Change a choice in place (a small menu with ✓ on the current one) instead of sending the user back a step. In a step flow, the browser's back and the phone's back gesture go one step back.
+
+- 2026-11-22 – Choosing people from a big group (recipients) happens on the page, never in a sheet or panel you open and apply (the user doesn't like the sheet), and never as a long checkbox list you scroll through (the user doesn't like the scrolling). The group is one row ("Alle som har sagt ja · 29"); leaving someone out is a search field ("Ikke send til") whose matches drop under it, with the left-out people listed below with ✕. Every change counts at once.
 
 ## Defaults the user hasn't seen yet
 

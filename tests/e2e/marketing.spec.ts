@@ -41,7 +41,7 @@ test('the admin writes an e-mail in three steps, previews it, leaves a recipient
   db,
 }) => {
   await signIn(context);
-  await addOptedInCustomers(db, 'EMAIL', 2);
+  const [kari] = await addOptedInCustomers(db, 'EMAIL', 2);
   await addOptedInCustomers(db, 'SMS', 1);
   await page.goto(`${baseURL}/company/marketing/email/create`, { waitUntil: 'networkidle' });
   const templates = page.getByRole('list', { name: 'Maler' });
@@ -121,33 +121,56 @@ test('the admin writes an e-mail in three steps, previews it, leaves a recipient
   await next.click();
   await expect(page.getByText('3 av 3', { exact: true })).toBeVisible();
   const recipients = page.getByRole('region', { name: 'Mottakere' });
-  await expect(recipients).toContainText('Alle påmeldte kunder · 2');
+  // Everyone who said yes is one row, and nobody is left out yet: no panel and no long list to scroll.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(recipients).toContainText('Alle som har sagt ja');
+  await expect(page.getByRole('region', { name: 'E-posten' })).toContainText('God jul');
+  await expect(page.getByRole('button', { name: 'Send til 2 kunder' })).toBeEnabled();
   await page.screenshot({ path: 'test-results/marketing-email-send-mobile.png', fullPage: true });
-  await page.getByRole('button', { name: 'Endre mottakere' }).click();
-  const picker = page.getByRole('dialog', { name: 'Mottakere' });
-  const customerRows = picker.getByRole('list', { name: 'Kunder' }).getByRole('listitem');
-  const search = picker.getByRole('textbox', { name: 'Søk etter kunde' });
-  // While searching, "Alle treff" only touches the customers shown.
-  const firstEmail = (await customerRows.first().innerText()).split('\n').pop()!.trim();
-  await search.fill(firstEmail);
-  await expect(customerRows).toHaveCount(1);
-  await picker.getByRole('checkbox', { name: /^Alle treff/ }).click();
-  await expect(picker.getByRole('button', { name: 'Bruk 1 mottaker' })).toBeEnabled();
-  await search.fill('');
-  await expect(picker).toContainText('1 av 2');
-  // With nobody chosen, Bruk waits.
-  const all = picker.getByRole('checkbox', { name: /^Alle\b(?! treff)/ });
-  await all.click();
-  await expect(picker).toContainText('2 av 2');
-  await all.click();
-  await expect(picker.getByText('Velg minst én mottaker', { exact: true })).toBeVisible();
-  await expect(picker.getByRole('button', { name: 'Bruk', exact: true })).toBeDisabled();
-  await all.click();
-  await customerRows.getByRole('checkbox').first().uncheck();
-  await expect(picker).toContainText('1 av 2');
+  // "Ikke send til" finds customers by name or e-mail; picking one leaves them out and empties the field.
+  const search = recipients.getByRole('combobox', { name: 'Ikke send til' });
+  const matches = recipients.getByRole('listbox', { name: 'Treff' }).getByRole('option');
+  const leftOut = recipients.getByRole('list', { name: 'Ikke send til' }).getByRole('listitem');
+  await search.fill('kari');
+  await expect(search).toHaveAttribute('aria-expanded', 'true');
+  await expect(matches).toHaveCount(2);
+  await search.fill('finnes-ikke');
+  await expect(recipients.getByText('Ingen treff på «finnes-ikke»')).toBeVisible();
+  await search.fill(kari.address);
+  await expect(matches).toHaveCount(1);
+  await search.press('Enter');
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+  await expect(leftOut).toHaveCount(1);
+  await expect(leftOut).toContainText(kari.address);
+  await expect(page.getByRole('button', { name: 'Send til 1 kunde' })).toBeEnabled();
+  // Someone left out is no longer offered.
+  await search.fill('kari');
+  await expect(matches).toHaveCount(1);
+  await expect(matches).not.toContainText(kari.address);
+  // ✕ puts them back; leaving out everyone makes Send wait and say why.
+  await leftOut.getByRole('button', { name: /likevel$/ }).click();
+  await expect(leftOut).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Send til 2 kunder' })).toBeEnabled();
+  await search.fill('kari');
+  await matches.first().click();
+  await search.fill('kari');
+  await matches.first().click();
+  await expect(leftOut).toHaveCount(2);
+  await expect(page.getByText('Velg minst én mottaker', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send til 0 kunder' })).toBeDisabled();
+  await leftOut
+    .filter({ hasNotText: kari.address })
+    .getByRole('button', { name: /likevel$/ })
+    .click();
+  await expect(leftOut).toHaveCount(1);
+  await expect(leftOut).toContainText(kari.address);
   await page.screenshot({ path: 'test-results/marketing-email-recipients-mobile.png' });
-  await picker.getByRole('button', { name: 'Bruk 1 mottaker' }).click();
-  await expect(recipients).toContainText('Valgte kunder · 1');
+  // On phones the e-mail is one row; the eye opens it full screen.
+  await page.getByRole('button', { name: 'Forhåndsvis' }).click();
+  await expect(previewSheet).toContainText('God jul');
+  await previewSheet.getByRole('button', { name: 'Lukk' }).click();
+  await expect(previewSheet).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole('button', { name: 'Send til 1 kunde' }).click();
@@ -279,32 +302,24 @@ test('Ny e-post keeps the chosen recipients, asks before sending and keeps the e
   await page.getByLabel('Emne', { exact: true }).fill('Fredagstilbud');
   await page.getByLabel('Melding', { exact: true }).fill('20 % på klipp fredag.');
   await page.getByRole('button', { name: 'Velg mottakere' }).click();
-  await expect(page.getByText('3 av 3', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
   const recipients = page.getByRole('region', { name: 'Mottakere' });
-  await expect(recipients).toContainText('Alle påmeldte kunder · 3');
+  await expect(recipients).toContainText('Alle som har sagt ja3');
 
-  // ✕ leaves the choice as it was; Bruk applies it.
-  const picker = page.getByRole('dialog', { name: 'Mottakere' });
-  const firstCustomer = picker.getByRole('list', { name: 'Kunder' }).getByRole('checkbox').first();
-  await page.getByRole('button', { name: 'Endre mottakere' }).click();
-  await firstCustomer.uncheck();
-  await expect(picker).toContainText('2 av 3');
-  await picker.getByRole('button', { name: 'Lukk' }).click();
-  await expect(picker).toHaveCount(0);
-  await expect(recipients).toContainText('Alle påmeldte kunder · 3');
-  await page.getByRole('button', { name: 'Endre mottakere' }).click();
-  await expect(picker).toContainText('3 av 3');
-  await picker.getByRole('textbox', { name: 'Søk etter kunde' }).fill('finnes-ikke');
-  await expect(picker.getByText('Ingen treff på «finnes-ikke»')).toBeVisible();
-  await picker.getByRole('textbox', { name: 'Søk etter kunde' }).fill('');
-  await firstCustomer.uncheck();
-  await picker.getByRole('button', { name: 'Bruk 2 mottakere' }).click();
-  await expect(recipients).toContainText('Valgte kunder · 2');
+  // Leaving one customer out with the mouse counts at once.
+  const leftOut = recipients.getByRole('list', { name: 'Ikke send til' }).getByRole('listitem');
+  const search = recipients.getByRole('combobox', { name: 'Ikke send til' });
+  await search.fill(customers[0].address);
+  await recipients.getByRole('listbox', { name: 'Treff' }).getByRole('option').click();
+  await expect(leftOut).toContainText(customers[0].address);
+  const send = page.getByRole('button', { name: 'Send til 2 kunder' });
+  await expect(send).toBeEnabled();
 
   // The choice is part of the saved e-mail.
   await page.reload({ waitUntil: 'networkidle' });
-  await expect(recipients).toContainText('Valgte kunder · 2');
-  const send = page.getByRole('button', { name: 'Send til 2 kunder' });
+  await expect(leftOut).toHaveCount(1);
+  await expect(leftOut).toContainText(customers[0].address);
+  await expect(send).toBeEnabled();
 
   // The confirmation starts on Tilbake, and Tilbake sends nothing.
   await send.click();
@@ -347,12 +362,12 @@ test('Ny e-post keeps the chosen recipients, asks before sending and keeps the e
     ),
   ).toHaveLength(1);
 
-  // With nobody left who said yes, Send says so instead of asking to choose someone.
+  // With nobody left who said yes, there is no list to tick in, and Send says so instead of asking to choose.
   await page.reload({ waitUntil: 'networkidle' });
-  await expect(recipients).toContainText('Alle påmeldte kunder · 0');
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
+  await expect(recipients).toHaveCount(0);
   await expect(page.locator('[data-floating-action-bar]')).toContainText('Ingen har sagt ja til e-post ennå');
   await expect(page.getByRole('button', { name: 'Send til 0 kunder' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Endre mottakere' })).toBeDisabled();
 });
 
 test('the overview leads to E-post and SMS, each with its own campaigns and recipients', async ({
