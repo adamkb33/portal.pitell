@@ -12,10 +12,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
 vi.mock('~/api/generated', () => ({
+  CompanyUserEmailCampaignController: { previewEmailCampaign: mocks.preview },
   CompanyUserMarketingCampaignController: {
     get1: mocks.get1,
     messages: mocks.messages,
-    preview: mocks.preview,
     cancel: mocks.cancel,
   },
 }));

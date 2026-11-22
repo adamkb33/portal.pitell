@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, Mail, MessageSquare, Users } from 'lucide-react
 import type { Route } from './+types/company.marketing.detail.route';
 import {
   CompanyUserMarketingCampaignController,
+  CompanyUserEmailCampaignController,
   type CampaignDetailDto,
   type MarketingMessageDto,
 } from '~/api/generated';
@@ -28,8 +29,20 @@ import {
 } from '../_utils/campaigns';
 
 import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
+import type { UpHandle } from '~/lib/routing/up-link';
+import { channelHref } from '../_utils/channels';
 
 const PAGE_SIZE = LIST_PAGE_SIZE;
+
+/** Up (header ‹ and breadcrumb) goes to the campaign's channel: E-post or SMS. */
+export const handle = {
+  up: (data: unknown) => {
+    const campaign = (data as { campaign?: CampaignDetailDto | null } | undefined)?.campaign;
+    return campaign
+      ? { label: CHANNEL_LABELS[campaign.channel], href: channelHref(campaign.channel, 'campaigns') }
+      : null;
+  },
+} satisfies UpHandle;
 const REFRESH_MS = 1000;
 
 const parseCampaignId = (value: string | undefined) => {
@@ -76,7 +89,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       const { subject, blocks } = campaign;
       try {
         const preview = await withAuth(request, () =>
-          CompanyUserMarketingCampaignController.preview({ body: { subject, blocks } }),
+          CompanyUserEmailCampaignController.previewEmailCampaign({ body: { subject, blocks } }),
         );
         previewHtml = preview.data?.data?.html ?? null;
       } catch (error) {
@@ -165,10 +178,12 @@ export default function CompanyMarketingDetailRoute({ loaderData }: Route.Compon
     return () => clearInterval(timer);
   }, [sending, revalidate, revalidationState]);
 
+  // The campaign's own channel page; without a campaign, the Markedsføring Oversikt.
+  const backTo = campaign ? channelHref(campaign.channel, 'campaigns') : ROUTES_MAP['company.marketing'].href;
   const backLink = (
     <Button asChild variant="ghost" size="sm">
-      <Link to={ROUTES_MAP['company.marketing.campaigns'].href}>
-        <ArrowLeft className="h-4 w-4" /> Kampanjer
+      <Link to={backTo}>
+        <ArrowLeft className="h-4 w-4" /> {campaign ? CHANNEL_LABELS[campaign.channel] : 'Markedsføring'}
       </Link>
     </Button>
   );

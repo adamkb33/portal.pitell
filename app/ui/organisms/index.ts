@@ -1,4 +1,6 @@
 export { ActionBar, type ActionBarProps } from './action-bar';
+export { FloatingActionBar } from './floating-action-bar';
+export { FullScreenSheet } from './full-screen-sheet';
 export { AlertBanner, type AlertBannerProps } from './alert-banner';
 export { CompanyEmptyState, type CompanyEmptyStateProps } from './company-empty-state';
 export {

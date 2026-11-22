@@ -105,6 +105,12 @@ If a purely client-side event ever needs a message (no server action involved), 
 - Prefer roles and visible text over test ids: `getByRole('navigation', { name: … })` for switches and the bottom menu, `getByRole('status')` / `getByRole('alertdialog')` for toasts and confirms.
 - Example: `tests/e2e/booking-availability.spec.ts` (Tilgjengelighet).
 
+## Route files · where page code lives (2026-11-22)
+
+- No page components: a page's component, loader and action live in its route file (`<id>.route.tsx`, or `<id>.layout.tsx` for what its child routes share). Don't write a `*-page.tsx` that a thin route file only renders.
+- Only parts that are reused or clearly self-contained (a preview, a sheet, a row) go to `_components/`; logic that isn't UI goes to `_utils/`, with its tests.
+- A step flow is one route per step under a layout route. The layout holds the loader, the action and the shared state and hands them to the steps with `<Outlet context>` (a `useXxx()` hook in `_utils/` wraps `useOutletContext`). Steps post to the layout's href (`fetcher.submit(…, { method: 'post', action })`). Give the layout a `shouldRevalidate` that skips plain navigations (no `formMethod`), or every step change reloads its data. Name every step like the flow in the route tree and give the steps `up` to the list, so the header stays "Ny …" and ‹ leaves the flow. Worked example: Ny e-post, `app/routes/company/marketing/email/create/`.
+
 ## Known violations (fix when you touch these files)
 
 - In-page back links outside booking, now doubled by the header ‹ (Page top). Remove them when the domain is rebuilt: `company/admin/statistics`, `company/notifications/view`, `company/timesheet/edit-range` and `/edit-hours`, `company/marketing/create` and `/detail`, `company/offer/catalog` and `/detail`, and the `system-admin` pages (companies, users, diagnostics, smtp). Find them with `rg "Tilbake" app/routes`. Links inside an empty or error state ("Til oversikt") are fine.
@@ -114,3 +120,4 @@ If a purely client-side event ever needs a message (no server action involved), 
 - The phone header shows the route-tree label ("Opprett tjenestegruppe", "Rediger tjeneste") instead of "Ny gruppe" / the item's name (labels in `app/lib/routing/company/company.routes.ts`). Fix a create page by renaming its route label; fix an edit page with `handle.title` (Page top).
 - `app/components/pickers/contact-picker.tsx`, `app/routes/company/admin/employees/tables/invites.table.tsx` — sonner `toast.success(...)`, which shows nothing today (rule 3).
 - Old tables with Rediger/Slett on every row on other admin pages (rule 4).
+- Page components behind a thin route file (Route files): `app/routes/company/marketing/sms/create/sms-campaign-create-page.tsx`. Fold it into its route when Ny SMS is redesigned. The channel pages in `marketing/_components/channel-*-page.tsx` are shared by the E-post and SMS routes, so they stay components.

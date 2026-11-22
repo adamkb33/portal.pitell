@@ -14,7 +14,7 @@ vi.mock('~/lib/flash-message.server', () => ({ redirectWithError: mocks.redirect
 
 import { loader, shouldRevalidate } from './company.marketing.layout';
 
-const request = new Request('http://localhost/company/marketing/create');
+const request = new Request('http://localhost/company/marketing/email/create');
 const args = { request } as never;
 
 function permissions(roles = ['ADMIN'], companyId = 100, canAccessMarketing = true) {

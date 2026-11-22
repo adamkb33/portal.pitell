@@ -801,24 +801,15 @@ export type UnsubscribeInfoDto = {
   alreadyUnsubscribed: boolean;
 };
 
-export type CampaignCreateRequest = {
+export type SmsCampaignCreateRequest = {
   name: string;
-  channel: 'EMAIL' | 'SMS';
-  subject?: string;
-  body?: string;
-  blocks?: Array<EmailBlockDto>;
+  body: string;
 };
 
-export type EmailBlockDto = {
-  type: 'HEADING' | 'PARAGRAPH' | 'BUTTON' | 'DIVIDER';
-  text?: string;
-  url?: string;
-};
-
-export type ApiResponseCampaignDetailDto = {
+export type ApiResponseSmsCampaignDto = {
   success: boolean;
   message: ApiMessage;
-  data?: CampaignDetailDto;
+  data?: SmsCampaignDto;
   errors?: Array<ApiError>;
   meta?: ApiMeta;
   timestamp: string;
@@ -832,19 +823,44 @@ export type CampaignCountsDto = {
   unsubscribed: number;
 };
 
-export type CampaignDetailDto = {
+export type SmsCampaignDto = {
   id: number;
   name: string;
-  channel: 'EMAIL' | 'SMS';
+  body: string;
   status: 'SENDING' | 'COMPLETED' | 'CANCELLED';
-  startedAt: string;
-  completedAt?: string;
   eligibleCount: number;
   counts: CampaignCountsDto;
-  subject?: string;
-  body?: string;
-  blocks?: Array<EmailBlockDto>;
-  cancelledAt?: string;
+};
+
+export type EmailBlockDto = {
+  type: 'HEADING' | 'PARAGRAPH' | 'BUTTON' | 'DIVIDER';
+  text?: string;
+  url?: string;
+};
+
+export type EmailCampaignCreateRequest = {
+  subject: string;
+  blocks: Array<EmailBlockDto>;
+  excludedUserIds?: Array<number>;
+};
+
+export type ApiResponseEmailCampaignDto = {
+  success: boolean;
+  message: ApiMessage;
+  data?: EmailCampaignDto;
+  errors?: Array<ApiError>;
+  meta?: ApiMeta;
+  timestamp: string;
+};
+
+export type EmailCampaignDto = {
+  id: number;
+  name: string;
+  subject: string;
+  blocks: Array<EmailBlockDto>;
+  status: 'SENDING' | 'COMPLETED' | 'CANCELLED';
+  eligibleCount: number;
+  counts: CampaignCountsDto;
 };
 
 export type EmailPreviewRequest = {
@@ -863,6 +879,30 @@ export type ApiResponseEmailPreviewDto = {
 
 export type EmailPreviewDto = {
   html: string;
+};
+
+export type ApiResponseCampaignDetailDto = {
+  success: boolean;
+  message: ApiMessage;
+  data?: CampaignDetailDto;
+  errors?: Array<ApiError>;
+  meta?: ApiMeta;
+  timestamp: string;
+};
+
+export type CampaignDetailDto = {
+  id: number;
+  name: string;
+  channel: 'EMAIL' | 'SMS';
+  status: 'SENDING' | 'COMPLETED' | 'CANCELLED';
+  startedAt: string;
+  completedAt?: string;
+  eligibleCount: number;
+  counts: CampaignCountsDto;
+  subject?: string;
+  body?: string;
+  blocks?: Array<EmailBlockDto>;
+  cancelledAt?: string;
 };
 
 export type PublicVerifyMobileDto = {
@@ -4166,40 +4206,53 @@ export type UnsubscribeResponses = {
 
 export type UnsubscribeResponse = UnsubscribeResponses[keyof UnsubscribeResponses];
 
-export type ListData = {
-  body?: never;
-  path?: never;
-  query?: {
-    page?: number;
-    size?: number;
-  };
-  url: '/marketing-service/company-user/marketing/campaigns';
-};
-
-export type ListResponses = {
-  /**
-   * OK
-   */
-  200: ApiResponseListCampaignSummaryDto;
-};
-
-export type ListResponse = ListResponses[keyof ListResponses];
-
-export type CreateData = {
-  body: CampaignCreateRequest;
+export type CreateSmsCampaignData = {
+  body: SmsCampaignCreateRequest;
   path?: never;
   query?: never;
-  url: '/marketing-service/company-user/marketing/campaigns';
+  url: '/marketing-service/company-user/marketing/sms/campaigns';
 };
 
-export type CreateResponses = {
+export type CreateSmsCampaignResponses = {
   /**
    * OK
    */
-  200: ApiResponseCampaignDetailDto;
+  200: ApiResponseSmsCampaignDto;
 };
 
-export type CreateResponse = CreateResponses[keyof CreateResponses];
+export type CreateSmsCampaignResponse = CreateSmsCampaignResponses[keyof CreateSmsCampaignResponses];
+
+export type CreateEmailCampaignData = {
+  body: EmailCampaignCreateRequest;
+  path?: never;
+  query?: never;
+  url: '/marketing-service/company-user/marketing/email/campaigns';
+};
+
+export type CreateEmailCampaignResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseEmailCampaignDto;
+};
+
+export type CreateEmailCampaignResponse = CreateEmailCampaignResponses[keyof CreateEmailCampaignResponses];
+
+export type PreviewEmailCampaignData = {
+  body: EmailPreviewRequest;
+  path?: never;
+  query?: never;
+  url: '/marketing-service/company-user/marketing/email/campaigns/preview';
+};
+
+export type PreviewEmailCampaignResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseEmailPreviewDto;
+};
+
+export type PreviewEmailCampaignResponse = PreviewEmailCampaignResponses[keyof PreviewEmailCampaignResponses];
 
 export type CancelData = {
   body?: never;
@@ -4218,22 +4271,6 @@ export type CancelResponses = {
 };
 
 export type CancelResponse = CancelResponses[keyof CancelResponses];
-
-export type PreviewData = {
-  body: EmailPreviewRequest;
-  path?: never;
-  query?: never;
-  url: '/marketing-service/company-user/marketing/campaigns/preview';
-};
-
-export type PreviewResponses = {
-  /**
-   * OK
-   */
-  200: ApiResponseEmailPreviewDto;
-};
-
-export type PreviewResponse = PreviewResponses[keyof PreviewResponses];
 
 export type VerifyAppointmentSessionUserMobileData = {
   body: PublicVerifyMobileDto;
@@ -5912,6 +5949,26 @@ export type RecipientsResponses = {
 };
 
 export type RecipientsResponse = RecipientsResponses[keyof RecipientsResponses];
+
+export type ListData = {
+  body?: never;
+  path?: never;
+  query?: {
+    page?: number;
+    size?: number;
+    channel?: 'EMAIL' | 'SMS';
+  };
+  url: '/marketing-service/company-user/marketing/campaigns';
+};
+
+export type ListResponses = {
+  /**
+   * OK
+   */
+  200: ApiResponseListCampaignSummaryDto;
+};
+
+export type ListResponse = ListResponses[keyof ListResponses];
 
 export type Get1Data = {
   body?: never;

@@ -80,10 +80,6 @@
   /* Key cards on Administrasjon: Ansatte (sky) and Kontakter (plum). */
   --color-category-sky-deep: #075985;
   --color-category-plum-deep: #571f4d;
-  /* Key cards on Markedsføring: Kampanjer (pink) and Mottakere (fuchsia). */
-  --color-category-pink-deep: #9d174d;
-  --color-category-fuchsia-ink: #a21caf;
-  --color-category-fuchsia-deep: #86198f;
 
   /* ─── Semantic Color Aliases ──────────────────── */
   --color-background: var(--color-pure-white);

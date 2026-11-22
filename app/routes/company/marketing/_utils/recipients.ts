@@ -1,19 +1,6 @@
 import type { MarketingRecipientDto } from '~/api/generated';
 import type { CampaignChannel } from './campaigns';
 
-/** `?kanal=` on Mottakere: no value is everyone, `e-post` and `sms` one channel each. */
-export const CHANNEL_PARAM = 'kanal';
-
-const CHANNEL_SLUGS: Record<CampaignChannel, string> = { EMAIL: 'e-post', SMS: 'sms' };
-
-export function channelSlug(channel: CampaignChannel): string {
-  return CHANNEL_SLUGS[channel];
-}
-
-export function parseChannelSlug(value: string | null): CampaignChannel | null {
-  return (Object.keys(CHANNEL_SLUGS) as CampaignChannel[]).find((channel) => CHANNEL_SLUGS[channel] === value) ?? null;
-}
-
 /** "Kari Nordmann"; a customer without a name on file is "Ukjent kunde". */
 export function recipientName(recipient: Pick<MarketingRecipientDto, 'givenName' | 'familyName'>): string {
   return [recipient.givenName, recipient.familyName].filter(Boolean).join(' ').trim() || 'Ukjent kunde';

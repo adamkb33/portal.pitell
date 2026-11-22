@@ -26,7 +26,7 @@ describe('flat sidebar sections shared by desktop and mobile', () => {
     const sections = buildSections([
       branch('company', [
         branch('company.admin'),
-        branch('company.marketing', [branch('company.marketing.create', undefined, true)]),
+        branch('company.marketing', [branch('company.marketing.email', undefined, true)]),
         branch('company.timesheet'),
         branch('company.booking'),
       ]),

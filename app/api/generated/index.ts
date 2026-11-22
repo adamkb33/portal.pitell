@@ -27,6 +27,8 @@ export const DailyScheduleController = BookingSdk;
 export const PublicAppointmentSessionController = BookingSdk;
 export const ServiceController = BookingSdk;
 export const CompanyUserMarketingCampaignController = MarketingSdk;
+export const CompanyUserEmailCampaignController = MarketingSdk;
+export const CompanyUserSmsCampaignController = MarketingSdk;
 export const CompanyUserMarketingRecipientController = MarketingSdk;
 export const PublicUnsubscribeController = MarketingSdk;
 export const CompanyUserInAppNotificationController = NotificationSdk;
@@ -86,6 +88,7 @@ export type {
   ApiResponseContactDto,
   ApiResponseDiagnosticServiceFlowsResponseDto,
   ApiResponseDiagnosticTableResponseDto,
+  ApiResponseEmailCampaignDto,
   ApiResponseEmailPreviewDto,
   ApiResponseGeneratedOfferRecipientTokenDto,
   ApiResponseInAppNotificationDto,
@@ -168,6 +171,7 @@ export type {
   ApiResponseSignInLookupResponseDto,
   ApiResponseSignInResponseDto,
   ApiResponseSignUpResponseDto,
+  ApiResponseSmsCampaignDto,
   ApiResponseSmtpDiagnosticsResponse,
   ApiResponseSystemAdminCompanyDto,
   ApiResponseTimesheetDayEntryDto,
@@ -208,7 +212,6 @@ export type {
   BookingProfileDto,
   BookingSessionMetrics,
   CampaignCountsDto,
-  CampaignCreateRequest,
   CampaignDetailDto,
   CampaignSummaryDto,
   CancelAppointmentData,
@@ -307,7 +310,9 @@ export type {
   CreateContactDto,
   CreateContactResponse,
   CreateContactResponses,
-  CreateData,
+  CreateEmailCampaignData,
+  CreateEmailCampaignResponse,
+  CreateEmailCampaignResponses,
   CreateHoursEntriesData,
   CreateHoursEntriesRequest,
   CreateHoursEntriesResponse,
@@ -337,8 +342,6 @@ export type {
   CreateRangeEntriesRequest,
   CreateRangeEntriesResponse,
   CreateRangeEntriesResponses,
-  CreateResponse,
-  CreateResponses,
   CreateServiceData,
   CreateServiceDto,
   CreateServiceGroupData,
@@ -347,6 +350,9 @@ export type {
   CreateServiceGroupResponses,
   CreateServiceResponse,
   CreateServiceResponses,
+  CreateSmsCampaignData,
+  CreateSmsCampaignResponse,
+  CreateSmsCampaignResponses,
   CreateUserInviteData,
   CreateUserInviteResponse,
   CreateUserInviteResponses,
@@ -435,6 +441,8 @@ export type {
   EditCompanyUserResponse,
   EditCompanyUserResponses,
   EmailBlockDto,
+  EmailCampaignCreateRequest,
+  EmailCampaignDto,
   EmailPreviewDto,
   EmailPreviewRequest,
   EnableRecipientData,
@@ -770,9 +778,9 @@ export type {
   PaginationMeta,
   PeakTime,
   PopularService,
-  PreviewData,
-  PreviewResponse,
-  PreviewResponses,
+  PreviewEmailCampaignData,
+  PreviewEmailCampaignResponse,
+  PreviewEmailCampaignResponses,
   ProfileBreakdown,
   ProviderCompleteProfileData,
   ProviderCompleteProfileDto,
@@ -952,6 +960,8 @@ export type {
   SignUpResponse,
   SignUpResponseDto,
   SignUpResponses,
+  SmsCampaignCreateRequest,
+  SmsCampaignDto,
   SmtpDiagnosticsResponse,
   SortingMeta,
   SortObject,

@@ -1,5 +1,6 @@
 export {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,

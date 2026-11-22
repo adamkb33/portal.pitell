@@ -782,14 +782,10 @@
     --k1: #702963;
     --k2: #571f4d;
   }
-  /* Markedsføring: Kampanjer (pink) and Mottakere (fuchsia) [KEY_TONES]. */
-  .pk .key.pink {
-    --k1: #be185d;
-    --k2: #9d174d;
-  }
-  .pk .key.fuchsia {
-    --k1: #a21caf;
-    --k2: #86198f;
+  /* Varsler (company Oversikt) and E-post (Markedsføring): the app's blue [KEY_TONES.blue]. SMS uses .key.plum. */
+  .pk .key.blue {
+    --k1: #2455d6;
+    --k2: #1c43b0;
   }
   .pk .key::before {
     content: '';
@@ -1442,6 +1438,141 @@
     border-top: 1px solid var(--bd);
     padding: 12px 20px;
     font-size: 14px;
+  }
+  /* ── Step flows and full-screen panels (2026-11-19) [Ny e-post: email-campaign-create-page.tsx; FullScreenSheet,
+     FloatingActionBar in app/ui/organisms]. Progress: <div class="prog"><div class="ln"><span class="on"></span>
+     <span class="on"></span><span></span></div>2 av 3</div>. A finished step: <div class="card"><div class="chosen">
+     <span class="tile purple">…</span>Kunngjøring<span class="edit">Endre</span></div></div>. A full-screen panel on
+     a phone: a .ph without .ptop/.pnav, starting with <div class="shd"><i class="ti ti-x"></i>Forhåndsvisning</div>.
+     E-mail preview: <div class="subj"><span>Emne</span><b>…</b></div><div class="mail"><div class="m">…</div></div>.
+     A switch row: <div class="sw">Knapp<span class="tg"></span></div>. A checkbox at the end of a row: <span class="ck on">. ── */
+  .pk .prog {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--mut);
+  }
+  .pk .prog .ln {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .pk .prog .ln span {
+    height: 4px;
+    border-radius: 9px;
+    background: var(--bd);
+  }
+  .pk .prog .ln span.on {
+    background: var(--blue);
+  }
+  .pk .chosen {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 8px 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .pk .chosen .tile {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .pk .edit {
+    margin-left: auto;
+    color: var(--blue);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 8px;
+  }
+  .pk .shd {
+    height: 56px;
+    flex: none;
+    background: #fff;
+    border-bottom: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    font: 600 17px 'Inter Tight';
+  }
+  .pk .shd i {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    color: var(--mut);
+  }
+  .pk .subj {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--bd);
+    font-size: 14px;
+  }
+  .pk .subj span {
+    color: var(--mut);
+    font-size: 13px;
+  }
+  .pk .mail {
+    background: #f3f4f6;
+    padding: 14px 10px;
+  }
+  .pk .mail .m {
+    background: #fff;
+    padding: 18px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #111827;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .pk .sw {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .pk .sw .tg {
+    margin-left: auto;
+    width: 44px;
+    height: 24px;
+    border-radius: 99px;
+    background: var(--blue);
+    position: relative;
+  }
+  .pk .sw .tg::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .pk .ck {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid #8592a6;
+    flex: none;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 14px;
+  }
+  .pk .ck.on {
+    background: var(--blue);
+    border-color: var(--blue);
   }
 </style>
 <div class="pk">

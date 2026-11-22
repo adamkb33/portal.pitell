@@ -63,7 +63,8 @@ import type {
   CreateContact1Responses,
   CreateContactData,
   CreateContactResponses,
-  CreateData,
+  CreateEmailCampaignData,
+  CreateEmailCampaignResponses,
   CreateHoursEntriesData,
   CreateHoursEntriesResponses,
   CreateMessage1Data,
@@ -78,11 +79,12 @@ import type {
   CreateOrUpdateProfileResponses,
   CreateRangeEntriesData,
   CreateRangeEntriesResponses,
-  CreateResponses,
   CreateServiceData,
   CreateServiceGroupData,
   CreateServiceGroupResponses,
   CreateServiceResponses,
+  CreateSmsCampaignData,
+  CreateSmsCampaignResponses,
   CreateUserInviteData,
   CreateUserInviteResponses,
   DeactivateCatalogItemData,
@@ -301,8 +303,8 @@ import type {
   MarkInAppNotificationAsReadResponses,
   MessagesData,
   MessagesResponses,
-  PreviewData,
-  PreviewResponses,
+  PreviewEmailCampaignData,
+  PreviewEmailCampaignResponses,
   ProviderCompleteProfileData,
   ProviderCompleteProfileResponses,
   PublicAppointmentCancellationByTokenData,
@@ -2773,18 +2775,40 @@ export class Marketing {
     });
   }
 
-  public static list<ThrowOnError extends boolean = false>(options?: Options<ListData, ThrowOnError>) {
-    return (options?.client ?? client).get<ListResponses, unknown, ThrowOnError>({
+  public static createSmsCampaign<ThrowOnError extends boolean = false>(
+    options: Options<CreateSmsCampaignData, ThrowOnError>,
+  ) {
+    return (options.client ?? client).post<CreateSmsCampaignResponses, unknown, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/marketing-service/company-user/marketing/campaigns',
+      url: '/marketing-service/company-user/marketing/sms/campaigns',
       ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 
-  public static create<ThrowOnError extends boolean = false>(options: Options<CreateData, ThrowOnError>) {
-    return (options.client ?? client).post<CreateResponses, unknown, ThrowOnError>({
+  public static createEmailCampaign<ThrowOnError extends boolean = false>(
+    options: Options<CreateEmailCampaignData, ThrowOnError>,
+  ) {
+    return (options.client ?? client).post<CreateEmailCampaignResponses, unknown, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/marketing-service/company-user/marketing/campaigns',
+      url: '/marketing-service/company-user/marketing/email/campaigns',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  public static previewEmailCampaign<ThrowOnError extends boolean = false>(
+    options: Options<PreviewEmailCampaignData, ThrowOnError>,
+  ) {
+    return (options.client ?? client).post<PreviewEmailCampaignResponses, unknown, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/marketing-service/company-user/marketing/email/campaigns/preview',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2801,22 +2825,18 @@ export class Marketing {
     });
   }
 
-  public static preview<ThrowOnError extends boolean = false>(options: Options<PreviewData, ThrowOnError>) {
-    return (options.client ?? client).post<PreviewResponses, unknown, ThrowOnError>({
-      security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/marketing-service/company-user/marketing/campaigns/preview',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
   public static recipients<ThrowOnError extends boolean = false>(options?: Options<RecipientsData, ThrowOnError>) {
     return (options?.client ?? client).get<RecipientsResponses, unknown, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/marketing-service/company-user/marketing/recipients',
+      ...options,
+    });
+  }
+
+  public static list<ThrowOnError extends boolean = false>(options?: Options<ListData, ThrowOnError>) {
+    return (options?.client ?? client).get<ListResponses, unknown, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/marketing-service/company-user/marketing/campaigns',
       ...options,
     });
   }

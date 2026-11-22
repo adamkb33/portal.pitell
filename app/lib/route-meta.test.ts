@@ -3,7 +3,9 @@ import { getRouteMetadata } from './route-meta';
 
 describe('getRouteMetadata', () => {
   it('prefers an exact path over a sibling pattern', () => {
-    expect(getRouteMetadata('/company/marketing/create').title).toBe('Ny kampanje | Pitell');
+    expect(getRouteMetadata('/company/marketing/email/create').title).toBe('Ny e-post | Pitell');
+    expect(getRouteMetadata('/company/marketing/sms').title).toBe('SMS | Pitell');
+    expect(getRouteMetadata('/company/marketing/sms/recipients').title).toBe('SMS-mottakere | Pitell');
     expect(getRouteMetadata('/company/offers/create').title).toBe('Opprett tilbud | Pitell');
   });
 

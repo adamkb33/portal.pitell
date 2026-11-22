@@ -35,105 +35,335 @@ test.afterAll(async ({ request, db }) => {
 const signIn = (context: import('@playwright/test').BrowserContext) =>
   context.addCookies([{ name: 'access_token', value: accessCookie, url: baseURL }]);
 
-test('the admin builds an email from blocks, sees the preview and sends it', async ({ page, context, db }) => {
+test('the admin writes an e-mail in three steps, previews it, leaves a recipient out and sends it', async ({
+  page,
+  context,
+  db,
+}) => {
   await signIn(context);
   await addOptedInCustomers(db, 'EMAIL', 2);
   await addOptedInCustomers(db, 'SMS', 1);
+  await page.goto(`${baseURL}/company/marketing/email/create`, { waitUntil: 'networkidle' });
+  const templates = page.getByRole('list', { name: 'Maler' });
+  const next = page.getByRole('button', { name: 'Velg mottakere' });
 
-  await page.goto(`${baseURL}/company/marketing/kampanjer`, { waitUntil: 'networkidle' });
-  await expect(page.getByText('Ingen kampanjer ennå')).toBeVisible();
-  await page.getByRole('link', { name: 'Ny kampanje' }).click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/create`);
+  // 1 Mal: tapping a template goes straight to writing.
+  await expect(page.getByText('1 av 3', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Kampanjenavn')).toHaveCount(0);
+  await templates.getByRole('button', { name: /^Tilbud/ }).click();
 
-  await expect(page.getByRole('radio', { name: 'E-post', exact: true })).toBeChecked();
-  await expect(page.getByLabel('Mottakere', { exact: true })).toContainText('2 mottakere');
-  await page.getByRole('radio', { name: 'SMS', exact: true }).check();
-  await expect(page.getByLabel('Mottakere', { exact: true })).toContainText('1 mottaker');
-  await page.getByRole('radio', { name: 'E-post', exact: true }).check();
+  // 2 Skriv: its own page. The bar says what's missing until the e-mail is ready.
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/email\/create\/write$/);
+  await expect(next).toBeDisabled();
+  await expect(page.getByText('Skriv inn et emne', { exact: true })).toBeVisible();
+  await page.getByLabel('Emne', { exact: true }).fill('God jul');
+  await page.getByLabel('Overskrift', { exact: true }).fill('Julebooking er åpen');
+  await page.getByLabel('Melding', { exact: true }).fill('Vi har åpent i romjulen.');
+  await page.getByRole('switch', { name: 'Knapp' }).click();
+  await page.getByLabel('Knappetekst', { exact: true }).fill('Bestill time');
+  await page.getByLabel('Lenke', { exact: true }).fill('http://pitell.no');
+  await expect(page.getByText('Lenken må starte med https://', { exact: true })).toBeVisible();
+  await expect(next).toBeDisabled();
 
-  await page.getByLabel('Kampanjenavn').fill('Julekampanje');
-  await page.getByLabel('Emne').fill('God jul');
-  await page.getByRole('textbox', { name: 'Avsnitt' }).fill('Hei ');
-  await page.getByRole('button', { name: 'Sett inn kundedetaljer' }).click();
-  await page.getByRole('menuitem', { name: 'Fornavn' }).click();
-  await expect(page.getByRole('textbox', { name: 'Avsnitt' })).toHaveValue('Hei {{givenName}}');
-  await page.getByRole('textbox', { name: 'Avsnitt' }).press('End');
-  await page.getByRole('textbox', { name: 'Avsnitt' }).pressSequentially(', vi har åpent i romjulen.');
-  await expect(page.getByRole('textbox', { name: 'Avsnitt' })).toHaveValue(
-    'Hei {{givenName}}, vi har åpent i romjulen.',
-  );
+  // Desktop: the preview stands beside the form (no scripts in it), and leaves out the unfinished button.
+  const sidePreview = page.getByRole('complementary', { name: 'Forhåndsvisning' }).locator('iframe');
+  await expect(sidePreview).toHaveAttribute('sandbox', 'allow-same-origin');
+  await expect(sidePreview).toHaveAttribute('srcdoc', /Julebooking er åpen[\s\S]*Vi har åpent i romjulen/);
+  await expect(sidePreview).not.toHaveAttribute('srcdoc', /Bestill time/);
 
-  // A heading, moved above the paragraph, and a button.
-  await page.getByRole('button', { name: 'Legg til blokk' }).click();
-  await page.getByRole('menuitem', { name: 'Overskrift' }).click();
-  await page.getByRole('textbox', { name: 'Overskrift' }).fill('Julebooking er åpen');
-  await page.getByRole('region', { name: 'Overskrift 2' }).getByRole('button', { name: 'Flytt opp' }).click();
-  await page.getByRole('button', { name: 'Legg til blokk' }).click();
-  await page.getByRole('menuitem', { name: 'Knapp' }).click();
-  await page.getByLabel('Knappetekst').fill('Bestill time');
-  await page.getByLabel('Lenke').fill('http://pitell.no');
+  // A link written without https:// gets it when the field is left.
+  await page.getByLabel('Lenke', { exact: true }).fill('pitell.no');
+  await page.getByLabel('Lenke', { exact: true }).blur();
+  await expect(page.getByLabel('Lenke', { exact: true })).toHaveValue('https://pitell.no');
+  await expect(next).toBeEnabled();
+  await expect(sidePreview).toHaveAttribute('srcdoc', /Bestill time/);
+  await page.screenshot({ path: 'test-results/marketing-create-email-desktop.png', fullPage: true });
 
-  // The live preview comes from the backend, with the sample name filled in.
-  const preview = page.locator('iframe[title="Forhåndsvisning"]');
-  await expect(preview).toHaveAttribute('sandbox', '');
-  await expect(preview).toHaveAttribute('srcdoc', /Julebooking er åpen[\s\S]*Hei Ola, vi har åpent i romjulen\./);
+  // The unfinished e-mail survives a reload and opens where the writing is.
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Emne', { exact: true })).toHaveValue('God jul');
 
-  // An http link is refused before anything is sent.
-  await page.getByRole('button', { name: 'Se over og send' }).click();
-  await expect(page.getByText('Lenken må starte med https://')).toBeVisible();
+  // The template changes right here on Skriv, keeps the text and asks nothing.
+  await page.getByRole('button', { name: 'Endre mal' }).click();
+  await page.getByRole('menuitem', { name: /Personlig melding/ }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Overskrift', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Melding', { exact: true })).toHaveValue('Vi har åpent i romjulen.');
+  await page.getByRole('button', { name: 'Endre mal' }).click();
+  await page.getByRole('menuitem', { name: /Tilbud/ }).click();
+  await expect(page.getByLabel('Overskrift', { exact: true })).toHaveValue('Julebooking er åpen');
 
-  await page.getByLabel('Lenke').fill('https://pitell.no');
-  await expect(preview).toHaveAttribute('srcdoc', /Bestill time/);
-  await page.getByRole('button', { name: 'Se over og send' }).click();
-  const dialog = page.getByRole('alertdialog');
-  await expect(dialog).toContainText('Send til 2 kunder?');
-  await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+  // Phone: no bottom menu, and Forhåndsvis shows the e-mail full screen.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('navigation', { name: 'Mobil bunnnavigasjon' })).toBeHidden();
+  // Every step is "Ny e-post" in the header, and up goes to E-post.
+  await expect(page.getByRole('link', { name: 'Tilbake til E-post', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/marketing-create-email-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: 'Forhåndsvis' }).click();
+  const previewSheet = page.getByRole('dialog', { name: 'Forhåndsvisning' });
+  await expect(previewSheet).toContainText('God jul');
+  await expect(previewSheet.locator('iframe')).toHaveAttribute('srcdoc', /Julebooking er åpen/);
+  await page.screenshot({ path: 'test-results/marketing-email-preview-mobile.png' });
+  await previewSheet.getByRole('button', { name: 'Lukk' }).click();
+  await expect(previewSheet).toHaveCount(0);
 
+  // 3 Send: the recipients and the e-mail. Back (the phone's back gesture) goes one step, not out of the page.
+  await next.click();
+  await expect(page.getByText('3 av 3', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
+  await page.goBack();
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Emne', { exact: true })).toHaveValue('God jul');
+  await next.click();
+  await expect(page.getByText('3 av 3', { exact: true })).toBeVisible();
+  const recipients = page.getByRole('region', { name: 'Mottakere' });
+  await expect(recipients).toContainText('Alle påmeldte kunder · 2');
+  await page.screenshot({ path: 'test-results/marketing-email-send-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: 'Endre mottakere' }).click();
+  const picker = page.getByRole('dialog', { name: 'Mottakere' });
+  const customerRows = picker.getByRole('list', { name: 'Kunder' }).getByRole('listitem');
+  const search = picker.getByRole('textbox', { name: 'Søk etter kunde' });
+  // While searching, "Alle treff" only touches the customers shown.
+  const firstEmail = (await customerRows.first().innerText()).split('\n').pop()!.trim();
+  await search.fill(firstEmail);
+  await expect(customerRows).toHaveCount(1);
+  await picker.getByRole('checkbox', { name: /^Alle treff/ }).click();
+  await expect(picker.getByRole('button', { name: 'Bruk 1 mottaker' })).toBeEnabled();
+  await search.fill('');
+  await expect(picker).toContainText('1 av 2');
+  // With nobody chosen, Bruk waits.
+  const all = picker.getByRole('checkbox', { name: /^Alle\b(?! treff)/ });
+  await all.click();
+  await expect(picker).toContainText('2 av 2');
+  await all.click();
+  await expect(picker.getByText('Velg minst én mottaker', { exact: true })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Bruk', exact: true })).toBeDisabled();
+  await all.click();
+  await customerRows.getByRole('checkbox').first().uncheck();
+  await expect(picker).toContainText('1 av 2');
+  await page.screenshot({ path: 'test-results/marketing-email-recipients-mobile.png' });
+  await picker.getByRole('button', { name: 'Bruk 1 mottaker' }).click();
+  await expect(recipients).toContainText('Valgte kunder · 1');
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('button', { name: 'Send til 1 kunde' }).click();
+  await expect(page.getByRole('alertdialog')).toContainText('Send «God jul» til 1 kunde?');
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Send nå' }).click();
   await expect(page).toHaveURL(/\/company\/marketing\/\d+$/);
   const status = page.getByRole('region', { name: 'Status' });
-  await expect(status).toContainText('Julekampanje');
-  // The page refreshes itself while sending; the dry run finishes two messages within seconds.
+  await expect(status).toContainText('God jul');
   await expect(status.getByText('Fullført', { exact: true })).toBeVisible({ timeout: 30_000 });
-  const recipients = page.getByRole('region', { name: 'Mottakere' });
-  await expect(recipients.getByRole('list')).not.toBeVisible();
-  await recipients.getByText('Mottakere (2)', { exact: true }).click();
-  await expect(recipients.getByRole('listitem')).toHaveCount(2);
-  await expect(recipients.getByRole('link', { name: 'Sendt (2)', exact: true })).toBeVisible();
-  await recipients.getByRole('link', { name: 'Sendt (2)', exact: true }).click();
-  await expect(recipients.getByRole('listitem')).toHaveCount(2);
-  await recipients.getByRole('link', { name: 'Alle (2)', exact: true }).click();
-  await expect(recipients.getByRole('list')).toBeVisible();
-  await recipients.getByText('Mottakere (2)', { exact: true }).click();
-  await expect(recipients.getByRole('list')).not.toBeVisible();
-  await page.screenshot({ path: 'test-results/marketing-detail-desktop.png', fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await page.screenshot({ path: 'test-results/marketing-detail-mobile.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 720 });
-
-  // The backend got structured blocks, never HTML.
-  const stored = await db.query<{ body: string; subject: string }>(
-    `select body, subject from marketing.marketing_campaigns where company_id = 1 and name = 'Julekampanje'`,
+  const stored = await db.query<{ body: string; subject: string; count: string }>(
+    `select c.body, c.subject, (select count(*) from marketing.marketing_messages m where m.campaign_id = c.id) as count from marketing.marketing_campaigns c where c.company_id = 1 and c.name = 'God jul'`,
   );
-  expect(stored.rows[0].subject).toBe('God jul');
+  expect(stored.rows[0].count).toBe('1');
   expect(JSON.parse(stored.rows[0].body)).toEqual([
-    expect.objectContaining({ type: 'HEADING', text: 'Julebooking er åpen' }),
-    expect.objectContaining({ type: 'PARAGRAPH', text: 'Hei {{givenName}}, vi har åpent i romjulen.' }),
-    expect.objectContaining({ type: 'BUTTON', text: 'Bestill time', url: 'https://pitell.no' }),
+    { type: 'HEADING', text: 'Julebooking er åpen', url: null },
+    { type: 'PARAGRAPH', text: 'Vi har åpent i romjulen.', url: null },
+    { type: 'BUTTON', text: 'Bestill time', url: 'https://pitell.no' },
   ]);
-
-  await page.getByRole('link', { name: 'Kampanjer' }).first().click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/kampanjer`);
-  await expect(page.getByRole('region', { name: 'Kampanjer' })).toContainText('Julekampanje');
-  await page.screenshot({ path: 'test-results/marketing-list-desktop.png', fullPage: true });
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((key) => key.startsWith('pitell:marketing:email-draft:')),
+    ),
+  ).toEqual([]);
+  // A new e-mail starts by choosing a template, from that template's defaults.
+  await page.goto(`${baseURL}/company/marketing/email/create`, { waitUntil: 'networkidle' });
+  await expect(page.getByText('1 av 3', { exact: true })).toBeVisible();
+  await templates.getByRole('button', { name: /^Personlig melding/ }).click();
+  await expect(page.getByLabel('Emne', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Melding', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Overskrift', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Knappetekst', { exact: true })).toHaveCount(0);
+  // Changing template keeps the message; the untouched heading takes the new template's default.
+  await page.getByLabel('Melding', { exact: true }).fill('En hilsen');
+  await page.getByRole('button', { name: 'Endre mal' }).click();
+  await page.getByRole('menuitem', { name: /Kunngjøring/ }).click();
+  await expect(page.getByLabel('Melding', { exact: true })).toHaveValue('En hilsen');
+  await expect(page.getByLabel('Overskrift', { exact: true })).toHaveValue('Vi har nyheter');
 });
 
-test('the overview leads to Kampanjer and to Mottakere per channel', async ({ page, context, db }) => {
+test('Ny e-post says what is missing field by field, and Send needs a finished e-mail', async ({
+  page,
+  context,
+  db,
+}) => {
+  await signIn(context);
+  await addOptedInCustomers(db, 'EMAIL', 1);
+  await page.goto(`${baseURL}/company/marketing/email/create`, { waitUntil: 'networkidle' });
+  const templates = page.getByRole('list', { name: 'Maler' });
+  const bar = page.locator('[data-floating-action-bar]');
+  const next = page.getByRole('button', { name: 'Velg mottakere' });
+  const field = (label: string) => page.getByLabel(label, { exact: true });
+  // Nothing written yet: no template is marked as in use.
+  await expect(templates.locator('button[aria-current]')).toHaveCount(0);
+  await templates.getByRole('button', { name: /^Kunngjøring/ }).click();
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+
+  // The bar names the first thing that is missing or wrong, and the button waits.
+  const missing = async (text: string) => {
+    await expect(bar).toContainText(text);
+    await expect(next).toBeDisabled();
+  };
+  await missing('Skriv inn et emne');
+  await field('Emne').fill('   ');
+  await missing('Skriv inn et emne');
+  await field('Emne').fill('Hei {{fornavn}}');
+  await missing('Ukjent flettefelt: {{fornavn}}');
+  await field('Emne').fill('Hei {{givenName}}');
+  await missing('Skriv en melding');
+  await field('Overskrift').fill('');
+  await missing('Skriv inn en overskrift');
+  await field('Overskrift').fill('Åpent i romjulen');
+  await field('Melding').fill('   ');
+  await missing('Skriv en melding');
+  await field('Melding').fill('Hei {{givenName}}, vi har åpent i romjulen.');
+  await expect(next).toBeEnabled();
+  await expect(bar).not.toContainText('Skriv');
+
+  await page.getByRole('switch', { name: 'Knapp' }).click();
+  await missing('Skriv inn en lenke');
+  await field('Knappetekst').fill('');
+  await field('Lenke').fill('https://pitell.no');
+  await missing('Skriv inn knappetekst');
+  await field('Knappetekst').fill('Bestill time');
+  await expect(next).toBeEnabled();
+  await field('Lenke').fill('https://pitell .no');
+  await missing('Lenken kan ikke inneholde mellomrom');
+  await field('Lenke').fill('https://pitell.no/{{givenName}}');
+  await missing('Lenken kan ikke inneholde flettefelt');
+  // Turning the button off takes its problems with it.
+  await page.getByRole('switch', { name: 'Knapp' }).click();
+  await expect(field('Lenke')).toHaveCount(0);
+  await expect(next).toBeEnabled();
+
+  // The preview fills in merge fields with an example customer and shows the text as text.
+  const preview = page.getByRole('complementary', { name: 'Forhåndsvisning' });
+  await expect(preview.locator('iframe')).toHaveAttribute('srcdoc', /Åpent i romjulen/);
+  await expect(preview.locator('iframe')).not.toHaveAttribute('srcdoc', /\{\{givenName\}\}/);
+  await expect(preview).toContainText('Hei Ola');
+  await expect(preview).not.toContainText('{{givenName}}');
+
+  // Back on Mal, the template in use is marked; another one keeps what was written.
+  await page.goBack();
+  await expect(page.getByText('1 av 3', { exact: true })).toBeVisible();
+  await expect(templates.locator('button[aria-current]')).toHaveAccessibleName(/^Kunngjøring/);
+  await templates.getByRole('button', { name: /^Tilbud/ }).click();
+  await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
+  await expect(field('Overskrift')).toHaveValue('Åpent i romjulen');
+  await expect(field('Melding')).toHaveValue('Hei {{givenName}}, vi har åpent i romjulen.');
+
+  // Send needs a finished e-mail: an old link or a reload there goes back to Skriv.
+  await field('Emne').fill('');
+  await page.goto(`${baseURL}/company/marketing/email/create/send`, { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/email\/create\/write$/);
+  await expect(bar).toContainText('Skriv inn et emne');
+});
+
+test('Ny e-post keeps the chosen recipients, asks before sending and keeps the e-mail when sending fails', async ({
+  page,
+  context,
+  db,
+}) => {
+  await signIn(context);
+  const customers = await addOptedInCustomers(db, 'EMAIL', 3);
+  await page.goto(`${baseURL}/company/marketing/email/create`, { waitUntil: 'networkidle' });
+  await page
+    .getByRole('list', { name: 'Maler' })
+    .getByRole('button', { name: /^Tilbud/ })
+    .click();
+  await page.getByLabel('Emne', { exact: true }).fill('Fredagstilbud');
+  await page.getByLabel('Melding', { exact: true }).fill('20 % på klipp fredag.');
+  await page.getByRole('button', { name: 'Velg mottakere' }).click();
+  await expect(page.getByText('3 av 3', { exact: true })).toBeVisible();
+  const recipients = page.getByRole('region', { name: 'Mottakere' });
+  await expect(recipients).toContainText('Alle påmeldte kunder · 3');
+
+  // ✕ leaves the choice as it was; Bruk applies it.
+  const picker = page.getByRole('dialog', { name: 'Mottakere' });
+  const firstCustomer = picker.getByRole('list', { name: 'Kunder' }).getByRole('checkbox').first();
+  await page.getByRole('button', { name: 'Endre mottakere' }).click();
+  await firstCustomer.uncheck();
+  await expect(picker).toContainText('2 av 3');
+  await picker.getByRole('button', { name: 'Lukk' }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(recipients).toContainText('Alle påmeldte kunder · 3');
+  await page.getByRole('button', { name: 'Endre mottakere' }).click();
+  await expect(picker).toContainText('3 av 3');
+  await picker.getByRole('textbox', { name: 'Søk etter kunde' }).fill('finnes-ikke');
+  await expect(picker.getByText('Ingen treff på «finnes-ikke»')).toBeVisible();
+  await picker.getByRole('textbox', { name: 'Søk etter kunde' }).fill('');
+  await firstCustomer.uncheck();
+  await picker.getByRole('button', { name: 'Bruk 2 mottakere' }).click();
+  await expect(recipients).toContainText('Valgte kunder · 2');
+
+  // The choice is part of the saved e-mail.
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(recipients).toContainText('Valgte kunder · 2');
+  const send = page.getByRole('button', { name: 'Send til 2 kunder' });
+
+  // The confirmation starts on Tilbake, and Tilbake sends nothing.
+  await send.click();
+  const confirm = page.getByRole('alertdialog');
+  await expect(confirm).toContainText('Send «Fredagstilbud» til 2 kunder?');
+  await expect(confirm.getByRole('button', { name: 'Tilbake' })).toBeFocused();
+  await confirm.getByRole('button', { name: 'Tilbake' }).click();
+  await expect(confirm).toHaveCount(0);
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
+  const campaigns = async () =>
+    (
+      await db.query<{ count: string }>(
+        `select count(*) from marketing.marketing_campaigns where company_id = 1 and subject = 'Fredagstilbud'`,
+      )
+    ).rows[0].count;
+  expect(await campaigns()).toBe('0');
+
+  // "Endre" on the e-mail goes back to Skriv, and back from there goes on to Mal: the history never loops.
+  await page.getByRole('button', { name: 'Endre e-posten' }).click();
+  await expect(page).toHaveURL(/\/email\/create\/write$/);
+  await page.goBack();
+  await expect(page.getByText('1 av 3', { exact: true })).toBeVisible();
+  await page.goForward();
+  await page.getByRole('button', { name: 'Velg mottakere' }).click();
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
+
+  // Everybody says no before it is sent: the backend refuses, the page says why and the e-mail stays.
+  await db.query(`update marketing.marketing_consents set status = 'OPTED_OUT' where id = any($1::bigint[])`, [
+    customers.map((customer) => customer.consentId),
+  ]);
+  await send.click();
+  await confirm.getByRole('button', { name: 'Send nå' }).click();
+  await expect(page.getByText('Kunne ikke sende e-posten')).toBeVisible();
+  await expect(page.getByText('Ingen mottakere har gitt samtykke')).toBeVisible();
+  await expect(page).toHaveURL(/\/email\/create\/send$/);
+  expect(await campaigns()).toBe('0');
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((key) => key.startsWith('pitell:marketing:email-draft:')),
+    ),
+  ).toHaveLength(1);
+
+  // With nobody left who said yes, Send says so instead of asking to choose someone.
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(recipients).toContainText('Alle påmeldte kunder · 0');
+  await expect(page.locator('[data-floating-action-bar]')).toContainText('Ingen har sagt ja til e-post ennå');
+  await expect(page.getByRole('button', { name: 'Send til 0 kunder' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Endre mottakere' })).toBeDisabled();
+});
+
+test('the overview leads to E-post and SMS, each with its own campaigns and recipients', async ({
+  page,
+  context,
+  db,
+}) => {
   await signIn(context);
   const [both] = await addOptedInCustomers(db, 'EMAIL', 2);
   await addOptedInCustomers(db, 'SMS', 1);
-  // One customer said yes to both channels and is still one customer; an opt-out is nobody.
+  // One customer said yes to both channels; an opt-out is nobody.
   await db.query(
     `insert into marketing.marketing_consents
        (company_id, channel, address, status, source, user_id, given_name, family_name, wording_version)
@@ -151,48 +381,54 @@ test('the overview leads to Kampanjer and to Mottakere per channel', async ({ pa
 
   await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
   const overview = page.getByRole('navigation', { name: 'Markedsføring' });
-  await expect(overview.getByRole('link', { name: /^Kampanjer/ })).toContainText('1denne måneden');
-  await expect(overview.getByRole('link', { name: /^Mottakere/ })).toContainText('3kunder');
-  await expect(overview.getByRole('link', { name: /^E-post/ })).toContainText('2 mottakere');
-  await expect(overview.getByRole('link', { name: /^SMS/ })).toContainText('2 mottakere');
+  await expect(overview.getByRole('link')).toHaveCount(2);
+  await expect(overview.getByRole('link', { name: /^E-post/ })).toContainText('2mottakere');
+  await expect(overview.getByRole('link', { name: /^SMS/ })).toContainText('2mottakere');
   // An Oversikt creates nothing.
-  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /^Ny (e-post|SMS)$/ })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/marketing-overview-desktop.png', fullPage: true });
 
-  await overview.getByRole('link', { name: /^SMS/ }).click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/mottakere?kanal=sms`);
-  const recipients = page.getByRole('region', { name: 'Mottakere' });
-  await expect(recipients.getByRole('link', { name: 'SMS 2' })).toHaveAttribute('aria-current', 'page');
-  await expect(recipients.getByRole('listitem')).toHaveCount(2);
-  await expect(recipients.getByRole('listitem').filter({ hasText: 'E-post · SMS' })).toHaveCount(1);
-  await recipients.getByRole('link', { name: 'Alle 3' }).click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/mottakere`);
-  await expect(recipients.getByRole('listitem')).toHaveCount(3);
-  await expect(recipients).toContainText('3 kunder');
-
-  await page.getByRole('link', { name: 'Markedsføring' }).last().click();
-  await page
-    .getByRole('navigation', { name: 'Markedsføring' })
-    .getByRole('link', { name: /^Kampanjer/ })
-    .click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/kampanjer`);
+  // E-post: its campaigns, Ny e-post, and Kampanjer | Mottakere.
+  await overview.getByRole('link', { name: /^E-post/ }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/email`);
+  const switchLinks = page.getByRole('navigation', { name: /Bytt mellom kampanjer og mottakere/ });
+  await expect(switchLinks.getByRole('link', { name: 'Kampanjer' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('region', { name: 'Kampanjer' })).toContainText('Julebooking');
-  await page.getByRole('link', { name: 'Ny kampanje' }).click();
-  await expect(page).toHaveURL(`${baseURL}/company/marketing/create`);
+  await expect(page.getByRole('link', { name: 'Ny e-post' })).toBeVisible();
+  await switchLinks.getByRole('link', { name: 'Mottakere' }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/email/recipients`);
+  await expect(switchLinks.getByRole('link', { name: 'Mottakere' })).toHaveAttribute('aria-current', 'page');
+  await expect(switchLinks.getByRole('link', { name: 'Kampanjer' })).not.toHaveAttribute('aria-current', 'page');
+  const recipients = page.getByRole('region', { name: 'Mottakere' });
+  await expect(recipients.getByRole('listitem')).toHaveCount(2);
+  await expect(recipients).toContainText('@marketing.e2e.invalid');
+  await expect(page.getByRole('link', { name: 'Ny e-post' })).toHaveCount(0);
 
-  // Phone: ≡ on the overview and no create button; Kampanjer has ‹ and its create button above the bottom menu.
+  // SMS: no campaigns yet, its own two customers with their numbers, and Ny SMS.
+  await page.goto(`${baseURL}/company/marketing/sms`, { waitUntil: 'networkidle' });
+  await expect(page.getByText('Ingen SMS-kampanjer ennå')).toBeVisible();
+  await page.goto(`${baseURL}/company/marketing/sms/recipients`, { waitUntil: 'networkidle' });
+  await expect(recipients.getByRole('listitem')).toHaveCount(2);
+  await expect(recipients).toContainText('+47 987 65 432');
+  await page.goto(`${baseURL}/company/marketing/sms`, { waitUntil: 'networkidle' });
+  await page.getByRole('link', { name: 'Ny SMS' }).click();
+  await expect(page).toHaveURL(`${baseURL}/company/marketing/sms/create`);
+  await expect(page.getByLabel('Mottakere', { exact: true })).toContainText('2 mottakere');
+
+  // Phone: ≡ on the overview and no create button; a channel page has ‹ and its create button above the menu.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${baseURL}/company/marketing`, { waitUntil: 'networkidle' });
   await expect(page.getByRole('button', { name: 'Åpne meny' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /^Ny (e-post|SMS)$/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/marketing-overview-mobile.png', fullPage: true });
-  await page.goto(`${baseURL}/company/marketing/kampanjer`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseURL}/company/marketing/email`, { waitUntil: 'networkidle' });
   await expect(page.getByRole('link', { name: 'Tilbake til Markedsføring' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ny e-post' })).toBeVisible();
   await page.screenshot({ path: 'test-results/marketing-campaigns-mobile.png', fullPage: true });
-  await page.goto(`${baseURL}/company/marketing/mottakere`, { waitUntil: 'networkidle' });
-  await expect(page.getByRole('link', { name: 'Ny kampanje' })).toHaveCount(0);
+  await page.goto(`${baseURL}/company/marketing/sms/recipients`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('link', { name: 'Tilbake til Markedsføring' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ny SMS' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/marketing-recipients-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -202,9 +438,8 @@ test('the admin sends an SMS campaign', async ({ page, context, db }) => {
   await signIn(context);
   await addOptedInCustomers(db, 'SMS', 2);
 
-  await page.goto(`${baseURL}/company/marketing/create`);
+  await page.goto(`${baseURL}/company/marketing/sms/create`);
   await page.getByLabel('Kampanjenavn').fill('Ledige timer fredag');
-  await page.getByRole('radio', { name: 'SMS', exact: true }).check();
   await page.getByLabel('Melding').fill('Hei {{givenName}}! Vi har ledige timer fredag.');
   await expect(page.getByText('46 / 300')).toBeVisible();
   const estimate = page.getByRole('status', { name: 'SMS-estimat' });
@@ -258,11 +493,9 @@ test('the admin cancels a campaign while it is sending', async ({ page, context,
   await signIn(context);
   await addOptedInCustomers(db, 'EMAIL', 30);
 
-  const created = await request.post(`${backendUrl}/marketing-service/company-user/marketing/campaigns`, {
+  const created = await request.post(`${backendUrl}/marketing-service/company-user/marketing/email/campaigns`, {
     headers: authHeaders(accessToken),
     data: {
-      name: 'Høsttilbud',
-      channel: 'EMAIL',
       subject: 'Høsttilbud',
       blocks: [{ type: 'PARAGRAPH', text: 'Hei {{givenName}}' }],
     },

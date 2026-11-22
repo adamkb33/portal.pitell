@@ -7,13 +7,10 @@ import { cn } from '~/ui';
 export const KEY_TONES = {
   teal: 'from-category-teal-ink to-category-teal-deep border-category-teal-deep',
   cyan: 'from-category-cyan-ink to-category-cyan-deep border-category-cyan-deep',
-  /** Administrasjon: Ansatte (sky) and Kontakter (plum). */
+  /** Administrasjon: Ansatte (sky) and Kontakter (plum). Plum is also SMS on Markedsføring. */
   sky: 'from-category-sky-ink to-category-sky-deep border-category-sky-deep',
   plum: 'from-category-plum-ink to-category-plum-deep border-category-plum-deep',
-  /** Markedsføring: Kampanjer (pink, the domain's colour) and Mottakere (fuchsia). */
-  pink: 'from-category-pink-ink to-category-pink-deep border-category-pink-deep',
-  fuchsia: 'from-category-fuchsia-ink to-category-fuchsia-deep border-category-fuchsia-deep',
-  /** Varsler on the company Oversikt: the app's own blue (white text 6.6:1 and up). */
+  /** Varsler on the company Oversikt and E-post on Markedsføring: the app's own blue (white text 6.6:1 and up). */
   blue: 'from-interactive to-interactive-hover border-interactive-hover',
 } as const;
 

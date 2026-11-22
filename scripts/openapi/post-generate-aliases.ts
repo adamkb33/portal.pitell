@@ -27,6 +27,8 @@ const aliasesByClass: Record<string, string[]> = {
   ],
   Marketing: [
     'CompanyUserMarketingCampaignController',
+    'CompanyUserEmailCampaignController',
+    'CompanyUserSmsCampaignController',
     'CompanyUserMarketingRecipientController',
     'PublicUnsubscribeController',
   ],

@@ -15,6 +15,12 @@ export type AreaPage = {
  */
 export function AreaSwitch({ label, pages, className }: { label: string; pages: AreaPage[]; className?: string }) {
   const { pathname } = useLocation();
+  const matches = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // When one page's address holds the other's (E-post and E-post/mottakere), the closest match is the one shown.
+  const activeHref = pages
+    .map(({ routeId }) => ROUTES_MAP[routeId].href)
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <SegmentedLinks
@@ -27,7 +33,7 @@ export function AreaSwitch({ label, pages, className }: { label: string; pages: 
           label: pageLabel,
           to: href,
           icon,
-          active: pathname === href || pathname.startsWith(`${href}/`),
+          active: href === activeHref,
         };
       })}
     />

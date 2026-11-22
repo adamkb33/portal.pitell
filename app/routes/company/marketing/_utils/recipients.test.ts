@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { channelSlug, latestYes, parseChannelSlug, recipientInitials, recipientName } from './recipients';
+import { latestYes, recipientInitials, recipientName } from './recipients';
 
 describe('recipient helpers', () => {
-  it('turns the channel into the URL value and back; anything else is everyone', () => {
-    expect(channelSlug('EMAIL')).toBe('e-post');
-    expect(channelSlug('SMS')).toBe('sms');
-    expect(parseChannelSlug('e-post')).toBe('EMAIL');
-    expect(parseChannelSlug('sms')).toBe('SMS');
-    expect(parseChannelSlug('EMAIL')).toBeNull();
-    expect(parseChannelSlug(null)).toBeNull();
-  });
-
   it('names the customer, or "Ukjent kunde" without a name', () => {
     expect(recipientName({ givenName: 'Kari', familyName: 'Nordmann' })).toBe('Kari Nordmann');
     expect(recipientName({ givenName: 'Kari' })).toBe('Kari');
