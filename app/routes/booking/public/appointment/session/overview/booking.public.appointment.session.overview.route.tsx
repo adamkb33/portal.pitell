@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Form, Link, redirect, useNavigation } from 'react-router';
+import { createCookie, Form, Link, redirect, useNavigation } from 'react-router';
 import { CalendarClock, ChevronRight, Clock, Loader2, Phone, User } from 'lucide-react';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
-import { PublicAppointmentSessionController } from '~/api/generated';
+import { PublicAppointmentSessionController, type AppointmentSessionDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -27,6 +27,45 @@ import type { Route } from './+types/booking.public.appointment.session.overview
 
 const ROUTE_ID = 'booking.public.appointment.session.overview';
 
+/**
+ * The booking this page just confirmed. React Router reloads the current page when the next page's code fails to
+ * load, and right after "Bekreft" that is this page — with a used session it would send the customer back to pick
+ * a service, and they book again. With this cookie the reload (or a Back from the confirmation) shows the confirmation.
+ */
+const confirmedBookingCookie = createCookie('booking_confirmed', {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+  maxAge: 60 * 15,
+});
+
+type ConfirmedBooking = { sessionId: string; companyId: number; appointmentId: number };
+
+function successHref(companyId: number, appointmentId: number) {
+  return `${getBookingRouteMap().success}?companyId=${companyId}&appointmentId=${appointmentId}`;
+}
+
+/** The booking this session confirmed, as long as nothing new has been picked since (a new booking starts fresh). */
+async function findConfirmedBooking(
+  request: Request,
+  session: AppointmentSessionDto,
+): Promise<ConfirmedBooking | null> {
+  const confirmed: Partial<ConfirmedBooking> | null = await confirmedBookingCookie.parse(request.headers.get('Cookie'));
+  const startedNewBooking = Boolean(session.selectedStartTime) || (session.selectedServices?.length ?? 0) > 0;
+
+  if (
+    startedNewBooking ||
+    confirmed?.sessionId !== session.sessionId ||
+    typeof confirmed.companyId !== 'number' ||
+    typeof confirmed.appointmentId !== 'number'
+  ) {
+    return null;
+  }
+
+  return confirmed as ConfirmedBooking;
+}
+
 /** A whole row is the tap target (min 44px); the native checkbox is only the visible box. */
 const bookingCheckboxRowClass =
   'flex min-h-11 cursor-pointer items-start gap-3 py-3 text-base font-normal leading-snug tracking-normal text-booking-text';
@@ -44,6 +83,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
 
       const { session } = guardResult;
+      const confirmed = await findConfirmedBooking(request, session);
+      if (confirmed) {
+        return redirect(successHref(confirmed.companyId, confirmed.appointmentId));
+      }
+
       const response = await withBookingBackendCall(
         { request, routeId: ROUTE_ID, step: 'overview', call: 'get-overview', session },
         () =>
@@ -118,7 +162,10 @@ export async function action({ request }: Route.ActionArgs) {
         return redirectWithError(request, routes.overview, 'Kunne ikke bekrefte timebestilling');
       }
 
-      return redirect(`${routes.success}?companyId=${session.companyId}&appointmentId=${appointmentId}`);
+      const confirmed: ConfirmedBooking = { sessionId: session.sessionId, companyId: session.companyId, appointmentId };
+      return redirect(successHref(session.companyId, appointmentId), {
+        headers: { 'Set-Cookie': await confirmedBookingCookie.serialize(confirmed) },
+      });
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke bekrefte timebestilling');
       return redirectWithError(request, routes.selectTime, message);
