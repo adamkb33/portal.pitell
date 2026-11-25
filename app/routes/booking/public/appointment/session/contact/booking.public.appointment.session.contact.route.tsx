@@ -230,12 +230,6 @@ export async function action({ request }: Route.ActionArgs) {
     );
 
     const result = response.data?.data;
-    logger.info('[booking:contact:action]', {
-      ...getBookingSessionLogContext(session),
-      intent,
-      nextStep: result?.nextStep ?? null,
-    });
-
     if (result?.nextStep === 'DONE') {
       const headers = result.authTokens
         ? await authService.setAuthCookies(

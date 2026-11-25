@@ -1,6 +1,6 @@
 import { ENV } from '~/api/config/env';
 import { sanitizeForLog } from '~/lib/http-log';
-import { currentRequestId } from '~/lib/request-id';
+import { currentRequestId, isRoutineRequest } from '~/lib/request-id';
 
 interface LogContext {
   [key: string]: unknown;
@@ -21,8 +21,11 @@ class Logger {
     }
   }
 
+  // Routine lines of a background read (polling, a page refreshing itself) are for local development only.
   info(message: string, context?: LogContext): void {
-    if (this.shouldLogInfo) {
+    if (isRoutineRequest()) {
+      this.debug(message, context);
+    } else if (this.shouldLogInfo) {
       this.write('info', message, context);
     }
   }

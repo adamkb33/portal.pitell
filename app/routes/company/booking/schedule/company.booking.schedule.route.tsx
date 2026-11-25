@@ -74,7 +74,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const fromDateTime = formatDateBoundaryInTimeZone(range.fromDate, 'start');
   const toDateTime = formatDateBoundaryInTimeZone(range.toDate, 'end');
 
-  logger.info('[company.booking.schedule] Loader request', {
+  logger.debug('[company.booking.schedule] Loader request', {
     date,
     fromDate: range.fromDate,
     toDate: range.toDate,
@@ -99,7 +99,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       .then((res) => res.data?.data?.content ?? [])
       .catch(() => [] as AppointmentDto[]);
 
-    logger.info('[company.booking.schedule] Overview response', {
+    logger.debug('[company.booking.schedule] Overview response', {
       profileId: overview.profileId,
       dailySchedules: overview.dailySchedules.length,
       appointments: overview.appointments.length,

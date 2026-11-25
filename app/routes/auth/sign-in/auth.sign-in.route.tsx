@@ -102,14 +102,6 @@ export async function action({ request }: Route.ActionArgs) {
     return lookupAction(request, emailOrMobile, returnTo);
   }
 
-  logger.info('[auth.sign-in] Action started', {
-    provider,
-    isGoogleLogin,
-    emailOrMobile: redactIdentifier(emailOrMobile),
-    hasPassword: password.length > 0,
-    hasIdToken: idToken.length > 0,
-  });
-
   if (isGoogleLogin && !idToken) {
     logger.warn('[auth.sign-in] Missing Google idToken');
     return redirectWithError(request, signInHref, 'Kunne ikke logge inn med Google. Prøv igjen.');
@@ -121,20 +113,16 @@ export async function action({ request }: Route.ActionArgs) {
     });
     const payload = response.data?.data;
 
-    logger.info('[auth.sign-in] Sign-in response received', {
-      provider,
+    // One line per sign-in: who (masked), how, and what comes next (DONE or a verification step and its code delivery).
+    logger.info(`[auth.sign-in] ${provider} → ${payload?.nextStep ?? 'no next step'}`, {
       emailOrMobile: redactIdentifier(emailOrMobile),
-      nextStep: payload?.nextStep ?? null,
-      hasAuthTokens: Boolean(payload?.authTokens),
-      hasVerificationToken: Boolean(payload?.verificationToken),
-      emailDelivery: payload?.emailDelivery?.status ?? null,
-      mobileDelivery: payload?.mobileDelivery?.status ?? null,
+      emailDelivery: payload?.emailDelivery?.status,
+      mobileDelivery: payload?.mobileDelivery?.status,
     });
 
     if (payload?.nextStep === 'DONE' && payload.authTokens) {
       const { href, headers } = await finishSignIn(payload.authTokens, returnTo);
       headers.append('Set-Cookie', await clearSignInFlow());
-      logger.info('[auth.sign-in] Signed in', { emailOrMobile: redactIdentifier(emailOrMobile), nextStepHref: href });
       return redirect(href, { headers });
     }
 
@@ -159,20 +147,10 @@ export async function action({ request }: Route.ActionArgs) {
         headers.append('Set-Cookie', verificationCookieHeader);
       }
 
-      logger.info('[auth.sign-in] Redirecting to auth next step', {
-        emailOrMobile: redactIdentifier(emailOrMobile),
-        nextStep: payload.nextStep ?? null,
-        nextStepHref: resolvedNextStepHref,
-      });
-
       if (resolvedNextStepHref) {
         return redirect(resolvedNextStepHref, { headers: headers.entries().next().done ? undefined : headers });
       }
 
-      logger.info('[auth.sign-in] Returning verification payload to client', {
-        emailOrMobile: redactIdentifier(emailOrMobile),
-        nextStep: payload.nextStep ?? null,
-      });
       return data(payload, { headers: headers.entries().next().done ? undefined : headers });
     }
 

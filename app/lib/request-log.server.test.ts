@@ -76,6 +76,47 @@ describe('request log middleware', () => {
     expect(apiLine).toBe(`[INFO] [${id}] [api] GET /booking-service/x 200 5ms`);
   });
 
+  it('calls a page load from a browser without Sec-Fetch headers a page, by the HTML it asks for', async () => {
+    await handle(PAGE, new Response('', { status: 200 }), { Accept: 'text/html,application/xhtml+xml' });
+
+    expect(lineOf(info)).toContain('/overview page → 200');
+  });
+
+  it('keeps a background poll that works out of the logs, with the calls it made', async () => {
+    await handle(
+      'https://portal.pitell.no/api/auth/navbar-notifications',
+      new Response('{}', { status: 200 }),
+      { 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors' },
+      () => logger.info('[api] GET /notification-service/in-app 200 12ms'),
+    );
+
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it('still logs a background poll that fails', async () => {
+    await handle(
+      'https://portal.pitell.no/api/auth/navbar-notifications',
+      new Response('', { status: 502 }),
+      { 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors' },
+      () => logger.warn('[api] GET /notification-service/in-app 503 12ms'),
+    );
+
+    expect(lineOf(warn)).toContain('[api] GET /notification-service/in-app 503');
+    expect(lineOf(error)).toContain('[request] GET /api/auth/navbar-notifications fetch → 502');
+  });
+
+  it('keeps a page refreshing its own data out of the logs, but not a navigation to it', async () => {
+    const page = 'https://portal.pitell.no/booking/public/appointment/session/select-time';
+
+    await handle(`${page}.data`, new Response('', { status: 200 }), { Referer: page });
+    expect(info).not.toHaveBeenCalled();
+
+    await handle(`${page}.data`, new Response('', { status: 200 }), {
+      Referer: 'https://portal.pitell.no/booking/public/appointment/session/select-services',
+    });
+    expect(lineOf(info)).toContain('/select-time data → 200');
+  });
+
   it('writes no id outside a request', () => {
     logger.info('[startup] ready');
     expect(lineOf(info)).toBe('[INFO] [startup] ready');

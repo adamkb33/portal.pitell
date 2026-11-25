@@ -83,11 +83,8 @@ export const buildResponseData = async (request: Request, accessToken: string, f
           const meResponse = await AuthController.getMe();
           userContext = meResponse.data?.data?.userContext ?? undefined;
           systemRoles = meResponse.data?.data?.permissions?.systemRoles ?? [];
-        } catch (err) {
-          logger.info('Failed to fetch user context', {
-            userId: authPayload.id,
-            error: err instanceof Error ? err.message : String(err),
-          });
+        } catch {
+          // The failed call is logged by the API client; the page just shows without a user context.
           userContext = undefined;
           systemRoles = [];
         }
@@ -96,11 +93,8 @@ export const buildResponseData = async (request: Request, accessToken: string, f
           try {
             const permissionsResponse = await AuthController.getPermissions();
             systemRoles = permissionsResponse.data?.data?.systemRoles ?? [];
-          } catch (err) {
-            logger.info('Failed to fetch auth permissions', {
-              userId: authPayload.id,
-              error: err instanceof Error ? err.message : String(err),
-            });
+          } catch {
+            // Logged by the API client; no roles.
           }
         }
       },
