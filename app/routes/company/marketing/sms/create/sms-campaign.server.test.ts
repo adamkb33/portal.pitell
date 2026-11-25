@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ guard: vi.fn(), count: vi.fn(), create: vi.fn(), auth: vi.fn() }));
-vi.mock('../../company.marketing.layout', () => ({ loader: mocks.guard }));
+const mocks = vi.hoisted(() => ({ count: vi.fn(), create: vi.fn(), auth: vi.fn() }));
 vi.mock('~/api/generated', () => ({
   CompanyUserMarketingCampaignController: { audienceCount: mocks.count },
   CompanyUserSmsCampaignController: { createSmsCampaign: mocks.create },
@@ -21,13 +20,12 @@ beforeEach(() => {
   mocks.create.mockResolvedValue({ data: { data: { id: 42 } } });
 });
 describe('SMS creation', () => {
-  it('loads only the SMS audience after checking access', async () => {
+  it('loads only the SMS audience', async () => {
     expect(await loadSmsCampaignCreate(new Request(url))).toEqual({
       recipients: 88,
       unsubscribeBaseUrl: 'http://localhost',
       error: null,
     });
-    expect(mocks.guard).toHaveBeenCalledOnce();
     expect(mocks.count).toHaveBeenCalledWith({ query: { channel: 'SMS' } });
   });
   it('sends only SMS fields and redirects to history', async () => {
@@ -39,11 +37,6 @@ describe('SMS creation', () => {
   it('rejects preview and invalid message requests without sending', async () => {
     await post({ intent: 'preview', name: 'SMS', body: 'Hei' });
     await post({ intent: 'send', name: 'SMS', body: '' });
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-  it('checks access before sending', async () => {
-    mocks.guard.mockRejectedValueOnce(new Response(null, { status: 403 }));
-    await expect(post({ intent: 'send', name: 'SMS', body: 'Hei' })).rejects.toMatchObject({ status: 403 });
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('returns a send error when the backend rejects it', async () => {

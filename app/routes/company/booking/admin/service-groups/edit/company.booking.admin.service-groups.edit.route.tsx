@@ -1,5 +1,4 @@
 import type { FormPageHandle } from '~/lib/routing/create-action';
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.edit.route';
 import { CompanyUserServiceGroupController, ServiceController, type ServiceGroupDto } from '~/api/generated';
@@ -13,7 +12,6 @@ import { ServiceGroupFormPage, type ServiceGroupFormValues } from '../_component
 export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
   const url = new URL(request.url);
   const id = Number(url.searchParams.get('id'));
 
@@ -68,7 +66,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const id = Number(formData.get('id'));
   const values: ServiceGroupFormValues = {

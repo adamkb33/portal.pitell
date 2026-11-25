@@ -12,7 +12,6 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyPageTemplate, ConfirmDialog, ListFooter, Notice, cn, PageNotice } from '~/ui';
-import { loader as requireMarketingAdmin } from '../company.marketing.layout';
 import { StatusChip } from '../_components/status-chip';
 import {
   CHANNEL_LABELS,
@@ -61,8 +60,6 @@ const emptyResult = {
 };
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireMarketingAdmin({ request });
-
   const campaignId = parseCampaignId(params.campaignId);
   if (!campaignId) return { ...emptyResult, notFound: true };
 
@@ -117,7 +114,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireMarketingAdmin({ request });
   const campaignId = parseCampaignId(params.campaignId);
   const formData = await request.formData();
 

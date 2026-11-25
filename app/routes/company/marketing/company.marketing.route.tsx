@@ -2,13 +2,10 @@ import { Mail, MessageSquare } from 'lucide-react';
 import type { Route } from './+types/company.marketing.route';
 import { KeyDestinationCard } from '~/routes/company/booking/_components/key-destination-card';
 import { CompanyPageTemplate } from '~/ui';
-import { loader as requireMarketingAdmin } from './company.marketing.layout';
 import { channelHref } from './_utils/channels';
 import { countRecipients } from './_utils/counts.server';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireMarketingAdmin({ request });
-
   const [email, sms] = await Promise.all([countRecipients(request, 'EMAIL'), countRecipients(request, 'SMS')]);
   return { email, sms };
 }

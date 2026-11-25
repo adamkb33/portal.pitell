@@ -2,13 +2,11 @@ import { data, redirect } from 'react-router';
 import { CompanyUserMarketingCampaignController, CompanyUserSmsCampaignController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { loader as requireMarketingAdmin } from '../../company.marketing.layout';
 import { getCampaignDetailHref } from '../../_utils/campaigns';
 import { channelHref } from '../../_utils/channels';
 import { parseSmsCampaignForm } from './sms-campaign.schema';
 
 export async function loadSmsCampaignCreate(request: Request) {
-  await requireMarketingAdmin({ request });
   const unsubscribeBaseUrl = (process.env.pitell_PORTAL_BASE_URL || new URL(request.url).origin).replace(/\/$/, '');
   try {
     const response = await withAuth(request, () =>
@@ -27,7 +25,6 @@ export async function loadSmsCampaignCreate(request: Request) {
 export type SmsCampaignCreateLoaderData = Awaited<ReturnType<typeof loadSmsCampaignCreate>>;
 export type SmsCampaignCreateActionResult = { error: string };
 export async function createSmsCampaign(request: Request) {
-  await requireMarketingAdmin({ request });
   const form = await request.formData();
   const parsed = parseSmsCampaignForm(form);
   if (form.get('intent') !== 'send' || !parsed.success)

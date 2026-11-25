@@ -1,4 +1,3 @@
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { logger } from '~/lib/logger';
 import type { Route } from './+types/company.booking.admin.service-groups.update.api-route';
 import { CompanyUserServiceGroupController } from '~/api/generated';
@@ -7,7 +6,6 @@ import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireBookingAdmin({ request });
   try {
     const formData = await request.formData();
     const id = Number(formData.get('id'));

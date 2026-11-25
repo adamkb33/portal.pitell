@@ -1,5 +1,4 @@
 import type { FormPageHandle } from '~/lib/routing/create-action';
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.services.create.route';
 import { CompanyUserServiceGroupController, ServiceController } from '~/api/generated';
@@ -14,7 +13,6 @@ import { ServiceFormPage, type ServiceFormValues } from '../_components/service-
 export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
   try {
     const response = await withAuth(request, async () =>
       CompanyUserServiceGroupController.getServiceGroups({
@@ -102,7 +100,6 @@ function extractImageActionsFromFormData(formData: FormData): Array<Delete | Upl
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const values = {
     name: String(formData.get('name') ?? '').trim(),

@@ -7,7 +7,6 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import {
   Badge,
   Button,
@@ -26,8 +25,6 @@ const EXAMPLE_STAMPS = 3;
 const MAX_PREVIEW_STAMPS = 10;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
-
   try {
     const response = await withAuth(request, () => Booking.getLoyaltyRule());
     return data({ loyalty: response.data?.data ?? DEFAULT_LOYALTY, error: null as string | null });
@@ -38,8 +35,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireBookingAdmin({ request });
-
   const formData = await request.formData();
   const visitsRequired = Number(formData.get('visitsRequired'));
   const enabled = formData.get('enabled') === 'on';

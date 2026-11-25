@@ -2,12 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampaignSummaryDto } from '~/api/generated';
 
 const mocks = vi.hoisted(() => ({
-  requireMarketingAdmin: vi.fn(),
   list: vi.fn(),
   recipients: vi.fn(),
 }));
 
-vi.mock('../company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
 vi.mock('~/api/generated', () => ({
   CompanyUserMarketingCampaignController: { list: mocks.list },
   CompanyUserMarketingRecipientController: { recipients: mocks.recipients },
@@ -45,7 +43,6 @@ const kari = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireMarketingAdmin.mockResolvedValue(null);
   mocks.list.mockResolvedValue({
     data: {
       data: [campaign(2, '2026-11-05T14:02:00+01:00')],
@@ -58,23 +55,14 @@ beforeEach(() => {
 });
 
 describe("a channel's campaigns", () => {
-  it("checks access, then loads that channel's page from the URL", async () => {
+  it("loads that channel's page from the URL", async () => {
     const result = await loadChannelCampaigns(request('/company/marketing/email?page=1'), 'EMAIL');
-    expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
     expect(mocks.list).toHaveBeenCalledWith({ query: { page: 1, size: 25, channel: 'EMAIL' } });
     expect(result).toEqual({
       campaigns: [expect.objectContaining({ id: 2 })],
       pagination: { page: 1, totalElements: 30, totalPages: 2 },
       error: null,
     });
-  });
-
-  it('does not load campaigns when the guard redirects', async () => {
-    mocks.requireMarketingAdmin.mockRejectedValue(new Response(null, { status: 302 }));
-    await expect(loadChannelCampaigns(request('/company/marketing/sms'), 'SMS')).rejects.toMatchObject({
-      status: 302,
-    });
-    expect(mocks.list).not.toHaveBeenCalled();
   });
 
   it('falls back to the first page for a missing or invalid page number', async () => {
@@ -95,9 +83,8 @@ describe("a channel's campaigns", () => {
 });
 
 describe("a channel's recipients", () => {
-  it('checks access, then loads the customers who said yes to that channel', async () => {
+  it('loads the customers who said yes to that channel', async () => {
     const result = await loadChannelRecipients(request('/company/marketing/sms/recipients'), 'SMS');
-    expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
     expect(mocks.recipients).toHaveBeenCalledWith({ query: { page: 0, size: 25, channel: 'SMS' } });
     expect(result).toEqual({
       recipients: [kari],

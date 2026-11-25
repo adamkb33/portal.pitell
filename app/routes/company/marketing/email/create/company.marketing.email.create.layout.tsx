@@ -20,7 +20,6 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import type { FormPageHandle } from '~/lib/routing/create-action';
 import type { loader as rootLoader } from '~/routes/root.layout';
 import { CompanyPageTemplate, Notice, PageNotice, cn } from '~/ui';
-import { loader as requireMarketingAdmin } from '../../company.marketing.layout';
 import { defaultEmailDraft, draftEmailBlocks, type EmailDraft } from './_utils/email-blocks';
 import { parseEmailCampaignForm, parseEmailPreviewForm } from './_utils/email-campaign.schema';
 import type { EmailDraftContext } from './_utils/email-draft-context';
@@ -45,7 +44,6 @@ const PREVIEW_DELAY_MS = 600;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const channel = 'EMAIL' as const;
-  await requireMarketingAdmin({ request });
 
   try {
     const response = await withAuth(request, () =>
@@ -80,7 +78,6 @@ export type EmailCampaignActionResult =
   | { intent: 'send'; campaignId: number };
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireMarketingAdmin({ request });
   const formData = await request.formData();
   const intent = formData.get('intent');
 

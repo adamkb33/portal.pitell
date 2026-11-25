@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampaignDetailDto } from '~/api/generated';
 
 const mocks = vi.hoisted(() => ({
-  requireMarketingAdmin: vi.fn(),
   get1: vi.fn(),
   messages: vi.fn(),
   preview: vi.fn(),
@@ -10,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   withAuth: vi.fn(),
 }));
 
-vi.mock('../company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
 vi.mock('~/api/generated', () => ({
   CompanyUserEmailCampaignController: { previewEmailCampaign: mocks.preview },
   CompanyUserMarketingCampaignController: {
@@ -56,7 +54,6 @@ const post = (intent: string, campaignId = '7') => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireMarketingAdmin.mockResolvedValue(null);
   mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.get1.mockResolvedValue({ data: { data: emailCampaign } });
   mocks.messages.mockResolvedValue({
@@ -72,7 +69,6 @@ beforeEach(() => {
 describe('campaign detail loader', () => {
   it('loads the campaign, a page of recipients and the rendered email', async () => {
     const result = await load();
-    expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
     expect(mocks.get1).toHaveBeenCalledWith({ path: { id: 7 } });
     expect(mocks.messages).toHaveBeenCalledWith({ path: { id: 7 }, query: { page: 0, size: 25 } });
     expect(mocks.preview).toHaveBeenCalledWith({ body: { subject: 'Book juleklippen', blocks } });
@@ -129,17 +125,10 @@ describe('campaign detail loader', () => {
 });
 
 describe('campaign detail action', () => {
-  it('cancels the campaign after checking access', async () => {
+  it('cancels the campaign', async () => {
     const result = await post('cancel');
-    expect(mocks.requireMarketingAdmin).toHaveBeenCalledOnce();
     expect(mocks.cancel).toHaveBeenCalledWith({ path: { id: 7 } });
     expect(result.data).toEqual({ error: null });
-  });
-
-  it('does not cancel when access is denied', async () => {
-    mocks.requireMarketingAdmin.mockRejectedValue(new Response(null, { status: 302 }));
-    await expect(post('cancel')).rejects.toMatchObject({ status: 302 });
-    expect(mocks.cancel).not.toHaveBeenCalled();
   });
 
   it('shows the backend message when the campaign can no longer be cancelled', async () => {

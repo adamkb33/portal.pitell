@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  requireMarketingAdmin: vi.fn(),
   audienceCount: vi.fn(),
   recipients: vi.fn(),
   preview: vi.fn(),
@@ -9,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   withAuth: vi.fn(),
 }));
 
-vi.mock('../../company.marketing.layout', () => ({ loader: mocks.requireMarketingAdmin }));
 vi.mock('~/api/generated', () => ({
   CompanyUserEmailCampaignController: { previewEmailCampaign: mocks.preview, createEmailCampaign: mocks.create },
   CompanyUserMarketingRecipientController: { recipients: mocks.recipients },
@@ -41,7 +39,6 @@ const unwrap = (result: unknown) => result as { data: Record<string, unknown>; i
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireMarketingAdmin.mockResolvedValue(null);
   mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.audienceCount.mockImplementation(async ({ query }: { query: { channel: string } }) => ({
     data: { data: { eligibleCount: query.channel === 'EMAIL' ? 600 : 88 } },
@@ -69,14 +66,6 @@ describe('new campaign loader', () => {
 });
 
 describe('new campaign action', () => {
-  it('checks access before doing anything', async () => {
-    mocks.requireMarketingAdmin.mockRejectedValue(new Response(null, { status: 302 }));
-    await expect(post({ intent: 'send', subject: 'Hei', blocks: JSON.stringify(blocks) })).rejects.toMatchObject({
-      status: 302,
-    });
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-
   it('previews the email from structured blocks', async () => {
     const result = unwrap(await post({ intent: 'preview', subject: 'Hei', blocks: JSON.stringify(blocks) }));
     expect(mocks.preview).toHaveBeenCalledWith({ body: { subject: 'Hei', blocks } });

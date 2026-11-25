@@ -7,7 +7,6 @@ import {
 import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
-import { loader as requireMarketingAdmin } from '../company.marketing.layout';
 import { parsePage, type CampaignChannel } from './campaigns';
 
 type Pagination = { page: number; totalElements: number; totalPages: number };
@@ -28,7 +27,6 @@ function readPagination(
 
 /** One channel's campaigns, newest first, 25 per page (`?page=`). */
 export async function loadChannelCampaigns(request: Request, channel: CampaignChannel) {
-  await requireMarketingAdmin({ request });
   const page = parsePage(new URL(request.url).searchParams.get('page'));
 
   try {
@@ -50,7 +48,6 @@ export type ChannelCampaignsData = Awaited<ReturnType<typeof loadChannelCampaign
 
 /** The customers who said yes to one channel, newest yes first, 25 per page (`?page=`). */
 export async function loadChannelRecipients(request: Request, channel: CampaignChannel) {
-  await requireMarketingAdmin({ request });
   const page = parsePage(new URL(request.url).searchParams.get('page'));
 
   try {

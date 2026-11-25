@@ -1,5 +1,4 @@
 import type { FormPageHandle } from '~/lib/routing/create-action';
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.create.route';
 import { CompanyUserServiceGroupController } from '~/api/generated';
@@ -14,13 +13,11 @@ export const handle: FormPageHandle = { formPage: true };
 
 const emptyValues: ServiceGroupFormValues = { name: '' };
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
+export async function loader() {
   return data({ values: emptyValues });
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireBookingAdmin({ request });
   const formData = await request.formData();
   const values: ServiceGroupFormValues = {
     name: String(formData.get('name') ?? '').trim(),

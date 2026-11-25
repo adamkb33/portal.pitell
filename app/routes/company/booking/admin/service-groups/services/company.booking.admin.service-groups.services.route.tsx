@@ -1,4 +1,3 @@
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { Link } from 'react-router';
 import { useMemo, useState } from 'react';
 import { ChevronRight, ClipboardList, ImageIcon, Search, SearchX, X } from 'lucide-react';
@@ -20,7 +19,6 @@ export const handle = {
 } satisfies CreateActionHandle;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
   try {
     // A salon has a handful of services, so load them all and group and search on the page.
     const [serviceGroupsResponse, servicesResponse] = await withAuth(request, async () =>

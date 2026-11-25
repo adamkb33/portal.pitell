@@ -1,4 +1,3 @@
-import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
 import { ServiceAdminSwitch } from '~/routes/company/booking/admin/_components/service-admin-switch';
 import { PageCreateButton } from '~/routes/_components/page-create-button';
 import { Link } from 'react-router';
@@ -16,7 +15,6 @@ export const handle = {
 } satisfies CreateActionHandle;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireBookingAdmin({ request });
   try {
     // A salon has a handful of groups; load them all, with the services so each row can show its count.
     const [groupsResponse, servicesResponse] = await withAuth(request, async () =>
