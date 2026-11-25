@@ -85,15 +85,16 @@ test('the admin writes an e-mail in three steps, previews it, leaves a recipient
   await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Emne', { exact: true })).toHaveValue('God jul');
 
-  // The template changes right here on Skriv, keeps the text and asks nothing.
+  // Endre mal goes back to Mal; picking a template there keeps the text, asks nothing and returns to Skriv.
   await page.getByRole('button', { name: 'Endre mal' }).click();
-  await page.getByRole('menuitem', { name: /Personlig melding/ }).click();
+  await expect(page.getByText('1 av 3', { exact: true })).toBeVisible();
+  await templates.getByRole('button', { name: /^Personlig melding/ }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(page.getByText('2 av 3', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Overskrift', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Melding', { exact: true })).toHaveValue('Vi har åpent i romjulen.');
   await page.getByRole('button', { name: 'Endre mal' }).click();
-  await page.getByRole('menuitem', { name: /Tilbud/ }).click();
+  await templates.getByRole('button', { name: /^Tilbud/ }).click();
   await expect(page.getByLabel('Overskrift', { exact: true })).toHaveValue('Julebooking er åpen');
 
   // Phone: no bottom menu, and Forhåndsvis shows the e-mail full screen.
@@ -205,7 +206,7 @@ test('the admin writes an e-mail in three steps, previews it, leaves a recipient
   // Changing template keeps the message; the untouched heading takes the new template's default.
   await page.getByLabel('Melding', { exact: true }).fill('En hilsen');
   await page.getByRole('button', { name: 'Endre mal' }).click();
-  await page.getByRole('menuitem', { name: /Kunngjøring/ }).click();
+  await templates.getByRole('button', { name: /^Kunngjøring/ }).click();
   await expect(page.getByLabel('Melding', { exact: true })).toHaveValue('En hilsen');
   await expect(page.getByLabel('Overskrift', { exact: true })).toHaveValue('Vi har nyheter');
 });

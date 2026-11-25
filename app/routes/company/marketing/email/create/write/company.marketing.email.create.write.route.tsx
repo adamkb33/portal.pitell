@@ -1,31 +1,19 @@
 import { useState } from 'react';
 import { useRouteLoaderData } from 'react-router';
-import { Check, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import type { loader as rootLoader } from '~/routes/root.layout';
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  FloatingActionBar,
-  FormField,
-  FullScreenSheet,
-  Label,
-  Switch,
-  Textarea,
-} from '~/ui';
+import { Button, FloatingActionBar, FormField, FullScreenSheet, Label, Switch, Textarea } from '~/ui';
 import { ChosenRow, EditButton } from '../_components/chosen-row';
 import { EmailPreview } from '../_components/email-preview';
 import { PreviewColumns } from '../_components/preview-columns';
-import { TEMPLATE_CHOICES, TemplateTile } from '../_components/template-tile';
+import { TemplateTile } from '../_components/template-tile';
 import { EMAIL_TEMPLATES } from '../_utils/email-blocks';
 import { CAMPAIGN_LIMITS } from '../_utils/email-campaign.schema';
 import { useEmailDraft } from '../_utils/email-draft-context';
-import { checkDraft, normalizeLink, switchTemplate } from '../_utils/email-flow';
+import { checkDraft, normalizeLink } from '../_utils/email-flow';
 
 /**
- * Ny e-post, step 2 Skriv: the template (changed in place from a menu, keeping the text), subject, heading, message and
+ * Ny e-post, step 2 Skriv: the template (Endre goes back to step 1, which keeps the text), subject, heading, message and
  * an optional button. The preview stands beside the form on desktop and opens full screen on phones.
  */
 export default function CompanyMarketingEmailCreateWriteRoute() {
@@ -38,28 +26,7 @@ export default function CompanyMarketingEmailCreateWriteRoute() {
   return (
     <PreviewColumns preview={<EmailPreview {...preview} />}>
       <ChosenRow lead={<TemplateTile template={draft.template} small />} value={template.label}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <EditButton label="Endre mal" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-64 p-1">
-            {TEMPLATE_CHOICES.map((choice) => (
-              <DropdownMenuItem
-                key={choice.key}
-                onSelect={() => update(switchTemplate(draft, choice.key))}
-                className="min-h-12 gap-3 px-2"
-              >
-                <TemplateTile template={choice.key} small />
-                <span className="flex-1 text-[15px] font-semibold text-text-primary">
-                  {EMAIL_TEMPLATES[choice.key].label}
-                </span>
-                {choice.key === draft.template ? (
-                  <Check className="size-4 text-interactive" aria-label="I bruk" />
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <EditButton label="Endre mal" onClick={() => goTo('template')} />
       </ChosenRow>
 
       <fieldset className="grid gap-4 rounded-xl border border-border bg-background p-4 sm:p-5">
