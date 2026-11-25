@@ -55,7 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, url }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent')?.toString() ?? '';
 
@@ -83,7 +83,6 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: errorMessage }, { status: 400, headers: { 'Set-Cookie': flashCookie } });
   }
 
-  const url = new URL(request.url);
   const { requestPayload } = parseTimesheetListRequest(url);
 
   try {
@@ -125,7 +124,7 @@ export async function action({ request }: Route.ActionArgs) {
 
       return redirectWithSuccess(
         request,
-        new URL(request.url).pathname + new URL(request.url).search,
+        url.pathname + url.search,
         `Godkjente ${entryIds.length} innleverte registreringer.`,
       );
     }
@@ -141,7 +140,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     return redirectWithSuccess(
       request,
-      new URL(request.url).pathname + new URL(request.url).search,
+      url.pathname + url.search,
       `Avviste ${entryIds.length} innleverte registreringer.`,
     );
   } catch (error) {

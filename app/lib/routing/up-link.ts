@@ -11,14 +11,14 @@ export type UpHandle = {
   up?: (data: unknown) => Crumb | null;
 };
 
-type MatchLike = { handle?: unknown; data?: unknown; loaderData?: unknown };
+type MatchLike = { handle?: unknown; loaderData?: unknown };
 
 /** The deepest route that names its own parent wins. */
 export function resolveUpOverride(matches: readonly MatchLike[]): Crumb | null {
   for (let index = matches.length - 1; index >= 0; index -= 1) {
     const match = matches[index];
     const up = (match.handle as UpHandle | undefined)?.up;
-    if (typeof up === 'function') return up(match.loaderData ?? match.data);
+    if (typeof up === 'function') return up(match.loaderData);
   }
   return null;
 }
@@ -40,7 +40,7 @@ export function resolveTitleOverride(matches: readonly MatchLike[]): string | nu
   const page = matches.at(-1);
   const title = (page?.handle as TitleHandle | undefined)?.title;
   if (!page || typeof title !== 'function') return null;
-  return title(page.loaderData ?? page.data)?.trim() || null;
+  return title(page.loaderData)?.trim() || null;
 }
 
 export function useTitleOverride(): string | null {

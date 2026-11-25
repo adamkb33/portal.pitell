@@ -23,7 +23,7 @@ export type FormPageHandle = {
   formPage?: boolean;
 };
 
-type MatchLike = { handle?: unknown; data?: unknown; loaderData?: unknown };
+type MatchLike = { handle?: unknown; loaderData?: unknown };
 
 /**
  * Only the page being shown (the deepest match) counts; nothing is inherited from parent routes. So the create button
@@ -33,7 +33,7 @@ export function resolveCreateAction(matches: readonly MatchLike[]): CreateAction
   const page = matches.at(-1);
   const declared = (page?.handle as CreateActionHandle | undefined)?.createAction;
   if (!page || !declared) return null;
-  return typeof declared === 'function' ? declared(page.loaderData ?? page.data) : declared;
+  return typeof declared === 'function' ? declared(page.loaderData) : declared;
 }
 
 export function isFormPage(matches: readonly MatchLike[]): boolean {

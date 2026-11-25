@@ -30,8 +30,7 @@ function toMessageValue(message: unknown, fallback: string) {
   return fallback;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
+export async function loader({ request, url }: Route.LoaderArgs) {
   const inviteToken = url.searchParams.get('token');
 
   if (!inviteToken) {

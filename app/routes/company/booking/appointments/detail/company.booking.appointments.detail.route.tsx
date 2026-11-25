@@ -93,16 +93,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, url }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
 
   if (intent === 'no-show') {
-    return setNoShowFromForm(request, formData);
+    return setNoShowFromForm(request, url, formData);
   }
 
   if (intent !== 'delete') {
-    return redirectWithError(request, request.url, 'Ukjent handling');
+    return redirectWithError(request, url.href, 'Ukjent handling');
   }
 
   const id = formData.get('id');
@@ -110,19 +110,19 @@ export async function action({ request }: Route.ActionArgs) {
   const reason = formData.get('reason')?.toString().trim();
 
   if (!id) {
-    return redirectWithError(request, request.url, 'Mangler ID');
+    return redirectWithError(request, url.href, 'Mangler ID');
   }
 
   if (!startTime) {
-    return redirectWithError(request, request.url, 'Mangler tidspunkt for avtalen');
+    return redirectWithError(request, url.href, 'Mangler tidspunkt for avtalen');
   }
 
   if (!reason) {
-    return redirectWithError(request, request.url, 'Skriv en årsak til slettingen');
+    return redirectWithError(request, url.href, 'Skriv en årsak til slettingen');
   }
 
   if (isAppointmentCompleted({ startTime })) {
-    return redirectWithError(request, request.url, 'Fullførte avtaler kan ikke slettes');
+    return redirectWithError(request, url.href, 'Fullførte avtaler kan ikke slettes');
   }
 
   try {
@@ -136,7 +136,7 @@ export async function action({ request }: Route.ActionArgs) {
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.appointments'].href, 'Timebestilling slettet');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke slette timebestilling');
-    return redirectWithError(request, request.url, message);
+    return redirectWithError(request, url.href, message);
   }
 }
 

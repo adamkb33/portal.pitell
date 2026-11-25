@@ -194,7 +194,7 @@ export default function CompanyMarketingEmailCreateLayout({ loaderData }: Route.
       if (!draft.subject.trim() || shownBlocks.length === 0) return;
       previewFetcher.submit(
         { intent: 'preview', subject: draft.subject, blocks: JSON.stringify(shownBlocks), signature },
-        { method: 'post', action: stepHref('template'), unstable_defaultShouldRevalidate: false },
+        { method: 'post', action: stepHref('template'), defaultShouldRevalidate: false },
       );
     }, PREVIEW_DELAY_MS);
     return () => clearTimeout(timer);

@@ -21,21 +21,21 @@ export async function isBookingAdmin(request: Request): Promise<boolean> {
 }
 
 /** Handles the `no-show` form intent shared by the list and detail pages. */
-export async function setNoShowFromForm(request: Request, formData: FormData) {
+export async function setNoShowFromForm(request: Request, url: URL, formData: FormData) {
   const id = Number(formData.get('id'));
   const noShow = formData.get('noShow') === 'true';
 
   if (!Number.isInteger(id) || id <= 0) {
-    return redirectWithError(request, request.url, 'Mangler ID');
+    return redirectWithError(request, url.href, 'Mangler ID');
   }
 
   try {
     await withAuth(request, () =>
       CompanyUserAppointmentController.setAppointmentNoShow({ path: { id }, body: { noShow } }),
     );
-    return redirectWithSuccess(request, request.url, noShow ? 'Markert som ikke møtt' : 'Ikke møtt er angret');
+    return redirectWithSuccess(request, url.href, noShow ? 'Markert som ikke møtt' : 'Ikke møtt er angret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke oppdatere timen');
-    return redirectWithError(request, request.url, message);
+    return redirectWithError(request, url.href, message);
   }
 }

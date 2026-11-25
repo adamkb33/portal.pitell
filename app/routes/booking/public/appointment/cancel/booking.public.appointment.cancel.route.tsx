@@ -80,8 +80,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const url = new URL(request.url);
+export async function action({ request, url }: Route.ActionArgs) {
   const here = `${url.pathname}${url.search}`;
   const read = readCancelToken(String((await request.formData()).get('token') ?? '') || null);
   if ('error' in read) return redirectWithError(request, here, read.error);

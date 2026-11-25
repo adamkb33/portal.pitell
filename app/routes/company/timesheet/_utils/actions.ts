@@ -1,10 +1,3 @@
-import { redirect } from 'react-router';
-
-export const redirectBackToCurrentPage = (request: Request) => {
-  const url = new URL(request.url);
-  return redirect(url.pathname + url.search);
-};
-
 export const normalizeNote = (value: FormDataEntryValue | null) => value?.toString().trim() || undefined;
 
 export const parseNonNegativeInteger = (value: FormDataEntryValue | null) => {

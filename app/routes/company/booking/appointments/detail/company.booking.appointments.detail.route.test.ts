@@ -196,6 +196,7 @@ describe('company booking appointment detail route', () => {
 
     const result = await action({
       request: createRequest(undefined, { method: 'POST', body: formData }),
+      url: new URL('https://portal.pitell.no/company/booking/appointments/123'),
     } as never);
 
     expect(mocks.deleteAppointment).toHaveBeenCalledWith({
@@ -216,8 +217,13 @@ describe('company booking appointment detail route', () => {
     formData.append('startTime', '2020-07-08T10:00:00+02:00');
     formData.append('reason', 'Too late');
 
+    // A form submit in the browser is a .data request; React Router passes it raw and the page address as `url`.
     const result = await action({
-      request: createRequest(undefined, { method: 'POST', body: formData }),
+      request: createRequest('https://portal.pitell.no/company/booking/appointments/123.data', {
+        method: 'POST',
+        body: formData,
+      }),
+      url: new URL('https://portal.pitell.no/company/booking/appointments/123'),
     } as never);
 
     expect(mocks.deleteAppointment).not.toHaveBeenCalled();
