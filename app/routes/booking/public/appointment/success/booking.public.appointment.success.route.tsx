@@ -16,17 +16,12 @@ import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { AppointmentSessionService } from '~/routes/booking/public/_services/booking.appointment-session.service.server';
-import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
 import { cn, Container as BookingContainer, PageHeader as BookingStepHeader } from '~/ui';
 import { formatNorwegianDateTime } from '../session/overview/_utils/format-norwegian-date-time';
 import { SuccessLoyaltyCard } from './_components/success-loyalty-card';
 
-const ROUTE_ID = 'booking.public.appointment.success';
-
 export async function loader({ request }: Route.LoaderArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'loader', step: 'success' }, async () => {
-    return successLoader({ request } as Route.LoaderArgs);
-  });
+  return successLoader({ request } as Route.LoaderArgs);
 }
 
 async function findProviderName(
@@ -37,20 +32,10 @@ async function findProviderName(
   if (!session) return null;
 
   try {
-    const profilesResponse = await withBookingBackendCall(
-      {
-        request,
-        routeId: ROUTE_ID,
-        step: 'success',
-        call: 'get-provider',
-        context: { appointmentId: appointment.id, profileId: appointment.profileId },
-      },
-      () =>
-        withAuth(request, () =>
-          PublicAppointmentSessionController.getAppointmentSessionProfiles({
-            query: { sessionId: session.sessionId },
-          }),
-        ),
+    const profilesResponse = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentSessionProfiles({
+        query: { sessionId: session.sessionId },
+      }),
     );
     const profile = profilesResponse.data?.data?.find((item) => item.id === appointment.profileId);
     return profile ? [profile.givenName, profile.familyName].filter(Boolean).join(' ') : null;
@@ -62,10 +47,7 @@ async function findProviderName(
 // Best effort: a guest without a sign-in, or a company without a loyalty program, just gets no card.
 async function findLoyaltyCard(request: Request, companyId: number): Promise<LoyaltyCardDto | null> {
   try {
-    const response = await withBookingBackendCall(
-      { request, routeId: ROUTE_ID, step: 'success', call: 'get-loyalty-cards', context: { companyId } },
-      () => withAuth(request, () => AppointmentsController.getMyLoyaltyCards()),
-    );
+    const response = await withAuth(request, () => AppointmentsController.getMyLoyaltyCards());
     return response.data?.data?.find((card) => card.companyId === companyId) ?? null;
   } catch {
     return null;
@@ -96,40 +78,20 @@ async function successLoader({ request }: Route.LoaderArgs) {
       throw Error('Selskap ikke gjenkjent');
     }
 
-    await withBookingBackendCall(
-      {
-        request,
-        routeId: ROUTE_ID,
-        step: 'success',
-        call: 'validate-company-booking',
-        context: { companyId: parseInt(companyId) },
-      },
-      () =>
-        withAuth(request, () =>
-          AppointmentsController.validateCompanyBooking({
-            path: {
-              companyId: parseInt(companyId),
-            },
-          }),
-        ),
+    await withAuth(request, () =>
+      AppointmentsController.validateCompanyBooking({
+        path: {
+          companyId: parseInt(companyId),
+        },
+      }),
     );
 
-    const companyResponse = await withBookingBackendCall(
-      {
-        request,
-        routeId: ROUTE_ID,
-        step: 'success',
-        call: 'get-company',
-        context: { companyId: parseInt(companyId) },
-      },
-      () =>
-        withAuth(request, () =>
-          PublicCompanyController.publicGetCompanyById({
-            path: {
-              companyId: parseInt(companyId),
-            },
-          }),
-        ),
+    const companyResponse = await withAuth(request, () =>
+      PublicCompanyController.publicGetCompanyById({
+        path: {
+          companyId: parseInt(companyId),
+        },
+      }),
     );
 
     if (!companyResponse.data?.data) {
@@ -139,23 +101,13 @@ async function successLoader({ request }: Route.LoaderArgs) {
     try {
       // The backend only returns the appointment to its owner: the signed-in user or this booking session's user.
       const session = await AppointmentSessionService.get(request).catch(() => null);
-      const appointmentResponse = await withBookingBackendCall(
-        {
-          request,
-          routeId: ROUTE_ID,
-          step: 'success',
-          call: 'get-appointment',
-          context: { appointmentId: parsedAppointmentId },
-        },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.getAppointmentById({
-              query: {
-                appointmentId: parsedAppointmentId,
-                sessionId: session?.sessionId,
-              },
-            }),
-          ),
+      const appointmentResponse = await withAuth(request, () =>
+        PublicAppointmentSessionController.getAppointmentById({
+          query: {
+            appointmentId: parsedAppointmentId,
+            sessionId: session?.sessionId,
+          },
+        }),
       );
       const appointment = appointmentResponse.data?.data;
       if (!appointment) {

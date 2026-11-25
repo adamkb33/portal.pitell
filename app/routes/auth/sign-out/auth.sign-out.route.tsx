@@ -1,4 +1,5 @@
 import { Form, redirect, useNavigation } from 'react-router';
+import { logger } from '~/lib/logger';
 import type { Route } from './+types/auth.sign-out.route';
 
 import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/auth.cookies.server';
@@ -33,7 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     return redirect('/', { headers });
   } catch (error) {
-    console.error('[sign-out] Error:', error);
+    logger.error('[sign-out] failed', { error });
 
     return redirect('/auth/sign-in', { headers });
   }

@@ -1,5 +1,6 @@
 // app/routes/api/company/booking/profile/daily-schedule/delete.api-route.ts
 import { type ActionFunctionArgs } from 'react-router';
+import { logger } from '~/lib/logger';
 import { DailyScheduleController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -18,7 +19,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Arbeidstid fjernet');
   } catch (error: any) {
-    console.error(JSON.stringify(error, null, 2));
+    logger.error('[company.booking.profile.daily-schedule.delete] failed', { error });
 
     return redirectWithError(
       request,

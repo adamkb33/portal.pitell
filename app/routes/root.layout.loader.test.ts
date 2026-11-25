@@ -7,10 +7,8 @@ const mocks = vi.hoisted(() => ({
   defaultResponse: vi.fn(),
   refreshAndBuildResponse: vi.fn(),
   buildResponseData: vi.fn(),
-  logRouteStart: vi.fn(),
-  logRouteSuccess: vi.fn(),
-  logRouteError: vi.fn(),
   loggerError: vi.fn(),
+  loggerWarn: vi.fn(),
 }));
 
 vi.mock('../lib/flash-message.server', () => ({
@@ -43,15 +41,10 @@ vi.mock('./_features/root.loader', () => ({
   buildResponseData: mocks.buildResponseData,
 }));
 
-vi.mock('~/lib/routing/route-log', () => ({
-  logRouteStart: mocks.logRouteStart,
-  logRouteSuccess: mocks.logRouteSuccess,
-  logRouteError: mocks.logRouteError,
-}));
-
 vi.mock('~/lib/logger', () => ({
   logger: {
     error: mocks.loggerError,
+    warn: mocks.loggerWarn,
   },
 }));
 
@@ -85,12 +78,6 @@ describe('root.layout loader guards', () => {
 
     expect(result).toEqual({ kind: 'default' });
     expect(mocks.defaultResponse).toHaveBeenCalledWith('hello', expect.any(Request), expect.any(Object));
-    expect(mocks.logRouteSuccess).toHaveBeenCalledWith(
-      'loader',
-      'root.layout',
-      expect.any(Object),
-      expect.objectContaining({ branch: 'no-tokens' }),
-    );
   });
 
   it('uses refresh path when only refresh token exists', async () => {
@@ -101,12 +88,6 @@ describe('root.layout loader guards', () => {
 
     expect(result).toEqual({ kind: 'refresh' });
     expect(mocks.refreshAndBuildResponse).toHaveBeenCalledWith(request, 'refresh-token', null, expect.any(Object));
-    expect(mocks.logRouteSuccess).toHaveBeenCalledWith(
-      'loader',
-      'root.layout',
-      expect.any(Object),
-      expect.objectContaining({ branch: 'refresh-only' }),
-    );
   });
 
   it('uses refresh path when access token is expired and refresh token exists', async () => {
@@ -118,12 +99,6 @@ describe('root.layout loader guards', () => {
 
     expect(result).toEqual({ kind: 'refresh' });
     expect(mocks.refreshAndBuildResponse).toHaveBeenCalledWith(request, 'refresh-token', null, expect.any(Object));
-    expect(mocks.logRouteSuccess).toHaveBeenCalledWith(
-      'loader',
-      'root.layout',
-      expect.any(Object),
-      expect.objectContaining({ branch: 'expired-access-refresh' }),
-    );
   });
 
   it('falls back to default response when access token is expired and refresh token is missing', async () => {
@@ -136,12 +111,6 @@ describe('root.layout loader guards', () => {
 
     expect(result).toEqual({ kind: 'default' });
     expect(mocks.defaultResponse).toHaveBeenCalledWith(null, expect.any(Request), expect.any(Object));
-    expect(mocks.logRouteSuccess).toHaveBeenCalledWith(
-      'loader',
-      'root.layout',
-      expect.any(Object),
-      expect.objectContaining({ branch: 'expired-access-no-refresh' }),
-    );
   });
 
   it('uses access-token branch when access token is valid', async () => {
@@ -153,12 +122,6 @@ describe('root.layout loader guards', () => {
 
     expect(unwrapData(result)).toEqual({ kind: 'access' });
     expect(mocks.buildResponseData).toHaveBeenCalledWith(request, 'valid-access', null);
-    expect(mocks.logRouteSuccess).toHaveBeenCalledWith(
-      'loader',
-      'root.layout',
-      expect.any(Object),
-      expect.objectContaining({ branch: 'access-token' }),
-    );
   });
 
   it('returns default response when AuthenticationError is thrown', async () => {
@@ -170,7 +133,7 @@ describe('root.layout loader guards', () => {
 
     expect(result).toEqual({ kind: 'default' });
     expect(mocks.defaultResponse).toHaveBeenCalledWith(null, expect.any(Request), undefined);
-    expect(mocks.logRouteError).toHaveBeenCalledOnce();
+    expect(mocks.loggerWarn).toHaveBeenCalledOnce();
   });
 
   it('rethrows unexpected errors', async () => {
@@ -181,7 +144,5 @@ describe('root.layout loader guards', () => {
         request: new Request('http://localhost/'),
       } as never),
     ).rejects.toThrow('boom');
-
-    expect(mocks.logRouteError).toHaveBeenCalledOnce();
   });
 });

@@ -8,7 +8,6 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
 import { BookingFooterNav } from '~/routes/booking/public/_components/booking-footer-nav';
-import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import {
   OVERVIEW_RETURN_VALUE,
@@ -28,103 +27,82 @@ import {
 } from './_components/use-service-group-scroll';
 import { ServiceImageDialog } from './_components/service-image-dialog';
 import type { Route } from './+types/booking.public.appointment.session.select-services.route';
-
-const ROUTE_ID = 'booking.public.appointment.session.select-services';
 const MAX_TOTAL_SERVICES = 5;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'loader', step: 'select-services' }, async () => {
-    const routes = getBookingRouteMap();
-    const returnToOverview = shouldReturnToOverview(new URL(request.url).searchParams.get('returnTo'));
+  const routes = getBookingRouteMap();
+  const returnToOverview = shouldReturnToOverview(new URL(request.url).searchParams.get('returnTo'));
 
-    try {
-      const guardResult = await requireBookingSession(request);
-      if (guardResult instanceof Response) {
-        return guardResult;
-      }
-
-      const { session } = guardResult;
-
-      const serviceGroupsResponse = await withBookingBackendCall(
-        { request, routeId: ROUTE_ID, step: 'select-services', call: 'get-profile-services', session },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.getAppointmentSessionProfileServices({
-              query: {
-                sessionId: session.sessionId,
-              },
-            }),
-          ),
-      );
-
-      return data({
-        session,
-        serviceGroups: serviceGroupsResponse.data?.data || [],
-        returnToOverview,
-      });
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke hente tjenester');
-      return redirectWithError(request, routes.employee, message);
+  try {
+    const guardResult = await requireBookingSession(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
-  });
+
+    const { session } = guardResult;
+
+    const serviceGroupsResponse = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentSessionProfileServices({
+        query: {
+          sessionId: session.sessionId,
+        },
+      }),
+    );
+
+    return data({
+      session,
+      serviceGroups: serviceGroupsResponse.data?.data || [],
+      returnToOverview,
+    });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke hente tjenester');
+    return redirectWithError(request, routes.employee, message);
+  }
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'action', step: 'select-services' }, async () => {
-    const routes = getBookingRouteMap();
+  const routes = getBookingRouteMap();
 
-    try {
-      const guardResult = await requireBookingSession(request);
-      if (guardResult instanceof Response) {
-        return guardResult;
-      }
+  try {
+    const guardResult = await requireBookingSession(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
+    }
 
-      const { session } = guardResult;
-      const formData = await request.formData();
-      const returnToOverview = shouldReturnToOverview(formData.get('returnTo'));
-      const selectedServices = Array.from(formData.entries())
-        .filter(([key]) => key.startsWith('serviceQuantity:'))
-        .map(([key, value]) => {
-          const serviceId = Number(key.replace('serviceQuantity:', ''));
-          const quantity = Number(value);
-          return { serviceId, quantity };
-        })
-        .filter(
-          (item) =>
-            Number.isInteger(item.serviceId) &&
-            item.serviceId > 0 &&
-            Number.isInteger(item.quantity) &&
-            item.quantity > 0,
-        );
-
-      await withBookingBackendCall(
-        {
-          request,
-          routeId: ROUTE_ID,
-          step: 'select-services',
-          call: 'select-profile-services',
-          session,
-          context: { selectedServicesCount: selectedServices.length },
-        },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.selectAppointmentSessionProfileServices({
-              body: {
-                selectedServices,
-              },
-              query: {
-                sessionId: session.sessionId,
-              },
-            }),
-          ),
+    const { session } = guardResult;
+    const formData = await request.formData();
+    const returnToOverview = shouldReturnToOverview(formData.get('returnTo'));
+    const selectedServices = Array.from(formData.entries())
+      .filter(([key]) => key.startsWith('serviceQuantity:'))
+      .map(([key, value]) => {
+        const serviceId = Number(key.replace('serviceQuantity:', ''));
+        const quantity = Number(value);
+        return { serviceId, quantity };
+      })
+      .filter(
+        (item) =>
+          Number.isInteger(item.serviceId) &&
+          item.serviceId > 0 &&
+          Number.isInteger(item.quantity) &&
+          item.quantity > 0,
       );
 
-      return redirect(returnToOverview ? withOverviewReturnTo(routes.selectTime) : routes.selectTime);
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke lagre tjenestevalg');
-      return redirectWithError(request, routes.selectServices, message);
-    }
-  });
+    await withAuth(request, () =>
+      PublicAppointmentSessionController.selectAppointmentSessionProfileServices({
+        body: {
+          selectedServices,
+        },
+        query: {
+          sessionId: session.sessionId,
+        },
+      }),
+    );
+
+    return redirect(returnToOverview ? withOverviewReturnTo(routes.selectTime) : routes.selectTime);
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke lagre tjenestevalg');
+    return redirectWithError(request, routes.selectServices, message);
+  }
 }
 
 export default function BookingSelectServicesPage({ loaderData }: Route.ComponentProps) {

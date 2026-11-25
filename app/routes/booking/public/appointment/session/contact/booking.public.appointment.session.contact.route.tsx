@@ -10,11 +10,7 @@ import { logger } from '~/lib/logger';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
 import { BookingFooterNav } from '~/routes/booking/public/_components/booking-footer-nav';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
-import {
-  getBookingSessionLogContext,
-  withBookingBackendCall,
-  withBookingFlowLog,
-} from '~/routes/booking/public/_utils/booking-flow-log.server';
+import { getBookingSessionLogContext } from '~/routes/booking/public/_utils/booking-session-log';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
 import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
@@ -24,8 +20,6 @@ import { BOOKING_CONTACT_LABEL_CLASS } from './_utils/booking-contact-theme';
 import { clearManualContactOverride, hasManualContactOverride } from './_utils/manual-contact-override.cookie.server';
 import { mobileVerificationTokenCookie } from './_utils/mobile-verification-token.cookie.server';
 import type { Route } from './+types/booking.public.appointment.session.contact.route';
-
-const ROUTE_ID = 'booking.public.appointment.session.contact';
 const CARD_CLASS =
   'rounded-[var(--radius-booking-panel)] border-[length:var(--border-booking-card)] border-booking-border bg-booking-surface-raised shadow-[var(--shadow-booking-card)]';
 
@@ -37,275 +31,239 @@ type ContactFormValues = {
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'loader', step: 'contact' }, async () => {
-    const routes = getBookingRouteMap();
-    const url = new URL(request.url);
+  const routes = getBookingRouteMap();
+  const url = new URL(request.url);
 
-    const guardResult = await requireBookingSession(request);
-    if (guardResult instanceof Response) return guardResult;
-    const { session } = guardResult;
+  const guardResult = await requireBookingSession(request);
+  if (guardResult instanceof Response) return guardResult;
+  const { session } = guardResult;
 
-    if (!session.selectedProfileId) return redirect(routes.employee);
-    if (!session.selectedServices?.length) return redirect(routes.selectServices);
-    if (!session.selectedStartTime) return redirect(routes.selectTime);
+  if (!session.selectedProfileId) return redirect(routes.employee);
+  if (!session.selectedServices?.length) return redirect(routes.selectServices);
+  if (!session.selectedStartTime) return redirect(routes.selectTime);
 
-    const isEditingContact = url.searchParams.get('edit') === '1';
-    const manualContact =
-      isEditingContact ||
-      url.searchParams.get('form') === '1' ||
-      (await hasManualContactOverride(request, session.sessionId));
+  const isEditingContact = url.searchParams.get('edit') === '1';
+  const manualContact =
+    isEditingContact ||
+    url.searchParams.get('form') === '1' ||
+    (await hasManualContactOverride(request, session.sessionId));
 
-    if (manualContact) {
-      if (isEditingContact) {
-        try {
-          const response = await withBookingBackendCall(
-            { request, routeId: ROUTE_ID, step: 'contact', call: 'get-overview-for-edit', session },
-            () =>
-              withAuth(request, () =>
-                PublicAppointmentSessionController.getAppointmentSessionOverview({
-                  query: { sessionId: session.sessionId },
-                }),
-              ),
-          );
-          const user = response.data?.data?.user;
-          if (!user) {
-            return redirectWithError(request, routes.overview, 'Kunne ikke hente kontaktinformasjonen');
-          }
-
-          return data({
-            session,
-            requirementsError: null as string | null,
-            isEditingContact: true,
-            initialContact: {
-              givenName: user.givenName ?? '',
-              familyName: user.familyName ?? '',
-              mobileNumber: formatLocalMobileNumber(user.mobileNumber),
-              email: user.email ?? '',
-            } satisfies ContactFormValues,
-          });
-        } catch (error) {
-          const { message } = resolveErrorPayload(error, 'Kunne ikke hente kontaktinformasjonen');
-          return redirectWithError(request, routes.overview, message);
-        }
-      }
-
-      return data({
-        session,
-        requirementsError: null as string | null,
-        isEditingContact: false,
-        initialContact: null as ContactFormValues | null,
-      });
-    }
-
-    try {
-      const requirementsResponse = await withBookingBackendCall(
-        { request, routeId: ROUTE_ID, step: 'contact', call: 'get-requirements', session },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.getAppointmentSessionRequirements({
-              path: { sessionId: session.sessionId },
-            }),
-          ),
-      );
-      const requirements = requirementsResponse.data?.data ?? null;
-
-      if (requirements?.nextStep === 'DONE' && session.userId) {
-        const response = await withBookingBackendCall(
-          { request, routeId: ROUTE_ID, step: 'contact', call: 'resume-session', session },
-          () =>
-            withAuth(request, () =>
-              PublicAppointmentSessionController.resumeAppointmentSession({
-                path: { sessionId: session.sessionId },
-              }),
-            ),
-        );
-        const authTokens = response.data?.data?.authTokens;
-        const headers = authTokens
-          ? await authService.setAuthCookies(
-              authTokens.accessToken,
-              authTokens.refreshToken,
-              authTokens.accessTokenExpiresAt,
-              authTokens.refreshTokenExpiresAt,
-            )
-          : undefined;
-
-        return redirect(routes.overview, headers ? { headers } : undefined);
-      }
-
-      if (requirements?.canAttachAuthenticatedUser) {
-        try {
-          const response = await withBookingBackendCall(
-            { request, routeId: ROUTE_ID, step: 'contact', call: 'set-pending-user', session },
-            () =>
-              withAuth(request, () =>
-                PublicAppointmentSessionController.setPendingAppointmentSessionUser({
-                  path: { sessionId: session.sessionId },
-                }),
-              ),
-          );
-          const nextStep = response.data?.data?.nextStep;
-
-          if (nextStep === 'DONE') return redirect(routes.overview);
-          if (nextStep === 'VERIFY_MOBILE') return redirect(routes.contactVerifyMobile);
-
-          return data({
-            session,
-            requirementsError: 'Vi kunne ikke bruke den innloggede kontoen. Fyll ut kontaktinformasjonen.',
-            isEditingContact: false,
-            initialContact: null as ContactFormValues | null,
-          });
-        } catch (error) {
-          const { message } = resolveErrorPayload(error, 'Fyll ut kontaktinformasjonen for å fortsette.');
-          logger.error('[booking:contact:loader]', {
-            ...getBookingSessionLogContext(session),
-            contactResolution: 'attach-failed',
-            message,
-          });
-          return data({
-            session,
-            requirementsError: message,
-            isEditingContact: false,
-            initialContact: null as ContactFormValues | null,
-          });
-        }
-      }
-
-      if (requirements?.nextStep === 'VERIFY_MOBILE') {
-        const challengeParam = requirements.challengeId ? `?challengeId=${requirements.challengeId}` : '';
-        return redirect(`${routes.contactVerifyMobile}${challengeParam}`);
-      }
-
-      return data({
-        session,
-        requirementsError: null as string | null,
-        isEditingContact: false,
-        initialContact: null as ContactFormValues | null,
-      });
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke hente kontaktstatus');
-      logger.error('[booking:contact:loader]', {
-        ...getBookingSessionLogContext(session),
-        contactResolution: 'failed',
-        message,
-      });
-      return data({
-        session,
-        requirementsError: message,
-        isEditingContact: false,
-        initialContact: null as ContactFormValues | null,
-      });
-    }
-  });
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'action', step: 'contact' }, async () => {
-    const routes = getBookingRouteMap();
-
-    const guardResult = await requireBookingSession(request);
-    if (guardResult instanceof Response) return guardResult;
-    const { session } = guardResult;
-
-    const formData = await request.formData();
-    const intent = String(formData.get('intent') || 'identify');
-
-    if (intent === 'cancel-edit') {
+  if (manualContact) {
+    if (isEditingContact) {
       try {
-        await withBookingBackendCall(
-          { request, routeId: ROUTE_ID, step: 'contact', call: 'cancel-contact-replacement', session },
-          () =>
-            withAuth(request, () =>
-              Booking.cancelAppointmentSessionContactReplacement({
-                path: { sessionId: session.sessionId },
-              }),
-            ),
+        const response = await withAuth(request, () =>
+          PublicAppointmentSessionController.getAppointmentSessionOverview({
+            query: { sessionId: session.sessionId },
+          }),
         );
-        return redirect(routes.overview, {
-          headers: { 'Set-Cookie': await clearManualContactOverride() },
+        const user = response.data?.data?.user;
+        if (!user) {
+          return redirectWithError(request, routes.overview, 'Kunne ikke hente kontaktinformasjonen');
+        }
+
+        return data({
+          session,
+          requirementsError: null as string | null,
+          isEditingContact: true,
+          initialContact: {
+            givenName: user.givenName ?? '',
+            familyName: user.familyName ?? '',
+            mobileNumber: formatLocalMobileNumber(user.mobileNumber),
+            email: user.email ?? '',
+          } satisfies ContactFormValues,
         });
       } catch (error) {
-        const { message } = resolveErrorPayload(error, 'Kunne ikke avbryte kontaktendringen');
+        const { message } = resolveErrorPayload(error, 'Kunne ikke hente kontaktinformasjonen');
         return redirectWithError(request, routes.overview, message);
       }
     }
 
-    const isReplacingContact = formData.get('replacement') === '1';
-
-    const parsed = submitContactFormSchema.safeParse({
-      companyId: session.companyId,
-      givenName: String(formData.get('givenName') || '').trim(),
-      familyName: String(formData.get('familyName') || '').trim(),
-      mobileNumber: String(formData.get('mobileNumber') || '').trim(),
-      email: String(formData.get('email') || '').trim(),
+    return data({
+      session,
+      requirementsError: null as string | null,
+      isEditingContact: false,
+      initialContact: null as ContactFormValues | null,
     });
-    if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || 'Kontroller kontaktinformasjonen og prøv igjen.';
-      return data({ error: firstError }, { status: 400 });
-    }
+  }
 
-    try {
-      const mobileVerificationToken = await mobileVerificationTokenCookie.parse(request.headers.get('Cookie'));
-      const response = await withBookingBackendCall(
-        {
-          request,
-          routeId: ROUTE_ID,
-          step: 'contact',
-          call: 'identify-user',
-          session,
-          context: { hasEmail: Boolean(parsed.data.email) },
-        },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.identifyAppointmentSessionUser({
-              path: { sessionId: session.sessionId },
-              body: {
-                givenName: parsed.data.givenName,
-                familyName: parsed.data.familyName,
-                mobileNumber: parsed.data.mobileNumber,
-                email: parsed.data.email,
-                mobileVerificationToken:
-                  typeof mobileVerificationToken === 'string' ? mobileVerificationToken : undefined,
-              },
-            }),
-          ),
+  try {
+    const requirementsResponse = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentSessionRequirements({
+        path: { sessionId: session.sessionId },
+      }),
+    );
+    const requirements = requirementsResponse.data?.data ?? null;
+
+    if (requirements?.nextStep === 'DONE' && session.userId) {
+      const response = await withAuth(request, () =>
+        PublicAppointmentSessionController.resumeAppointmentSession({
+          path: { sessionId: session.sessionId },
+        }),
       );
+      const authTokens = response.data?.data?.authTokens;
+      const headers = authTokens
+        ? await authService.setAuthCookies(
+            authTokens.accessToken,
+            authTokens.refreshToken,
+            authTokens.accessTokenExpiresAt,
+            authTokens.refreshTokenExpiresAt,
+          )
+        : undefined;
 
-      const result = response.data?.data;
-      logger.info('[booking:contact:action]', {
-        ...getBookingSessionLogContext(session),
-        intent,
-        nextStep: result?.nextStep ?? null,
-      });
-
-      if (result?.nextStep === 'DONE') {
-        const headers = result.authTokens
-          ? await authService.setAuthCookies(
-              result.authTokens.accessToken,
-              result.authTokens.refreshToken,
-              result.authTokens.accessTokenExpiresAt,
-              result.authTokens.refreshTokenExpiresAt,
-            )
-          : new Headers();
-        headers.append('Set-Cookie', await clearManualContactOverride());
-        return redirect(routes.overview, { headers });
-      }
-
-      if (result?.nextStep === 'VERIFY_MOBILE') {
-        const headers = new Headers();
-        headers.append('Set-Cookie', await clearManualContactOverride());
-        const searchParams = new URLSearchParams();
-        if (result.challengeId) searchParams.set('challengeId', result.challengeId);
-        if (isReplacingContact) searchParams.set('replacement', '1');
-        const challengeParams = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
-        return redirect(`${routes.contactVerifyMobile}${challengeParams}`, { headers });
-      }
-
-      return data({ error: 'Kunne ikke fortsette. Kontroller kontaktinformasjonen og prøv igjen.' }, { status: 400 });
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke lagre kontaktinformasjon');
-      return data({ error: message }, { status: 400 });
+      return redirect(routes.overview, headers ? { headers } : undefined);
     }
+
+    if (requirements?.canAttachAuthenticatedUser) {
+      try {
+        const response = await withAuth(request, () =>
+          PublicAppointmentSessionController.setPendingAppointmentSessionUser({
+            path: { sessionId: session.sessionId },
+          }),
+        );
+        const nextStep = response.data?.data?.nextStep;
+
+        if (nextStep === 'DONE') return redirect(routes.overview);
+        if (nextStep === 'VERIFY_MOBILE') return redirect(routes.contactVerifyMobile);
+
+        return data({
+          session,
+          requirementsError: 'Vi kunne ikke bruke den innloggede kontoen. Fyll ut kontaktinformasjonen.',
+          isEditingContact: false,
+          initialContact: null as ContactFormValues | null,
+        });
+      } catch (error) {
+        const { message } = resolveErrorPayload(error, 'Fyll ut kontaktinformasjonen for å fortsette.');
+        logger.error('[booking:contact:loader]', {
+          ...getBookingSessionLogContext(session),
+          contactResolution: 'attach-failed',
+          message,
+        });
+        return data({
+          session,
+          requirementsError: message,
+          isEditingContact: false,
+          initialContact: null as ContactFormValues | null,
+        });
+      }
+    }
+
+    if (requirements?.nextStep === 'VERIFY_MOBILE') {
+      const challengeParam = requirements.challengeId ? `?challengeId=${requirements.challengeId}` : '';
+      return redirect(`${routes.contactVerifyMobile}${challengeParam}`);
+    }
+
+    return data({
+      session,
+      requirementsError: null as string | null,
+      isEditingContact: false,
+      initialContact: null as ContactFormValues | null,
+    });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke hente kontaktstatus');
+    logger.error('[booking:contact:loader]', {
+      ...getBookingSessionLogContext(session),
+      contactResolution: 'failed',
+      message,
+    });
+    return data({
+      session,
+      requirementsError: message,
+      isEditingContact: false,
+      initialContact: null as ContactFormValues | null,
+    });
+  }
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const routes = getBookingRouteMap();
+
+  const guardResult = await requireBookingSession(request);
+  if (guardResult instanceof Response) return guardResult;
+  const { session } = guardResult;
+
+  const formData = await request.formData();
+  const intent = String(formData.get('intent') || 'identify');
+
+  if (intent === 'cancel-edit') {
+    try {
+      await withAuth(request, () =>
+        Booking.cancelAppointmentSessionContactReplacement({
+          path: { sessionId: session.sessionId },
+        }),
+      );
+      return redirect(routes.overview, {
+        headers: { 'Set-Cookie': await clearManualContactOverride() },
+      });
+    } catch (error) {
+      const { message } = resolveErrorPayload(error, 'Kunne ikke avbryte kontaktendringen');
+      return redirectWithError(request, routes.overview, message);
+    }
+  }
+
+  const isReplacingContact = formData.get('replacement') === '1';
+
+  const parsed = submitContactFormSchema.safeParse({
+    companyId: session.companyId,
+    givenName: String(formData.get('givenName') || '').trim(),
+    familyName: String(formData.get('familyName') || '').trim(),
+    mobileNumber: String(formData.get('mobileNumber') || '').trim(),
+    email: String(formData.get('email') || '').trim(),
   });
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message || 'Kontroller kontaktinformasjonen og prøv igjen.';
+    return data({ error: firstError }, { status: 400 });
+  }
+
+  try {
+    const mobileVerificationToken = await mobileVerificationTokenCookie.parse(request.headers.get('Cookie'));
+    const response = await withAuth(request, () =>
+      PublicAppointmentSessionController.identifyAppointmentSessionUser({
+        path: { sessionId: session.sessionId },
+        body: {
+          givenName: parsed.data.givenName,
+          familyName: parsed.data.familyName,
+          mobileNumber: parsed.data.mobileNumber,
+          email: parsed.data.email,
+          mobileVerificationToken: typeof mobileVerificationToken === 'string' ? mobileVerificationToken : undefined,
+        },
+      }),
+    );
+
+    const result = response.data?.data;
+    logger.info('[booking:contact:action]', {
+      ...getBookingSessionLogContext(session),
+      intent,
+      nextStep: result?.nextStep ?? null,
+    });
+
+    if (result?.nextStep === 'DONE') {
+      const headers = result.authTokens
+        ? await authService.setAuthCookies(
+            result.authTokens.accessToken,
+            result.authTokens.refreshToken,
+            result.authTokens.accessTokenExpiresAt,
+            result.authTokens.refreshTokenExpiresAt,
+          )
+        : new Headers();
+      headers.append('Set-Cookie', await clearManualContactOverride());
+      return redirect(routes.overview, { headers });
+    }
+
+    if (result?.nextStep === 'VERIFY_MOBILE') {
+      const headers = new Headers();
+      headers.append('Set-Cookie', await clearManualContactOverride());
+      const searchParams = new URLSearchParams();
+      if (result.challengeId) searchParams.set('challengeId', result.challengeId);
+      if (isReplacingContact) searchParams.set('replacement', '1');
+      const challengeParams = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
+      return redirect(`${routes.contactVerifyMobile}${challengeParams}`, { headers });
+    }
+
+    return data({ error: 'Kunne ikke fortsette. Kontroller kontaktinformasjonen og prøv igjen.' }, { status: 400 });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke lagre kontaktinformasjon');
+    return data({ error: message }, { status: 400 });
+  }
 }
 
 export default function BookingSessionContactPage({ loaderData, actionData }: Route.ComponentProps) {

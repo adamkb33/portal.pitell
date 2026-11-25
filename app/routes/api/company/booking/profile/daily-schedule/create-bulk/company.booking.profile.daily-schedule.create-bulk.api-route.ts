@@ -1,5 +1,6 @@
 // app/routes/api/company/booking/profile/daily-schedule/create-bulk.api-route.ts
 import { DailyScheduleController } from '~/api/generated';
+import { logger } from '~/lib/logger';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { withAuth } from '~/api/utils/with-auth';
@@ -41,7 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Standard arbeidstider lagret');
   } catch (error: any) {
-    console.error(JSON.stringify(error, null, 2));
+    logger.error('[company.booking.profile.daily-schedule.create-bulk] failed', { error });
 
     return redirectWithError(
       request,

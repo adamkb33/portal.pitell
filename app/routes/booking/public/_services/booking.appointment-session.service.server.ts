@@ -1,4 +1,5 @@
 import { createCookie } from 'react-router';
+import { logger } from '~/lib/logger';
 import { PublicAppointmentSessionController, type ApiMessage, type AppointmentSessionDto } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 
@@ -109,14 +110,14 @@ export class AppointmentSessionService {
       }
 
       if (error instanceof Response) {
-        console.error('[AppointmentSessionService.get] failed', {
+        logger.error('[AppointmentSessionService.get] failed', {
           message: error.statusText,
           status: error.status,
         });
         return { status: 'failed', error };
       }
 
-      console.error('[AppointmentSessionService.get] failed', {
+      logger.error('[AppointmentSessionService.get] failed', {
         message: error instanceof Error ? error.message : String(error),
       });
       return { status: 'failed', error };
@@ -162,7 +163,7 @@ export class AppointmentSessionService {
           }),
         );
       } catch (error) {
-        console.error('[AppointmentSessionService.delete] failed', {
+        logger.error('[AppointmentSessionService.delete] failed', {
           message: error instanceof Error ? error.message : String(error),
         });
       }

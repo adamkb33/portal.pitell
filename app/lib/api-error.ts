@@ -1,5 +1,5 @@
 import { logger } from '~/lib/logger';
-import { describeAxiosError, sanitizeForLog } from '~/lib/http-log';
+import { describeAxiosError } from '~/lib/http-log';
 
 export type RouteErrorPayload = {
   message: string;
@@ -33,13 +33,9 @@ export const resolveErrorPayload = (error: unknown, fallbackMessage: string): Er
         ? (rawMessage as { value?: string; id?: string }).value || (rawMessage as { id?: string }).id
         : undefined;
 
-  if (responseError?.response) {
-    logger.error('[api-error] Axios request failed', describeAxiosError(error));
-  } else {
-    logger.error('[api-error] Non-Axios error', {
-      fallbackMessage,
-      error: sanitizeForLog(error),
-    });
+  // A failed backend call is already logged by the API client (status and backend message); anything else is not.
+  if (!responseError?.response) {
+    logger.error('[api-error] Non-backend error', { fallbackMessage, error: describeAxiosError(error) });
   }
 
   const details = responseError?.response?.data?.data;
@@ -52,7 +48,15 @@ export const resolveErrorPayload = (error: unknown, fallbackMessage: string): Er
   };
 };
 
-const NETWORK_ERROR_CODES = ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ERR_NETWORK', 'ECONNABORTED'];
+const NETWORK_ERROR_CODES = [
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ERR_NETWORK',
+  'ECONNABORTED',
+];
 
 /** True when the backend cannot be reached or answers with a server error (not a 4xx the user can fix). */
 export const isBackendDown = (error: unknown): boolean => {

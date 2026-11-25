@@ -1,4 +1,5 @@
 import { data, Form, redirect, useNavigation } from 'react-router';
+import { logger } from '~/lib/logger';
 import { Building2, ChevronRight, MapPin } from 'lucide-react';
 import { authService } from '~/lib/auth-service';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
@@ -31,14 +32,14 @@ export async function loader({ request }: Route.LoaderArgs) {
         try {
           return await signInToCompany(companyId, returnTo ?? ROUTES_MAP['company'].href);
         } catch (error) {
-          console.error('[company-context] Automatic sign-in error:', error);
+          logger.error('[company-context] automatic sign-in failed', { error });
           return redirectWithError(request, '/', 'Kunne ikke logge inn i selskapet. Prøv igjen.');
         }
       }
 
       return data({ companyContexts, returnTo });
     } catch (error: any) {
-      console.error('[company-context] Loader error:', error);
+      logger.error('[company-context] loader failed', { error });
       return data({ companyContexts: [], returnTo });
     }
   });
@@ -58,7 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
     try {
       return await signInToCompany(parseInt(companyId.toString()), returnTo ?? '/');
     } catch (error: any) {
-      console.error('[company-context] Action error:', error);
+      logger.error('[company-context] action failed', { error });
       return redirectWithError(
         request,
         ROUTES_MAP['user.company-context'].href,

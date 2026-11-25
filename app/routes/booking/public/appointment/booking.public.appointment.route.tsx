@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { logger } from '~/lib/logger';
 import { data, Link, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.route';
 import { AppointmentsController, type CompanySummaryDto } from '~/api/generated';
@@ -46,7 +47,7 @@ const buildCompanyQuery = (company: CompanySummaryDto): string | null => {
 async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<CompanyLocation[]> {
   const limitedCompanies = companies.slice(0, MAX_GEOCODE);
   if (companies.length > MAX_GEOCODE) {
-    console.debug('[companies-map] geocode limit reached', {
+    logger.debug('[companies-map] geocode limit reached', {
       totalCompanies: companies.length,
       maxGeocode: MAX_GEOCODE,
     });
@@ -57,7 +58,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
   for (const company of limitedCompanies) {
     const query = buildCompanyQuery(company);
     if (!query) {
-      console.warn('[companies-map] missing address info for company', {
+      logger.warn('[companies-map] missing address info for company', {
         id: company.id,
         name: company.name,
         orgNumber: company.orgNumber,
@@ -82,7 +83,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
       });
 
       if (!response.ok) {
-        console.warn('[companies-map] geocode request failed', {
+        logger.warn('[companies-map] geocode request failed', {
           id: company.id,
           name: company.name,
           status: response.status,
@@ -94,7 +95,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
 
       const data = (await response.json()) as Array<{ lat: string; lon: string }>;
       if (!data.length) {
-        console.warn('[companies-map] geocode returned no results', {
+        logger.warn('[companies-map] geocode returned no results', {
           id: company.id,
           name: company.name,
           query,
@@ -108,7 +109,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
         lat: Number(data[0].lat),
       });
     } catch (error) {
-      console.warn('[companies-map] geocode request threw', {
+      logger.warn('[companies-map] geocode request threw', {
         id: company.id,
         name: company.name,
         query,
@@ -121,7 +122,7 @@ async function geocodeCompanies(companies: CompanySummaryDto[]): Promise<Company
     }
   }
 
-  console.debug('[companies-map] geocode results', {
+  logger.debug('[companies-map] geocode results', {
     count: locations.length,
     results: locations.map((item) => ({
       id: item.company.id,
@@ -143,7 +144,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const response = await withAuth(request, () => AppointmentsController.getBookingReadyCompanies());
     const companies = response.data?.data ?? [];
 
-    console.debug('[companies-map] booking-ready companies', {
+    logger.debug('[companies-map] booking-ready companies', {
       count: companies.length,
       sample: companies.slice(0, 5).map((company) => ({
         id: company.id,
@@ -156,7 +157,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (!response.data?.data) {
       const message = response.data?.message || 'Kunne ikke hente timebestillinger';
-      console.warn('[companies-map] missing data payload', {
+      logger.warn('[companies-map] missing data payload', {
         message,
         status: response.status,
       });
@@ -164,14 +165,14 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
 
     const locations = await geocodeCompanies(companies);
-    console.debug('[companies-map] geocode summary', {
+    logger.debug('[companies-map] geocode summary', {
       companyCount: companies.length,
       locationCount: locations.length,
     });
     return data({ companies, locations, theme, error: null as string | null });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente timebestillinger');
-    console.error('[companies-map] loader failed', {
+    logger.error('[companies-map] loader failed', {
       message,
       status,
     });

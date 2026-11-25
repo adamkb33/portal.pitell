@@ -22,26 +22,14 @@ export async function withAuth<T>(request: Request, callback: () => Promise<T> |
     const cookieHeader = request.headers.get('Cookie');
     const accessToken = token || (await accessTokenCookie.parse(cookieHeader));
 
-    logger.info('[with-auth] Preparing authenticated request context', {
-      requestMethod: request.method,
-      requestUrl: request.url,
-      hasCookieHeader: Boolean(cookieHeader),
-      hasAccessToken: Boolean(accessToken),
-      tokenSource: token ? 'argument' : 'cookie',
-    });
-
     // NOTE: Generated SDK clients are process singletons.
     // We serialize authenticated calls to avoid cross-request header races.
     setAuthorizationHeader(accessToken || undefined);
 
     try {
-      const result = await callback();
-      logger.info('[with-auth] Authenticated request completed', {
-        requestMethod: request.method,
-        requestUrl: request.url,
-      });
-      return result;
+      return await callback();
     } catch (error) {
+      // The failed call itself is already logged by the API client; only a refused sign-in needs the token's claims.
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 401 || status === 403) {
         let tokenClaims: Record<string, unknown> | null = null;
@@ -64,17 +52,10 @@ export async function withAuth<T>(request: Request, callback: () => Promise<T> |
           tokenClaims = null;
         }
 
-        logger.info('[with-auth] Authenticated request denied', {
-          requestMethod: request.method,
-          requestUrl: request.url,
-          status,
+        logger.warn(`[with-auth] ${status} denied on ${request.method} ${new URL(request.url).pathname}`, {
+          hasAccessToken: Boolean(accessToken),
+          tokenSource: token ? 'argument' : 'cookie',
           tokenClaims,
-        });
-      } else {
-        logger.error('[with-auth] Authenticated request failed', {
-          requestMethod: request.method,
-          requestUrl: request.url,
-          error,
         });
       }
       throw error;

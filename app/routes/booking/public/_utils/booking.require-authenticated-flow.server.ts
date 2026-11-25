@@ -3,7 +3,6 @@ import type { AppointmentSessionDto } from '~/api/generated';
 import { PublicAppointmentSessionController } from '~/api/generated';
 import { withAuth } from '~/api/utils/with-auth';
 import { AppointmentSessionService } from '../_services/booking.appointment-session.service.server';
-import { withBookingBackendCall } from './booking-flow-log.server';
 import { getBookingRouteMap } from './booking.route-map';
 
 type GuardResult = {
@@ -12,10 +11,7 @@ type GuardResult = {
 
 export async function requireBookingSession(request: Request): Promise<GuardResult | Response> {
   const routes = getBookingRouteMap();
-  const sessionResult = await withBookingBackendCall(
-    { request, routeId: 'booking.guard.require-session', step: 'guard', call: 'get-session' },
-    () => AppointmentSessionService.getResult(request),
-  );
+  const sessionResult = await AppointmentSessionService.getResult(request);
   const session = sessionResult.status === 'found' ? sessionResult.session : null;
 
   if (sessionResult.status === 'stale-cookie') {
@@ -45,14 +41,10 @@ export async function requireBookingReady(request: Request): Promise<GuardResult
   const { session } = guardResult;
 
   try {
-    const response = await withBookingBackendCall(
-      { request, routeId: 'booking.guard.require-ready', step: 'guard', call: 'get-requirements', session },
-      () =>
-        withAuth(request, () =>
-          PublicAppointmentSessionController.getAppointmentSessionRequirements({
-            path: { sessionId: session.sessionId },
-          }),
-        ),
+    const response = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentSessionRequirements({
+        path: { sessionId: session.sessionId },
+      }),
     );
     const requirements = response.data?.data;
 

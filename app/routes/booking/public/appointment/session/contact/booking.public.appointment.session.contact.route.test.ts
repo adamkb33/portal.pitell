@@ -40,12 +40,6 @@ vi.mock('~/lib/logger', () => ({
   logger: { info: mocks.loggerInfo, error: mocks.loggerError },
 }));
 
-vi.mock('~/routes/booking/public/_utils/booking-flow-log.server', () => ({
-  getBookingSessionLogContext: () => ({}),
-  withBookingBackendCall: async (_context: unknown, callback: () => unknown) => callback(),
-  withBookingFlowLog: async (_context: unknown, callback: () => unknown) => callback(),
-}));
-
 vi.mock('~/routes/booking/public/_utils/booking.require-authenticated-flow.server', () => ({
   requireBookingSession: mocks.requireBookingSession,
 }));

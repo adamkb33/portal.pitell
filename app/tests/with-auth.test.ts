@@ -18,6 +18,7 @@ vi.mock('~/routes/auth/_features/auth.cookies.server', () => ({
 vi.mock('~/lib/logger', () => ({
   logger: {
     info: vi.fn(),
+    warn: vi.fn(),
     error: vi.fn(),
   },
 }));

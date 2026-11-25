@@ -17,7 +17,6 @@ import { getFlashMessage } from '../lib/flash-message.server';
 import { FlashMessageBanner } from './_components/flash-message-banner';
 import { Footer } from './_components/footer';
 import type { CompanySummaryDto } from '~/api/generated';
-import { logRouteError, logRouteStart, logRouteSuccess } from '~/lib/routing/route-log';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { useIsFormPage } from '~/lib/routing/create-action';
 import { BOOKING_THEME_TOKENS } from '~/lib/booking-theme';
@@ -34,11 +33,8 @@ export const middleware: Route.MiddlewareFunction[] = [
     }),
 ];
 
-export async function loader(args: Route.LoaderArgs) {
-  const { request } = args;
+export async function loader({ request }: Route.LoaderArgs) {
   let flashHeaders: HeadersInit | undefined;
-
-  logRouteStart('loader', 'root.layout', args);
 
   try {
     const { message: flashMessage, headers: flashCookie } = await getFlashMessage(request);
@@ -47,13 +43,11 @@ export async function loader(args: Route.LoaderArgs) {
 
     if (!accessToken && !refreshToken) {
       const response = await defaultResponse(flashMessage, request, flashHeaders);
-      logRouteSuccess('loader', 'root.layout', args, { branch: 'no-tokens' });
       return response;
     }
 
     if (!accessToken && refreshToken) {
       const response = await refreshAndBuildResponse(request, refreshToken, flashMessage, flashHeaders);
-      logRouteSuccess('loader', 'root.layout', args, { branch: 'refresh-only' });
       return response;
     }
 
@@ -61,33 +55,28 @@ export async function loader(args: Route.LoaderArgs) {
       if (authService.isTokenExpired(accessToken)) {
         if (refreshToken) {
           const response = await refreshAndBuildResponse(request, refreshToken, flashMessage, flashHeaders);
-          logRouteSuccess('loader', 'root.layout', args, { branch: 'expired-access-refresh' });
           return response;
         }
 
         const response = await defaultResponse(flashMessage, request, flashHeaders);
-        logRouteSuccess('loader', 'root.layout', args, { branch: 'expired-access-no-refresh' });
         return response;
       }
 
       const body = await buildResponseData(request, accessToken, flashMessage);
       const response = data(body, { headers: flashHeaders });
-      logRouteSuccess('loader', 'root.layout', args, { branch: 'access-token' });
       return response;
     }
 
     const response = await defaultResponse(flashMessage, request, flashHeaders);
-    logRouteSuccess('loader', 'root.layout', args, { branch: 'fallback-default' });
     return response;
   } catch (error) {
     if (error instanceof Response) {
       throw error;
     }
 
-    logRouteError('loader', 'root.layout', args, error);
-    logger.error('Root loader failed', { error: error instanceof Error ? error.message : String(error) });
-
+    // An expired sign-in just continues signed out; anything else is logged by the route instrumentation.
     if (error instanceof AuthenticationError) {
+      logger.warn('[root] sign-in no longer valid, continuing signed out', { error });
       return await defaultResponse(null, request, flashHeaders);
     }
 

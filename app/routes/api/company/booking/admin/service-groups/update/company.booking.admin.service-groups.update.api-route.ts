@@ -1,4 +1,5 @@
 import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
+import { logger } from '~/lib/logger';
 import type { Route } from './+types/company.booking.admin.service-groups.update.api-route';
 import { CompanyUserServiceGroupController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
@@ -30,7 +31,7 @@ export async function action({ request }: Route.ActionArgs) {
       'Tjenestegruppe oppdatert',
     );
   } catch (error: any) {
-    console.error(JSON.stringify(error, null, 2));
+    logger.error('[company.booking.admin.service-groups.update] failed', { error });
     return redirectWithError(
       request,
       ROUTES_MAP['company.booking.admin.service-groups'].href,

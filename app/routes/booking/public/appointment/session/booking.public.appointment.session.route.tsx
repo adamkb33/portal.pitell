@@ -11,11 +11,8 @@ import {
 } from '~/lib/booking-context.server';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { AppointmentSessionService } from '~/routes/booking/public/_services/booking.appointment-session.service.server';
-import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
 import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
 import { parseCompanyId } from '~/utils';
-
-const ROUTE_ID = 'booking.public.appointment.session';
 
 function appendSetCookie(headers: Headers, value: string | null | undefined) {
   if (value) {
@@ -41,9 +38,7 @@ async function validateCompanyBooking(companyId: number, request: Request) {
 }
 
 export async function loader(args: Route.LoaderArgs) {
-  return withBookingFlowLog({ request: args.request, routeId: ROUTE_ID, kind: 'loader', step: 'session' }, async () => {
-    return sessionLoader(args);
-  });
+  return sessionLoader(args);
 }
 
 async function sessionLoader(args: Route.LoaderArgs) {
@@ -72,22 +67,11 @@ async function sessionLoader(args: Route.LoaderArgs) {
     const shouldResetSession = url.searchParams.get('reset') === '1';
     const sessionResult = shouldResetSession
       ? ({ status: 'missing-cookie' } as const)
-      : await withBookingBackendCall(
-          { request: args.request, routeId: ROUTE_ID, step: 'session', call: 'get-session' },
-          () => AppointmentSessionService.getResult(args.request),
-        );
-    const resetSessionCookie = shouldResetSession
-      ? await withBookingBackendCall(
-          { request: args.request, routeId: ROUTE_ID, step: 'session', call: 'delete-session' },
-          () => AppointmentSessionService.delete(args.request),
-        )
-      : null;
+      : await AppointmentSessionService.getResult(args.request);
+    const resetSessionCookie = shouldResetSession ? await AppointmentSessionService.delete(args.request) : null;
 
     if (sessionResult.status === 'stale-cookie') {
-      const clearSessionCookie = await withBookingBackendCall(
-        { request: args.request, routeId: ROUTE_ID, step: 'session', call: 'delete-stale-session' },
-        () => AppointmentSessionService.delete(args.request),
-      );
+      const clearSessionCookie = await AppointmentSessionService.delete(args.request);
 
       if (!companyIdParam) {
         return redirectWithError(args.request, routes.appointment, 'Bookingøkten er utløpt. Start på nytt.', {
@@ -103,27 +87,9 @@ async function sessionLoader(args: Route.LoaderArgs) {
         });
       }
 
-      await withBookingBackendCall(
-        {
-          request: args.request,
-          routeId: ROUTE_ID,
-          step: 'session',
-          call: 'validate-company-booking',
-          context: { companyId: companyIdNumber },
-        },
-        () => validateCompanyBooking(companyIdNumber, args.request),
-      );
+      await validateCompanyBooking(companyIdNumber, args.request);
 
-      const created = await withBookingBackendCall(
-        {
-          request: args.request,
-          routeId: ROUTE_ID,
-          step: 'session',
-          call: 'create-session',
-          context: { companyId: companyIdNumber },
-        },
-        () => AppointmentSessionService.create(companyIdNumber, args.request),
-      );
+      const created = await AppointmentSessionService.create(companyIdNumber, args.request);
       const headers = new Headers();
       headers.append('Set-Cookie', clearSessionCookie);
       headers.append('Set-Cookie', created.setCookieHeader);
@@ -140,20 +106,8 @@ async function sessionLoader(args: Route.LoaderArgs) {
       const companyIdNumber = companyIdParam ? parseCompanyId(companyIdParam) : null;
 
       if (companyIdNumber !== null && session.companyId !== companyIdNumber) {
-        const clearSessionCookie = await withBookingBackendCall(
-          { request: args.request, routeId: ROUTE_ID, step: 'session', call: 'delete-session', session },
-          () => AppointmentSessionService.delete(args.request),
-        );
-        const created = await withBookingBackendCall(
-          {
-            request: args.request,
-            routeId: ROUTE_ID,
-            step: 'session',
-            call: 'create-session',
-            context: { companyId: companyIdNumber },
-          },
-          () => AppointmentSessionService.create(companyIdNumber, args.request),
-        );
+        const clearSessionCookie = await AppointmentSessionService.delete(args.request);
+        const created = await AppointmentSessionService.create(companyIdNumber, args.request);
         const headers = new Headers();
         appendSetCookie(headers, clearSessionCookie);
         appendSetCookie(headers, created.setCookieHeader);
@@ -179,27 +133,9 @@ async function sessionLoader(args: Route.LoaderArgs) {
       return redirectWithError(args.request, routes.appointment, 'Selskaps-ID er ugyldig.');
     }
 
-    await withBookingBackendCall(
-      {
-        request: args.request,
-        routeId: ROUTE_ID,
-        step: 'session',
-        call: 'validate-company-booking',
-        context: { companyId: companyIdNumber },
-      },
-      () => validateCompanyBooking(companyIdNumber, args.request),
-    );
+    await validateCompanyBooking(companyIdNumber, args.request);
 
-    const created = await withBookingBackendCall(
-      {
-        request: args.request,
-        routeId: ROUTE_ID,
-        step: 'session',
-        call: 'create-session',
-        context: { companyId: companyIdNumber },
-      },
-      () => AppointmentSessionService.create(companyIdNumber, args.request),
-    );
+    const created = await AppointmentSessionService.create(companyIdNumber, args.request);
     const headers = new Headers();
     appendSetCookie(headers, resetSessionCookie);
     appendSetCookie(headers, created.setCookieHeader);

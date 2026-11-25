@@ -1,7 +1,12 @@
 import * as React from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, type LinksFunction, type MetaFunction } from 'react-router';
 import { getRouteMetadata } from './lib/route-meta';
+import { requestLogMiddleware } from './lib/request-log.server';
+import type { Route } from './+types/root';
 import './app.css';
+
+// The app's root, so it runs for every server request: pages, their data and the API routes.
+export const middleware: Route.MiddlewareFunction[] = [requestLogMiddleware];
 
 export const meta: MetaFunction = ({ location }) => {
   const metadata = getRouteMetadata(location.pathname);

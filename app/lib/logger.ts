@@ -1,5 +1,6 @@
 import { ENV } from '~/api/config/env';
 import { sanitizeForLog } from '~/lib/http-log';
+import { currentRequestId } from '~/lib/request-id';
 
 interface LogContext {
   [key: string]: unknown;
@@ -32,20 +33,20 @@ class Logger {
     }
   }
 
+  /** One line of JSON with secrets redacted and personal data masked; empty fields are left out. */
   private serializeContext(context: LogContext): string {
-    return JSON.stringify(sanitizeForLog(context), null, 2);
+    const sanitized = sanitizeForLog(context) as LogContext;
+    const present = Object.fromEntries(Object.entries(sanitized).filter(([, value]) => value != null));
+    return Object.keys(present).length > 0 ? JSON.stringify(present) : '';
   }
 
+  // One entry is one line, so each log is a single searchable row in Vercel.
+  // A line written while serving a request starts with that request's id, so one search shows all it did.
   private write(level: 'error' | 'warn' | 'info' | 'debug', message: string, context?: LogContext): void {
     const payload = context ? this.serializeContext(context) : '';
-    const logMessage = `[${level.toUpperCase()}] ${message}`;
-
-    if (payload) {
-      console[level](logMessage, payload);
-      return;
-    }
-
-    console[level](logMessage);
+    const requestId = currentRequestId();
+    const logMessage = `[${level.toUpperCase()}]${requestId ? ` [${requestId}]` : ''} ${message}`;
+    console[level](payload ? `${logMessage} ${payload}` : logMessage);
   }
 }
 

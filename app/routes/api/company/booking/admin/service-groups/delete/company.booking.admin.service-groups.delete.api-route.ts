@@ -1,4 +1,5 @@
 import { loader as requireBookingAdmin } from '~/routes/company/booking/admin/company.booking.admin.layout';
+import { logger } from '~/lib/logger';
 import { CompanyUserServiceGroupController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -21,7 +22,7 @@ export async function action({ request }: Route.ActionArgs) {
       'Tjenestegruppe slettet',
     );
   } catch (error: any) {
-    console.error(JSON.stringify(error, null, 2));
+    logger.error('[company.booking.admin.service-groups.delete] failed', { error });
     return redirectWithError(
       request,
       ROUTES_MAP['company.booking.admin.service-groups'].href,

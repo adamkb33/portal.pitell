@@ -8,7 +8,6 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
 import { BookingFooterNav } from '~/routes/booking/public/_components/booking-footer-nav';
-import { withBookingBackendCall, withBookingFlowLog } from '~/routes/booking/public/_utils/booking-flow-log.server';
 import { requireBookingReady } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import {
   BOOKING_PRIVACY_URL,
@@ -24,8 +23,6 @@ import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-bookin
 import { BookingStepTemplate, Checkbox, cn, Container, Label, PageHeader } from '~/ui';
 import { formatNorwegianDateTime } from './_utils/format-norwegian-date-time';
 import type { Route } from './+types/booking.public.appointment.session.overview.route';
-
-const ROUTE_ID = 'booking.public.appointment.session.overview';
 
 /**
  * The booking this page just confirmed. React Router reloads the current page when the next page's code fails to
@@ -73,48 +70,42 @@ const bookingCheckboxClass =
   'mt-0.5 h-5 w-5 shrink-0 rounded-md border-2 border-booking-border-strong bg-booking-surface-raised accent-booking-action focus-visible:ring-booking-action-text';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'loader', step: 'overview' }, async () => {
-    const routes = getBookingRouteMap();
+  const routes = getBookingRouteMap();
 
-    try {
-      const guardResult = await requireBookingReady(request);
-      if (guardResult instanceof Response) {
-        return guardResult;
-      }
+  try {
+    const guardResult = await requireBookingReady(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
+    }
 
-      const { session } = guardResult;
-      const confirmed = await findConfirmedBooking(request, session);
-      if (confirmed) {
-        return redirect(successHref(confirmed.companyId, confirmed.appointmentId));
-      }
+    const { session } = guardResult;
+    const confirmed = await findConfirmedBooking(request, session);
+    if (confirmed) {
+      return redirect(successHref(confirmed.companyId, confirmed.appointmentId));
+    }
 
-      const response = await withBookingBackendCall(
-        { request, routeId: ROUTE_ID, step: 'overview', call: 'get-overview', session },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.getAppointmentSessionOverview({
-              query: {
-                sessionId: session.sessionId,
-              },
-            }),
-          ),
-      );
+    const response = await withAuth(request, () =>
+      PublicAppointmentSessionController.getAppointmentSessionOverview({
+        query: {
+          sessionId: session.sessionId,
+        },
+      }),
+    );
 
-      if (!response.data?.data) {
-        const message = response.data?.message || 'Kunne ikke hente oversikt';
-        return redirectWithError(request, routes.selectTime, message);
-      }
-
-      return {
-        sessionOverview: response.data.data,
-        // With one employee there is nothing to change, so the Behandler row has no "Endre".
-        canChangeEmployee: await hasSeveralEmployees(request, session),
-      };
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke hente oversikt');
+    if (!response.data?.data) {
+      const message = response.data?.message || 'Kunne ikke hente oversikt';
       return redirectWithError(request, routes.selectTime, message);
     }
-  });
+
+    return {
+      sessionOverview: response.data.data,
+      // With one employee there is nothing to change, so the Behandler row has no "Endre".
+      canChangeEmployee: await hasSeveralEmployees(request, session),
+    };
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke hente oversikt');
+    return redirectWithError(request, routes.selectTime, message);
+  }
 }
 
 /** True unless the salon has only one employee to book. If the list can't be loaded, keep "Endre" (the safe side). */
@@ -131,46 +122,40 @@ async function hasSeveralEmployees(request: Request, session: { sessionId: strin
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  return withBookingFlowLog({ request, routeId: ROUTE_ID, kind: 'action', step: 'overview' }, async () => {
-    const routes = getBookingRouteMap();
+  const routes = getBookingRouteMap();
 
-    try {
-      const guardResult = await requireBookingReady(request);
-      if (guardResult instanceof Response) {
-        return guardResult;
-      }
-
-      const { session } = guardResult;
-      const formData = await request.formData();
-      const submitResponse = await withBookingBackendCall(
-        { request, routeId: ROUTE_ID, step: 'overview', call: 'submit-appointment', session },
-        () =>
-          withAuth(request, () =>
-            PublicAppointmentSessionController.submitAppointmentSession({
-              query: {
-                sessionId: session.sessionId,
-                acceptedTerms: formData.get('acceptedTerms') === 'on',
-                marketingConsentEmail: formData.get('marketingConsentEmail') === 'on',
-                marketingConsentSms: formData.get('marketingConsentSms') === 'on',
-              },
-            }),
-          ),
-      );
-
-      const appointmentId = submitResponse.data?.data?.appointmentId;
-      if (!appointmentId) {
-        return redirectWithError(request, routes.overview, 'Kunne ikke bekrefte timebestilling');
-      }
-
-      const confirmed: ConfirmedBooking = { sessionId: session.sessionId, companyId: session.companyId, appointmentId };
-      return redirect(successHref(session.companyId, appointmentId), {
-        headers: { 'Set-Cookie': await confirmedBookingCookie.serialize(confirmed) },
-      });
-    } catch (error) {
-      const { message } = resolveErrorPayload(error, 'Kunne ikke bekrefte timebestilling');
-      return redirectWithError(request, routes.selectTime, message);
+  try {
+    const guardResult = await requireBookingReady(request);
+    if (guardResult instanceof Response) {
+      return guardResult;
     }
-  });
+
+    const { session } = guardResult;
+    const formData = await request.formData();
+    const submitResponse = await withAuth(request, () =>
+      PublicAppointmentSessionController.submitAppointmentSession({
+        query: {
+          sessionId: session.sessionId,
+          acceptedTerms: formData.get('acceptedTerms') === 'on',
+          marketingConsentEmail: formData.get('marketingConsentEmail') === 'on',
+          marketingConsentSms: formData.get('marketingConsentSms') === 'on',
+        },
+      }),
+    );
+
+    const appointmentId = submitResponse.data?.data?.appointmentId;
+    if (!appointmentId) {
+      return redirectWithError(request, routes.overview, 'Kunne ikke bekrefte timebestilling');
+    }
+
+    const confirmed: ConfirmedBooking = { sessionId: session.sessionId, companyId: session.companyId, appointmentId };
+    return redirect(successHref(session.companyId, appointmentId), {
+      headers: { 'Set-Cookie': await confirmedBookingCookie.serialize(confirmed) },
+    });
+  } catch (error) {
+    const { message } = resolveErrorPayload(error, 'Kunne ikke bekrefte timebestilling');
+    return redirectWithError(request, routes.selectTime, message);
+  }
 }
 
 export default function BookingOverviewPage({ loaderData }: Route.ComponentProps) {

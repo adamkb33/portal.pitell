@@ -1,4 +1,5 @@
 import { type ActionFunctionArgs } from 'react-router';
+import { logger } from '~/lib/logger';
 import { CompanyUserBookingProfileController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -25,7 +26,7 @@ export async function action({ request }: ActionFunctionArgs) {
           payload.dailySchedules = dailySchedules;
         }
       } catch (err) {
-        console.error('Failed to parse dailySchedules:', err);
+        logger.warn('[company.booking.profile.create-or-update] could not read dailySchedules', { error: err });
       }
     }
 
@@ -59,7 +60,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Bookingprofil lagret');
   } catch (error: any) {
-    console.error('Profile update error:', JSON.stringify(error, null, 2));
+    logger.error('[company.booking.profile.create-or-update] failed', { error });
 
     return redirectWithError(
       request,

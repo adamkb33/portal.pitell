@@ -1,5 +1,6 @@
 // routes/api/company/admin/employees/invite.api-route.ts
 import { type ActionFunctionArgs } from 'react-router';
+import { logger } from '~/lib/logger';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { AdminCompanyController } from '~/api/generated';
@@ -33,7 +34,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return redirectWithSuccess(request, ROUTES_MAP['company.admin.employees'].href, 'Invitasjon sendt');
   } catch (error: any) {
-    console.error(error);
+    logger.error('[company.admin.employees.invite] failed', { error });
     const errorMessage = error?.message || 'Kunne ikke invitere bruker';
     return redirectWithError(request, ROUTES_MAP['company.admin.employees'].href, errorMessage);
   }

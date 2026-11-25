@@ -24,11 +24,6 @@ vi.mock('~/lib/auth-service', () => ({
   authService: { setAuthCookies: vi.fn() },
 }));
 
-vi.mock('~/routes/booking/public/_utils/booking-flow-log.server', () => ({
-  withBookingBackendCall: async (_context: unknown, callback: () => unknown) => callback(),
-  withBookingFlowLog: async (_context: unknown, callback: () => unknown) => callback(),
-}));
-
 vi.mock('~/routes/booking/public/_utils/booking.require-authenticated-flow.server', () => ({
   requireBookingSession: mocks.requireBookingSession,
 }));
