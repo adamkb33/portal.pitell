@@ -19,18 +19,3 @@ export const toHoursEditEntryState = (entry: TimesheetDayEntryDto) => ({
   hours: entry.durationMinutes > 0 ? (entry.durationMinutes / 60).toString() : '',
   note: entry.note ?? '',
 });
-
-export const buildEditHref = (entry: TimesheetDayEntryDto | undefined) => {
-  if (!entry || entry.id == null) return undefined;
-
-  if (entry.entryMode === 'RANGE') {
-    return `/company/timesheets/range/${entry.id}`;
-  }
-
-  return `/company/timesheets/hours/${entry.id}`;
-};
-
-export const getEntryBreakMinutes = (entry: TimesheetDayEntryDto) => {
-  const candidate = (entry as TimesheetDayEntryDto & { breakMinutes?: unknown }).breakMinutes;
-  return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : 0;
-};

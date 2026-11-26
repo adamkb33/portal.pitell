@@ -1,6 +1,4 @@
-import * as React from 'react';
 import {
-  addDays,
   addMonths,
   eachDayOfInterval,
   endOfMonth,
@@ -17,9 +15,8 @@ import {
 } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '../lib/cn';
-
-type CalendarMode = 'single' | 'range';
 
 export type CalendarDateRange = {
   from?: Date;
@@ -316,8 +313,4 @@ export function Calendar({
       </div>
     </div>
   );
-}
-
-export function CalendarDayButton() {
-  return null;
 }

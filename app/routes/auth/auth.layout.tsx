@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router';
-import { AuthBackground } from '~/components/layout/page-backgrounds';
+import { AuthBackground } from '~/ui/layout/page-backgrounds';
 
 export default function AuthLayout() {
   return (

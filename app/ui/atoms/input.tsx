@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { cn } from '../lib/cn';
 
-export type InputSize = 'sm' | 'md' | 'lg';
-export type InputVariant = 'default' | 'booking';
+type InputSize = 'sm' | 'md' | 'lg';
+type InputVariant = 'default' | 'booking';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   size?: InputSize;

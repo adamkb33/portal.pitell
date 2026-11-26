@@ -6,7 +6,7 @@ import { resolveErrorPayload } from '~/lib/api-error';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 import { Badge, CompanyPageTemplate, PageNotice } from '~/ui';
 import type { Route } from './+types/company.admin.employees.invitation.route';
 

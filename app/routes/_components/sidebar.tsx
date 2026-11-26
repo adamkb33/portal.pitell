@@ -4,7 +4,7 @@ import { ChevronsUpDown } from 'lucide-react';
 import { cn } from '~/ui';
 import { ROUTES_MAP, type RouteBranch } from '~/lib/routing/route-tree';
 import { getIcon } from '~/lib/routing/route-icon-map';
-import PTLLogo from '~/components/logos/PTL.logo';
+import PTLLogo from '~/ui/logos/pitell-logo';
 
 export type SidebarWorkspace = {
   name: string;

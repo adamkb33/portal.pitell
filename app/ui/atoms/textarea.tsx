@@ -1,6 +1,6 @@
 import { cn } from '../lib/cn';
 
-export type TextareaSize = 'sm' | 'md' | 'lg';
+type TextareaSize = 'sm' | 'md' | 'lg';
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   size?: TextareaSize;

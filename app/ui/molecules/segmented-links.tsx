@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import { cn } from '../lib/cn';
 
-export type SegmentedLink = {
+type SegmentedLink = {
   key: string;
   label: string;
   to: string;

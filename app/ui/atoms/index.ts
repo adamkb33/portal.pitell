@@ -1,11 +1,12 @@
-export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './button';
-export { Badge, type BadgeProps, type BadgeSize, type BadgeVariant } from './badge';
-export { Checkbox, type CheckboxProps } from './checkbox';
-export { Icon, type IconProps } from './icon';
-export { ICONS, type IconName } from './icon-map';
-export { Input, type InputProps, type InputSize } from './input';
-export { Label, type LabelProps } from './label';
-export { Link, type LinkProps } from './link';
-export { Textarea, type TextareaProps, type TextareaSize } from './textarea';
-export { Text, type TextElement, type TextProps, type TextVariant } from './text';
-export { Switch, type SwitchProps } from './switch';
+export { Button, type ButtonVariant } from './button';
+export { Badge, type BadgeVariant } from './badge';
+export { Checkbox } from './checkbox';
+export { Icon } from './icon';
+
+export { Input } from './input';
+export { Label } from './label';
+
+export { Textarea } from './textarea';
+export { Text } from './text';
+export { Switch } from './switch';
+export { VerificationCodeInput } from './verification-code-input';

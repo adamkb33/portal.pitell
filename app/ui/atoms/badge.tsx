@@ -16,7 +16,7 @@ export type BadgeVariant =
   | 'purple'
   // filled
   | 'solid';
-export type BadgeSize = 'sm' | 'md';
+type BadgeSize = 'sm' | 'md';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: BadgeVariant;

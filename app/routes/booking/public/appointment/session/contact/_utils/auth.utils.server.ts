@@ -12,12 +12,3 @@ export async function requireVerificationToken(request: Request) {
   }
   return token;
 }
-
-export const getVerificationTokenFromRequest = async (request: Request) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const token = await verificationSessionToken.parse(cookieHeader);
-  if (!token || typeof token !== 'string') {
-    return null;
-  }
-  return token;
-};

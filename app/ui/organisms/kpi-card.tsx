@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Badge } from '../atoms/badge';
 import { cn } from '../lib/cn';
 
-export type KpiTone = 'primary' | 'success' | 'danger' | 'info' | 'purple' | 'warning';
-export type KpiTrend = 'up' | 'down' | 'flat';
+type KpiTone = 'primary' | 'success' | 'danger' | 'info' | 'purple' | 'warning';
+type KpiTrend = 'up' | 'down' | 'flat';
 
 export interface KpiCardProps extends React.HTMLAttributes<HTMLElement> {
   label: string;

@@ -23,6 +23,9 @@ vi.mock('~/lib/auth-service', () => ({
 
 import { action, getContactFieldVisibility, loader } from './auth.respond-user-invite.route';
 
+// React Router passes the page address as `url` next to the raw request; these tests call the route directly.
+const withUrl = <A extends { request: Request }>(args: A) => ({ ...args, url: new URL(args.request.url) });
+
 function unwrapData<T = unknown>(result: unknown): T {
   if (result && typeof result === 'object' && 'data' in (result as Record<string, unknown>)) {
     return (result as { data: T }).data;
@@ -47,14 +50,16 @@ describe('auth.respond-user-invite.route', () => {
 
   it('loader throws route error when token is missing', async () => {
     await expect(
-      loader({ request: new Request('http://localhost/auth/respond-user-invite') } as never),
+      loader(withUrl({ request: new Request('http://localhost/auth/respond-user-invite') }) as never),
     ).rejects.toMatchObject({ status: 400 });
   });
 
   it('loader returns decoded invite payload for valid token', async () => {
-    const result = await loader({
-      request: new Request('http://localhost/auth/respond-user-invite?token=abc123'),
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=abc123'),
+      }) as never,
+    );
 
     expect(mocks.decodeUserInvite).toHaveBeenCalledWith({
       query: { token: 'abc123' },
@@ -73,9 +78,11 @@ describe('auth.respond-user-invite.route', () => {
   it('loader returns invalid invite state when decode fails', async () => {
     mocks.decodeUserInvite.mockRejectedValueOnce(new Error('invalid token'));
 
-    const result = await loader({
-      request: new Request('http://localhost/auth/respond-user-invite?token=expired'),
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=expired'),
+      }) as never,
+    );
 
     expect(unwrapData(result)).toMatchObject({
       inviteToken: 'expired',
@@ -122,12 +129,14 @@ describe('auth.respond-user-invite.route', () => {
     formData.append('password', 'secret123');
     formData.append('password2', 'secret123');
 
-    const response = await action({
-      request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
-        method: 'POST',
-        body: formData,
-      }),
-    } as never);
+    const response = await action(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
+          method: 'POST',
+          body: formData,
+        }),
+      }) as never,
+    );
 
     expect(mocks.respondToUserInvite).toHaveBeenCalledWith({
       path: { inviteToken: 'abc123' },
@@ -151,12 +160,14 @@ describe('auth.respond-user-invite.route', () => {
     formData.append('password', 'secret123');
     formData.append('password2', 'different');
 
-    const result = await action({
-      request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
-        method: 'POST',
-        body: formData,
-      }),
-    } as never);
+    const result = await action(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
+          method: 'POST',
+          body: formData,
+        }),
+      }) as never,
+    );
 
     expect(unwrapData(result)).toMatchObject({
       fieldErrors: {
@@ -184,12 +195,14 @@ describe('auth.respond-user-invite.route', () => {
     formData.append('password2', 'secret123');
     formData.append('mobileNumber', '');
 
-    const result = await action({
-      request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
-        method: 'POST',
-        body: formData,
-      }),
-    } as never);
+    const result = await action(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
+          method: 'POST',
+          body: formData,
+        }),
+      }) as never,
+    );
 
     expect(unwrapData(result)).toMatchObject({
       fieldErrors: {
@@ -216,12 +229,14 @@ describe('auth.respond-user-invite.route', () => {
     formData.append('password', 'secret123');
     formData.append('password2', 'secret123');
 
-    const result = await action({
-      request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
-        method: 'POST',
-        body: formData,
-      }),
-    } as never);
+    const result = await action(
+      withUrl({
+        request: new Request('http://localhost/auth/respond-user-invite?token=abc123', {
+          method: 'POST',
+          body: formData,
+        }),
+      }) as never,
+    );
 
     expect(unwrapData(result)).toMatchObject({
       formError: 'VALIDATION_ERROR',

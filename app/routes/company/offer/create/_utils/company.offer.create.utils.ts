@@ -106,7 +106,7 @@ export function createBlankRecipientRow(index: number): RecipientFormRow {
   };
 }
 
-export function isSupportedTemplateField(field: OfferTemplateFieldDto) {
+function isSupportedTemplateField(field: OfferTemplateFieldDto) {
   return field.type === 'text' || field.type === 'textarea' || field.type === 'date' || field.type === 'panel_selector';
 }
 

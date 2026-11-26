@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router';
 import { AuthController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { getAccessTokenFromRequest } from '~/lib/auth.utils';
+import { readAccessToken } from '~/lib/auth.utils';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { describeMissingContact, type CollectContactKind } from '../_components/collect-contact-step';
@@ -13,7 +13,7 @@ import { readSignInFlow, writeSignInFlow } from './sign-in-flow.cookie.server';
  * the auth cookies. Without them there is nothing to complete.
  */
 export async function loadCollectContact(request: Request) {
-  if (!(await getAccessTokenFromRequest(request))) return redirect(ROUTES_MAP['auth.sign-in'].href);
+  if (!(await readAccessToken(request))) return redirect(ROUTES_MAP['auth.sign-in'].href);
   return null;
 }
 
@@ -28,7 +28,7 @@ export async function saveCollectContact(request: Request, kind: CollectContactK
   const stayWithError = async (text: string) =>
     data(null, { status: 400, headers: { 'Set-Cookie': await setFlashMessage(request, { type: 'error', text }) } });
 
-  if (!(await getAccessTokenFromRequest(request))) return redirect(ROUTES_MAP['auth.sign-in'].href);
+  if (!(await readAccessToken(request))) return redirect(ROUTES_MAP['auth.sign-in'].href);
   const missing = describeMissingContact(kind, value);
   if (missing) return stayWithError(`${missing}.`);
 

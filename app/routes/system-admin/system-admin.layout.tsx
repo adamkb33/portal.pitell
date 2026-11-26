@@ -1,16 +1,14 @@
 import { Outlet, redirect } from 'react-router';
-import type { Route } from './+types/system-admin.layout';
-import { authService } from '~/lib/auth-service';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { redirectWithError } from '~/lib/flash-message.server';
 import { AuthController } from '~/api/generated';
+import { authService } from '~/lib/auth-service';
+import { redirectWithError } from '~/lib/flash-message.server';
+import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { UserRole } from '~/lib/routing/route-types';
+import type { Route } from './+types/system-admin.layout';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let session: Awaited<ReturnType<typeof authService.getUserSession>>;
-
   try {
-    session = await authService.getUserSession(request);
+    await authService.getUserSession(request);
   } catch {
     throw redirect(ROUTES_MAP['auth.sign-in'].href);
   }

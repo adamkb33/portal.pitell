@@ -18,16 +18,6 @@ export function TableBody({ className, ...props }: React.ComponentProps<'tbody'>
   return <tbody data-slot="table-body" className={cn('divide-y divide-border-soft', className)} {...props} />;
 }
 
-export function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
-  return (
-    <tfoot
-      data-slot="table-footer"
-      className={cn('border-t border-border bg-surface font-medium text-text-primary', className)}
-      {...props}
-    />
-  );
-}
-
 export function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
@@ -62,8 +52,4 @@ export function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
       {...props}
     />
   );
-}
-
-export function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) {
-  return <caption data-slot="table-caption" className={cn('mt-3 text-xs text-text-secondary', className)} {...props} />;
 }

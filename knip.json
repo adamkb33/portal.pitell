@@ -1,0 +1,5 @@
+{
+  "ignore": ["app/api/generated/**"],
+  "entry": ["tests/e2e-booking/environment.setup.ts"],
+  "ignoreUnresolved": ["./gradlew"]
+}

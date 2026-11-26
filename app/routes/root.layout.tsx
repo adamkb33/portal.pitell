@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link, Outlet, data, isRouteErrorResponse, useLocation, useRouteError } from 'react-router';
 import { AlertTriangle, ArrowLeft, CloudOff, Home, RefreshCw, SearchX } from 'lucide-react';
 
-import { Navbar } from '~/components/layout/navbar';
+import { Navbar } from '~/ui/layout/navbar';
 import { type UserNavigation, RoutePlaceMent } from '~/lib/routing/route-tree';
 import { Sidebar } from './_components/sidebar';
 import { SidebarAccountMenu } from './_components/sidebar-account';
@@ -21,7 +21,7 @@ import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { useIsFormPage } from '~/lib/routing/create-action';
 import { BOOKING_THEME_TOKENS } from '~/lib/booking-theme';
 import { Button, cn } from '~/ui';
-import { AuthBackground, BookingBackground, CompanyBackground } from '~/components/layout/page-backgrounds';
+import { AuthBackground, BookingBackground, CompanyBackground } from '~/ui/layout/page-backgrounds';
 
 // If any backend call during a request fails as "backend down" (see create-logged-axios), show the problems page.
 export const middleware: Route.MiddlewareFunction[] = [

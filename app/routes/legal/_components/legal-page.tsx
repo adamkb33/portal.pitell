@@ -8,7 +8,7 @@ export type LegalSection = { title: string; body: ReactNode };
 export const OPERATOR_NAME = 'Baser IT Consulting';
 export const OPERATOR_ORG_NUMBER = '931 863 037';
 export const OPERATOR_ADDRESS = 'Bramers vei 41, 1613 Fredrikstad';
-export const CONTACT_EMAIL = 'post@pitell.no';
+const CONTACT_EMAIL = 'post@pitell.no';
 
 export function MailLink({ email = CONTACT_EMAIL }: { email?: string }) {
   return (

@@ -60,7 +60,7 @@ export async function getFlashMessage(request: Request) {
   };
 }
 
-export async function redirectWithFlash(
+async function redirectWithFlash(
   request: Request,
   url: string,
   message: FlashMessage,

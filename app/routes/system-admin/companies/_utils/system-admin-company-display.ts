@@ -16,7 +16,7 @@ export function parseNonNegativeInteger(value: string | null): number | undefine
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-export function getCompanyDisplayName(company: SystemAdminCompanyDto): string {
+function getCompanyDisplayName(company: SystemAdminCompanyDto): string {
   return company.name?.trim() || `Org.nr ${company.orgNum}`;
 }
 

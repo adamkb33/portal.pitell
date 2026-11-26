@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Form, useNavigation, useSubmit } from 'react-router';
+import { API_ROUTES_MAP } from '~/lib/routing/route-tree';
 import { CompanyFormPageTemplate, FormField } from '~/ui';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
-import { API_ROUTES_MAP, ROUTES_MAP } from '~/lib/routing/route-tree';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 
 export type ServiceGroupFormValues = {
   id?: number;

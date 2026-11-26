@@ -19,7 +19,7 @@ export function CardGrid({ gap = 'lg', className, ...props }: CardGridProps) {
   );
 }
 
-export type GridSpan = 3 | 4 | 6 | 8 | 9 | 12;
+type GridSpan = 3 | 4 | 6 | 8 | 9 | 12;
 
 const spanClasses: Record<GridSpan, string> = {
   3: 'lg:col-span-3',

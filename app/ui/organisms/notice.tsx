@@ -2,8 +2,8 @@ import { Text } from '../atoms/text';
 import { cn } from '../lib/cn';
 import { Card, CardContent, CardHead, type CardVariant } from './card';
 
-export type NoticeTone = 'default' | 'emphasis' | 'muted';
-export type NoticeVariant = 'default' | 'booking';
+type NoticeTone = 'default' | 'emphasis' | 'muted';
+type NoticeVariant = 'default' | 'booking';
 
 export interface NoticeProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;

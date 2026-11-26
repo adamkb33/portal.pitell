@@ -8,7 +8,7 @@ type Slot = ScheduleUnavailabilityGroupDto['blockedSlots'][number];
 const time = (value: string) => formatInTimeZone(value, DEFAULT_QUERY_TIMEZONE, 'HH:mm');
 
 /** A blocked slot that covers the whole day (00:00 → 23:59 or midnight). */
-export function isWholeDay(slot: Slot): boolean {
+function isWholeDay(slot: Slot): boolean {
   return time(slot.startTime) === '00:00' && ['00:00', '23:59'].includes(time(slot.endTime));
 }
 

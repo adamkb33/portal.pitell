@@ -16,7 +16,7 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
 
 export type MessageStatus = MarketingMessageDto['status'];
 
-export const MESSAGE_STATUSES: MessageStatus[] = ['SENT', 'QUEUED', 'FAILED', 'SKIPPED'];
+const MESSAGE_STATUSES: MessageStatus[] = ['SENT', 'QUEUED', 'FAILED', 'SKIPPED'];
 
 export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = {
   SENT: 'Sendt',

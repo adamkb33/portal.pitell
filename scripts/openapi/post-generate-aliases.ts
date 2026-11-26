@@ -67,4 +67,3 @@ if (source.includes(START) && source.includes(END)) {
 }
 
 writeFileSync(file, source, 'utf8');
-console.log('Applied generated API controller compatibility aliases.');

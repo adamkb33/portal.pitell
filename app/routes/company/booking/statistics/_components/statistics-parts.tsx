@@ -10,7 +10,7 @@ import { monthHref, monthTitle, shiftMonth } from '../_utils/month';
  * ‹ November 2026 › — steps one month back or forward and keeps the page. There is nothing after the current month,
  * so › is off there.
  */
-export function MonthStepper({ month, currentMonth }: { month: string; currentMonth: string }) {
+function MonthStepper({ month, currentMonth }: { month: string; currentMonth: string }) {
   const { pathname } = useLocation();
   const isCurrent = month >= currentMonth;
   const step = 'grid size-11 shrink-0 place-items-center rounded-lg sm:size-10';

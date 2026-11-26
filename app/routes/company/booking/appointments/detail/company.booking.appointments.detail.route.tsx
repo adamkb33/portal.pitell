@@ -2,7 +2,7 @@ import { Link, data, useFetcher } from 'react-router';
 import { useState } from 'react';
 import type { Route } from './+types/company.booking.appointments.detail.route';
 import { CompanyUserAppointmentController } from '~/api/generated';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -38,7 +38,7 @@ export function parseAppointmentRouteId(value: string | undefined): number | nul
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   const appointmentId = parseAppointmentRouteId(params.appointmentId);
 
   if (!appointmentId) {
@@ -46,7 +46,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   try {
-    const url = new URL(request.url);
     const from = url.searchParams.get('from') === 'kalender' ? 'kalender' : null;
     const requestedReturnTo = url.searchParams.get('returnTo');
     const returnTo = requestedReturnTo?.startsWith('/company/booking/schedule') ? requestedReturnTo : null;

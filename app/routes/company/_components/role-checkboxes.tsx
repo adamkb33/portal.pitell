@@ -2,7 +2,7 @@ import { CompanyRole } from '~/api/clients/types';
 import { Checkbox, cn } from '~/ui';
 
 /** What each role can open, from the route access in `company.routes.ts`. */
-export const ROLE_OPTIONS = [
+const ROLE_OPTIONS = [
   {
     value: CompanyRole.ADMIN as const,
     label: 'Administrator',

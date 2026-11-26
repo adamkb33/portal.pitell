@@ -1,29 +1,28 @@
-import type { FormPageHandle } from '~/lib/routing/create-action';
+import { FileText, Mail, PackagePlus, Plus, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { Form, data, redirect } from 'react-router';
-import { FileText, Mail, PackagePlus, Plus, Trash2, UserRound } from 'lucide-react';
-import type { Route } from './+types/company.offer.create.route';
 import { Offer, type OfferCatalogItemDto, type OfferTemplateDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { Button, CompanyFormPageTemplate, Input, Notice, Panel, ProgressSteps, PageNotice } from '~/ui';
+import type { FormPageHandle } from '~/lib/routing/create-action';
+import { Button, CompanyFormPageTemplate, Input, Notice, PageNotice, Panel, ProgressSteps } from '~/ui';
 import { formatOfferCurrency, getCompanyOfferDetailHref } from '../_utils';
+import type { Route } from './+types/company.offer.create.route';
 import { OfferDatePicker } from './_components/company.offer.date-picker';
 import { InfoTile } from './_components/company.offer.info-tile';
 import { TemplateFieldInput } from './_components/company.offer.template-field';
 import {
-  readCreateOfferValues,
+  calculatePreviewTotal,
+  countFilled,
+  createBlankLineRow,
+  createBlankRecipientRow,
+  createDefaultValues,
+  createLineRows,
+  createRecipientRows,
+  getTemplateFieldName,
   parseInitialLines,
   parseRecipientRows,
   parseTemplateData,
-  createDefaultValues,
-  calculatePreviewTotal,
-  createLineRows,
-  createRecipientRows,
-  createBlankLineRow,
-  createBlankRecipientRow,
-  getTemplateFieldName,
-  countFilled,
+  readCreateOfferValues,
 } from './_utils/company.offer.create.utils';
 
 /** A form page: the phone bottom menu hides and the page shows its own Lagre bar (ui-rules, rule 2). */

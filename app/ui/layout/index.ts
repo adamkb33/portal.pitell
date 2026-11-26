@@ -1,6 +1,6 @@
-export { CardGrid, type CardGridProps, GridCol, type GridColProps, type GridSpan } from './card-grid';
-export { Cluster, type ClusterProps } from './cluster';
-export { Container, type ContainerProps, type ContainerSize } from './container';
-export { Grid, type GridProps } from './grid';
-export { Inline, type InlineAlign, type InlineJustify, type InlineProps } from './inline';
-export { Stack, type StackProps } from './stack';
+export { CardGrid, GridCol } from './card-grid';
+
+export { Container } from './container';
+export { Grid } from './grid';
+export { Inline } from './inline';
+export { Stack } from './stack';

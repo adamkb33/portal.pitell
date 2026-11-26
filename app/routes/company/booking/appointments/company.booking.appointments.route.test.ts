@@ -29,6 +29,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getAppointmentDetailHref, loader } from './company.booking.appointments.route';
 
+// React Router passes the page address as `url` next to the raw request; these tests call the route directly.
+const withUrl = <A extends { request: Request }>(args: A) => ({ ...args, url: new URL(args.request.url) });
+
 const routeSource = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'company.booking.appointments.route.tsx'),
   'utf8',
@@ -60,9 +63,11 @@ describe('company booking appointments list route', () => {
   });
 
   it('loads the normal appointments list with default today filter when no appointmentId is present', async () => {
-    const result = await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments'),
-    } as never);
+    await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments'),
+      }) as never,
+    );
 
     expect(mocks.getAppointments).toHaveBeenCalledWith({
       query: {
@@ -75,9 +80,11 @@ describe('company booking appointments list route', () => {
   });
 
   it('always loads 25 appointments per page, ignoring a size query param', async () => {
-    await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments?size=50'),
-    } as never);
+    await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments?size=50'),
+      }) as never,
+    );
 
     expect(mocks.getAppointments).toHaveBeenCalledWith({
       query: expect.objectContaining({ size: 25 }),
@@ -85,9 +92,11 @@ describe('company booking appointments list route', () => {
   });
 
   it('does not perform query-param appointment detail loading from the list route', async () => {
-    const result = await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments?appointmentId=123'),
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments?appointmentId=123'),
+      }) as never,
+    );
 
     expect(mocks.getAppointments).toHaveBeenCalledOnce();
     expect(result.appointments).toEqual([]);

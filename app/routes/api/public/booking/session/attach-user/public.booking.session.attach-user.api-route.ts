@@ -1,13 +1,12 @@
 import { data } from 'react-router';
-import type { Route } from './+types/public.booking.session.attach-user.api-route';
 import { PublicAppointmentSessionController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { withoutLogin } from '~/lib/auth-middleware.server';
+import type { Route } from './+types/public.booking.session.attach-user.api-route';
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const sessionId = String(formData.get('sessionId') || '');
-  const userId = Number(formData.get('userId') || 0);
 
   try {
     const response = await withoutLogin(() =>

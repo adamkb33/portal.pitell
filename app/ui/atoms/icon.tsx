@@ -30,5 +30,3 @@ export const Icon = React.forwardRef<SVGSVGElement, IconProps>(function Icon(
     />
   );
 });
-
-export { ICONS, type IconName };

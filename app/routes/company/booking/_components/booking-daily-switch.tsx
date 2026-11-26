@@ -12,7 +12,7 @@ const DAILY_PAGES = [
 ] as const;
 
 /** Switches between the two daily booking pages without going back to the booking hub. */
-export function BookingDailySwitch() {
+function BookingDailySwitch() {
   const rootData = useRouteLoaderData<typeof rootLoader>('routes/root.layout');
   const allowedChildren =
     rootData?.userNavigation?.[RoutePlaceMent.SIDEBAR]

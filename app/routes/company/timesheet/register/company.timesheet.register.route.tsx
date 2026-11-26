@@ -2,7 +2,7 @@ import * as React from 'react';
 import { data, Link, useNavigation, useSubmit } from 'react-router';
 import type { Route } from './+types/company.timesheet.register.route';
 import { CompanyUserTimesheetEntryController } from '~/api/generated';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { StartEndTimeSelector } from '~/ui/pickers/start-end-time-selector';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';

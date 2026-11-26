@@ -19,8 +19,8 @@ import { cn, Container as BookingContainer, PageHeader as BookingStepHeader } fr
 import { formatNorwegianDateTime } from '../session/overview/_utils/format-norwegian-date-time';
 import { SuccessLoyaltyCard } from './_components/success-loyalty-card';
 
-export async function loader({ request }: Route.LoaderArgs) {
-  return successLoader({ request } as Route.LoaderArgs);
+export async function loader(args: Route.LoaderArgs) {
+  return successLoader(args);
 }
 
 async function findProviderName(
@@ -62,9 +62,8 @@ function appointmentDetailsUnavailable<T>(companySummary: T) {
   });
 }
 
-async function successLoader({ request }: Route.LoaderArgs) {
+async function successLoader({ request, url }: Route.LoaderArgs) {
   try {
-    const url = new URL(request.url);
     const companyId = url.searchParams.get('companyId');
     const appointmentId = url.searchParams.get('appointmentId');
     const parsedAppointmentId = appointmentId ? Number(appointmentId) : NaN;

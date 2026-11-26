@@ -6,7 +6,7 @@ import type { Route } from './+types/company.timesheet.route';
 import type { TimesheetDayEntryDto } from '~/api/generated';
 import { CompanyUserTimesheetEntryController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
-import { CalendarView, type CalendarEntry } from '~/components/calendar/CalendarView';
+import { CalendarView, type CalendarEntry } from '~/ui/calendar/calendar-view';
 import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
 import {
   Button,
@@ -20,9 +20,8 @@ import {
 } from '~/ui';
 import { parseTimesheetListRequest, serializeTimesheetQuery, TIMESHEET_STATUS_LABELS } from './_utils';
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   try {
-    const url = new URL(request.url);
     const { requestPayload } = parseTimesheetListRequest(url);
 
     const response = await CompanyUserTimesheetEntryController.getEntries({

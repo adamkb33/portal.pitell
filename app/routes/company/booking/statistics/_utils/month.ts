@@ -2,7 +2,7 @@
  * The month on the Statistikk pages lives in the URL (`?maned=2026-10`), like every filter, so a month can be linked
  * and survives a reload. No `maned` means the current month.
  */
-export const MONTH_PARAM = 'maned';
+const MONTH_PARAM = 'maned';
 
 const MONTH_NAMES = [
   'januar',

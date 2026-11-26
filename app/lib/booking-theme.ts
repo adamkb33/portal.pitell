@@ -14,17 +14,6 @@ export const BOOKING_THEME_KEYS = [
 ] as const;
 export type BookingThemeKey = (typeof BOOKING_THEME_KEYS)[number];
 
-export const BOOKING_THEME_LABELS: Record<BookingThemeKey, string> = {
-  pitell: 'Pitell',
-  ocean: 'Ocean',
-  sunset: 'Sunset',
-  forest: 'Forest',
-  graphite: 'Graphite',
-  berry: 'Berry',
-  sand: 'Sand',
-  'fredrikstad-barbershop': 'Fredrikstad Barbershop',
-};
-
 type Palette = {
   /** Primary action: buttons, selection, links. White text on it must pass AA. */
   action: string;

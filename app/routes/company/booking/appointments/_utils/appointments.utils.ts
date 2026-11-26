@@ -16,18 +16,6 @@ export const formatDateTime = (dateTime: string) => {
   });
 };
 
-export const getTotalPrice = (appointment: AppointmentDto) => {
-  const allServices = appointment.groupedServiceGroups?.flatMap((group) => group.services ?? []) ?? [];
-  const total = allServices.reduce((sum, service) => sum + (service.price ?? 0), 0);
-  return total.toLocaleString('nb-NO', { style: 'currency', currency: 'NOK' });
-};
-
-export const getTotalDuration = (appointment: AppointmentDto) => {
-  const allServices = appointment.groupedServiceGroups?.flatMap((group) => group.services ?? []) ?? [];
-  const total = allServices.reduce((sum, service) => sum + (service.duration ?? 0), 0);
-  return `${total} min`;
-};
-
 /** Numeric totals for display. Price and duration are estimates, so format them with the estimate helpers. */
 export const getAppointmentTotals = (appointment: AppointmentDto) => {
   const services = appointment.groupedServiceGroups?.flatMap((group) => group.services ?? []) ?? [];
@@ -40,7 +28,3 @@ export const getAppointmentTotals = (appointment: AppointmentDto) => {
 
 export const isAppointmentInProgress = (appointment: Pick<AppointmentDto, 'startTime' | 'endTime'>, now: Date) =>
   new Date(appointment.startTime) <= now && now <= new Date(appointment.endTime);
-
-export const getTotalServiceCount = (appointment: AppointmentDto) => {
-  return appointment.groupedServiceGroups?.reduce((sum, group) => sum + (group.services?.length ?? 0), 0) ?? 0;
-};

@@ -31,14 +31,14 @@ function describeMissingSignUpField(fields: SignUpFields): string | null {
 }
 
 /** Someone whose number or email had no account arrives from sign-in with it filled in, and keeps where they were going. */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   const flow = await readSignInFlow(request);
   const identifier = flow?.identifier ?? '';
   const isEmail = identifier.includes('@');
   return {
     email: isEmail ? identifier : '',
     mobileNumber: isEmail ? '' : identifier,
-    returnTo: getSafeReturnTo(new URL(request.url).searchParams.get('returnTo')) ?? flow?.returnTo ?? null,
+    returnTo: getSafeReturnTo(url.searchParams.get('returnTo')) ?? flow?.returnTo ?? null,
   };
 }
 

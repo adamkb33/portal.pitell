@@ -31,8 +31,6 @@ export const OFFER_ACTION_INTENTS = {
   enableRecipient: 'enable-recipient',
 } as const;
 
-export type OfferActionIntent = (typeof OFFER_ACTION_INTENTS)[keyof typeof OFFER_ACTION_INTENTS];
-
 export function parseOfferStatus(value: string | null): OfferDto['status'] | undefined {
   if (!value) return undefined;
   return OFFER_STATUS_OPTIONS.includes(value as OfferDto['status']) ? (value as OfferDto['status']) : undefined;

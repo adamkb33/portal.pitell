@@ -10,12 +10,6 @@ export const TIMESHEET_STATUS_LABELS: Record<TimesheetStatus, string> = {
   DECLINED: 'Avvist',
 };
 
-export const TIMESHEET_STATUS_VARIANTS: Record<TimesheetStatus, BadgeVariant> = {
-  SUBMITTED: 'secondary',
-  ACCEPTED: 'default',
-  DECLINED: 'destructive',
-};
-
 export const TIMESHEET_SUBMITTED_STATUS_LABELS: Record<TimesheetDayEntryDto['status'], string> = {
   SUBMITTED: 'Innlevert',
   ACCEPTED: 'Godkjent',

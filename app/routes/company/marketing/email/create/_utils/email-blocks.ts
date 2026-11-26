@@ -12,15 +12,6 @@ export type EditableBlock = { id: string } & (
   | { type: 'DIVIDER' }
 );
 
-export const BLOCK_LABELS: Record<EmailBlockType, string> = {
-  HEADING: 'Overskrift',
-  PARAGRAPH: 'Avsnitt',
-  BUTTON: 'Knapp',
-  DIVIDER: 'Skillelinje',
-};
-
-export const BLOCK_TYPES = Object.keys(BLOCK_LABELS) as EmailBlockType[];
-
 let lastBlockId = 0;
 const nextBlockId = () => `block-${++lastBlockId}`;
 

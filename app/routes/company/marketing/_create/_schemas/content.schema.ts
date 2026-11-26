@@ -19,7 +19,7 @@ export const MERGE_FIELDS = ['givenName', 'familyName', 'companyName'] as const;
 const MERGE_FIELD_PATTERN = /\{\{\s*([A-Za-z]+)\s*\}\}/g;
 
 /** Merge fields the backend does not know, as written in the text (for example `{{firstName}}`). */
-export function findUnknownMergeFields(text: string): string[] {
+function findUnknownMergeFields(text: string): string[] {
   const known: readonly string[] = MERGE_FIELDS;
   return [...text.matchAll(MERGE_FIELD_PATTERN)].filter((match) => !known.includes(match[1])).map((match) => match[0]);
 }

@@ -3,7 +3,7 @@ import { ServiceRow } from '~/routes/booking/public/appointment/session/select-s
 import { categoryTone, cn } from '~/ui';
 
 /** A service can be booked up to this many times in one appointment, like in the customer booking flow. */
-export const MAX_SERVICE_QUANTITY = 10;
+const MAX_SERVICE_QUANTITY = 10;
 
 type ServiceSelectorProps = {
   serviceGroups: GroupedServiceGroupDto[];

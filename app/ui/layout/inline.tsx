@@ -1,7 +1,7 @@
 import { cn } from '../lib/cn';
 import { type Space, gapSpaceClasses } from '../lib/spacing';
-export type InlineAlign = 'start' | 'center' | 'end';
-export type InlineJustify = 'start' | 'center' | 'end' | 'between';
+type InlineAlign = 'start' | 'center' | 'end';
+type InlineJustify = 'start' | 'center' | 'end' | 'between';
 
 export interface InlineProps extends React.HTMLAttributes<HTMLDivElement> {
   space?: Space;

@@ -1,16 +1,5 @@
-import { logger } from '~/lib/logger';
 import { describeAxiosError } from '~/lib/http-log';
-
-export type RouteErrorPayload = {
-  message: string;
-  code?: string;
-  details?: string;
-  fieldErrors?: Record<string, string[]>;
-};
-
-export type RouteData<T extends Record<string, unknown>, E extends Record<string, unknown> = {}> =
-  | ({ ok: true } & T)
-  | ({ ok: false; error: RouteErrorPayload } & E);
+import { logger } from '~/lib/logger';
 
 export type ErrorPayloadResult = {
   message: string;

@@ -18,6 +18,3 @@ export const submitContactFormSchema = z.object({
   email: optionalEmailValidator,
   mobileNumber: mobileNumberValidator,
 });
-
-export type SubmitContactFormInput = z.input<typeof submitContactFormSchema>;
-export type SubmitContactFormSchema = z.infer<typeof submitContactFormSchema>;

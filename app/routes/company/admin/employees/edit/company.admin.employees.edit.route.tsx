@@ -8,7 +8,7 @@ import { AdminCompanyController, AdminCompanyUserController, type CompanyUserDto
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 import { RoleCheckboxes } from '~/routes/company/_components/role-checkboxes';
 import { CompanyFormPageTemplate, PageNotice, categoryTone, cn } from '~/ui';
 

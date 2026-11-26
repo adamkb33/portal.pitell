@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Form, useNavigation, useSubmit } from 'react-router';
 import { format } from 'date-fns';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
-import { DateField } from '~/components/pickers/date-field';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
+import { DateField } from '~/ui/pickers/date-field';
+import { StartEndTimeSelector } from '~/ui/pickers/start-end-time-selector';
 import { CompanyFormPageTemplate, Label } from '~/ui';
 import { dayTitle, durationLabel } from '../../../_utils/periods';
 

@@ -1,23 +1,19 @@
-import type { FormPageHandle } from '~/lib/routing/create-action';
-import type { UpHandle } from '~/lib/routing/up-link';
 import { addMinutes, format, formatISO } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { data, Form, useNavigate, useNavigation, useSearchParams } from 'react-router';
+import type { UserDto } from '~/api/generated';
 import {
   CompanyUserAppointmentController,
   CompanyUserBookingProfileController,
   CompanyUserController,
   CompanyUserScheduleController,
 } from '~/api/generated';
-import type { ScheduleDto, UserDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
+import type { FormPageHandle } from '~/lib/routing/create-action';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import {
-  CustomerSelector,
-  customerInitials,
-  formatMobile,
-} from '~/routes/company/booking/_components/customer-selector';
+import type { UpHandle } from '~/lib/routing/up-link';
 import { DayPickerSection } from '~/routes/booking/public/appointment/session/select-time/_components/day-picker-section';
 import { QuickBookButton } from '~/routes/booking/public/appointment/session/select-time/_components/quick-book-button';
 import { TimeSlotsSection } from '~/routes/booking/public/appointment/session/select-time/_components/time-slots-section';
@@ -25,8 +21,24 @@ import {
   findScheduleWithTime,
   getEarliestSlot,
 } from '~/routes/booking/public/appointment/session/select-time/_utils/select-time-schedule';
+import {
+  customerInitials,
+  CustomerSelector,
+  formatMobile,
+} from '~/routes/company/booking/_components/customer-selector';
 import { ServicesSelector } from '~/routes/company/booking/_components/services-selector';
-import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
+import {
+  Panel as BookingSection,
+  Button,
+  categoryTone,
+  cn,
+  CompanyPageTemplate,
+  Input,
+  Label,
+  ListStrip,
+  Notice,
+  PageNotice,
+} from '~/ui';
 import type { Route } from './+types/company.booking.appointments.create.route';
 import {
   parseCreateFlowQueryState,
@@ -34,18 +46,6 @@ import {
   serializeQuantitiesParam,
   withCreateFlowQueryState,
 } from './_utils/create-flow-query-params';
-import {
-  Button,
-  CompanyPageTemplate,
-  Input,
-  Label,
-  ListStrip,
-  Notice,
-  Panel as BookingSection,
-  categoryTone,
-  cn,
-  PageNotice,
-} from '~/ui';
 
 /**
  * Ny time: Kunde → Tjenester → Tid (approved sketch 2026-11-09). A form page: the phone bottom menu hides and the page
@@ -275,10 +275,6 @@ const formatKr = (value: number) => `${value.toLocaleString('nb-NO')} kr`;
 const formatClock = (date: Date) =>
   date.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE });
 
-/** "tir 10. nov" (no trailing dots from the locale's abbreviations). */
-const shortDay = (date: Date) =>
-  `${format(date, 'EEE', { locale: nb }).replace(/\.$/, '')} ${format(date, 'd. MMM', { locale: nb }).replace(/\.$/, '')}`;
-
 export default function CompanyBookingAppointmentsCreatePage({ loaderData, actionData }: Route.ComponentProps) {
   type CustomerMode = 'existing' | 'new';
   const navigate = useNavigate();
@@ -362,9 +358,6 @@ export default function CompanyBookingAppointmentsCreatePage({ loaderData, actio
     : [state.email, state.mobileNumber && formatMobile(state.mobileNumber)].filter(Boolean).join(' · ');
 
   const start = draftStartTime ? new Date(draftStartTime) : null;
-  const timeLabel = start
-    ? `${shortDay(start)} · ${formatClock(start)}–${formatClock(addMinutes(start, totalDuration))}`
-    : null;
   const longTimeLabel = start ? format(start, 'EEEE d. MMMM', { locale: nb }) : null;
   const earliestSlot = useMemo(() => getEarliestSlot(loaderData.schedules), [loaderData.schedules]);
   // Until a day is picked, show the day of the chosen time, or the first day with free times (as in the customer flow).

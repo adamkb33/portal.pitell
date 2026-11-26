@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export const ICON_MAP = {
+const ICON_MAP = {
   Calendar,
   CalendarX2,
   Users,

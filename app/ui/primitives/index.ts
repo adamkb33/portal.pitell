@@ -6,8 +6,6 @@ export * from './carousel';
 export * from './dialog';
 export * from './dropdown-menu';
 export * from './popover';
-export * from './select';
 export * from './sheet';
 export * from './table';
 export * from './tabs';
-export * from './verification-code-input';

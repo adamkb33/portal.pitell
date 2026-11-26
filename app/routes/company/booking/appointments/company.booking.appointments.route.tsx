@@ -40,9 +40,8 @@ export const handle = {
 
 const PAGE_SIZE = LIST_PAGE_SIZE;
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   try {
-    const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '0', 10);
     const sort = url.searchParams.get('sort') || '';
     const search = url.searchParams.get('search')?.trim() || undefined;

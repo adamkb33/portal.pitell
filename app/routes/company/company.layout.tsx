@@ -1,5 +1,5 @@
 import { Outlet, redirect, useOutletContext } from 'react-router';
-import { CompanyBackground } from '~/components/layout/page-backgrounds';
+import { CompanyBackground } from '~/ui/layout/page-backgrounds';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import type { RootOutletContext } from '../root.layout';
 import type { Route } from './+types/company.route';

@@ -5,7 +5,7 @@ import { formatShortWait } from '~/routes/booking/public/appointment/session/con
 import { Stack, VerificationCodeInput } from '~/ui';
 import { AuthSubmitBar } from './auth-submit-bar';
 
-export const CODE_LENGTH = 6;
+const CODE_LENGTH = 6;
 
 /** What a code step's action answers: a new code is on its way, or what went wrong (with the wait, if any). */
 export type CodeActionData = { ok: true; message: string } | { ok: false; error: string; retryAfterSeconds?: number };

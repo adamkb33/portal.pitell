@@ -29,7 +29,7 @@ export type ButtonVariant =
   | 'outline-success'
   | 'outline-danger';
 
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
+type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;

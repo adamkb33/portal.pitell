@@ -47,8 +47,7 @@ function buildSignInHref(returnTo?: string | null) {
   return returnTo ? `${href}?${new URLSearchParams({ returnTo })}` : href;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
+export async function loader({ request, url }: Route.LoaderArgs) {
   const flow = await readSignInFlow(request);
   // "Endre" on a later step comes back here with the number or email still filled in.
   return {

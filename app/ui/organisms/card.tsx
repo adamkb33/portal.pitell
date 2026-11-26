@@ -1,11 +1,11 @@
-import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
+import * as React from 'react';
 import { Text } from '../atoms/text';
 import { cn } from '../lib/cn';
 import { insetSpaceClasses, type InsetSpace } from '../lib/spacing';
 
 export type CardVariant = 'default' | 'subtle' | 'emphasis' | 'interactive' | 'ghost' | 'bordered';
-export type CardSize = InsetSpace;
+type CardSize = InsetSpace;
 
 export interface CardProps extends React.HTMLAttributes<HTMLElement> {
   variant?: CardVariant;
@@ -35,34 +35,6 @@ export function Card({ variant = 'default', size = 'md', as: Component = 'div', 
       )}
       {...props}
     />
-  );
-}
-
-export interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-export function CardHeader({ className, ...props }: CardHeaderProps) {
-  return <div className={cn('mb-4 space-y-1', className)} {...props} />;
-}
-
-export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  as?: 'h2' | 'h3' | 'h4';
-}
-
-export function CardTitle({ as = 'h3', className, children, ...props }: CardTitleProps) {
-  return (
-    <Text as={as} variant="heading-sm" className={cn(className)} {...props}>
-      {children}
-    </Text>
-  );
-}
-
-export interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
-
-export function CardDescription({ className, children, ...props }: CardDescriptionProps) {
-  return (
-    <Text as="p" variant="body-sm" className={cn('text-text-secondary', className)} {...props}>
-      {children}
-    </Text>
   );
 }
 

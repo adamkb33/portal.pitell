@@ -1,23 +1,16 @@
-import { Link, Form } from 'react-router';
-import { FileText, Send, CheckCircle2, XCircle } from 'lucide-react';
-import type { Route } from './+types/company.offer.route';
+import { CheckCircle2, FileText, Send } from 'lucide-react';
+import { Form, Link } from 'react-router';
 import { Offer, type OfferDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
+import type { CreateActionHandle } from '~/lib/routing/create-action';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { OfferStatusBadge } from './_components';
 import { PageCreateButton } from '~/routes/_components/page-create-button';
-import {
-  formatOfferDate,
-  getCompanyOfferDetailHref,
-  OFFER_STATUS_LABELS,
-  OFFER_STATUS_OPTIONS,
-  parseOfferStatus,
-} from './_utils';
 import {
   Button,
   CompanyEmptyState,
   CompanyPageTemplate,
   KpiCard,
+  PageNotice,
   Panel,
   Table,
   TableBody,
@@ -25,9 +18,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  PageNotice,
 } from '~/ui';
-import type { CreateActionHandle } from '~/lib/routing/create-action';
+import type { Route } from './+types/company.offer.route';
+import { OfferStatusBadge } from './_components';
+import {
+  formatOfferDate,
+  getCompanyOfferDetailHref,
+  OFFER_STATUS_LABELS,
+  OFFER_STATUS_OPTIONS,
+  parseOfferStatus,
+} from './_utils';
 
 export const handle = {
   createAction: { label: 'Nytt tilbud', to: ROUTES_MAP['company.offer.create'].href },

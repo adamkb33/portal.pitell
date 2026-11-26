@@ -1,9 +1,9 @@
 import type { OfferTemplateFieldDto } from '~/api/generated';
-import { Checkbox, Input, Textarea } from '~/ui';
+import { Input, Textarea } from '~/ui';
 import type { TemplateFieldValue } from '../_types/company.offer.create.types';
 import { getTemplateFieldName } from '../_utils/company.offer.create.utils';
-import { OfferDatePicker } from './company.offer.date-picker';
 import { CarPanelSelector } from './company.offer.car-panel-selector';
+import { OfferDatePicker } from './company.offer.date-picker';
 
 export function TemplateFieldInput({
   templateId,

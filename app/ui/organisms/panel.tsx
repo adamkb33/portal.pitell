@@ -2,7 +2,7 @@ import { Text } from '../atoms/text';
 import type { SectionHeaderProps } from '../molecules/section-header';
 import { Card, CardContent, CardHead, type CardVariant } from './card';
 
-export type PanelTone = 'default' | 'muted' | 'emphasis';
+type PanelTone = 'default' | 'muted' | 'emphasis';
 
 export interface PanelProps extends React.HTMLAttributes<HTMLElement> {
   label?: string;

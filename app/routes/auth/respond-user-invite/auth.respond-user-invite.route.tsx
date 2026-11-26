@@ -79,8 +79,7 @@ export const getContactFieldVisibility = (invite: InvitePayload): ContactFieldVi
   return { showEmail: true, showMobileNumber: true };
 };
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
+export async function loader({ request, url }: Route.LoaderArgs) {
   const inviteToken = url.searchParams.get('token')?.trim();
 
   if (!inviteToken) {
@@ -121,8 +120,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const url = new URL(request.url);
+export async function action({ request, url }: Route.ActionArgs) {
   const inviteToken = url.searchParams.get('token')?.trim();
 
   if (!inviteToken) {

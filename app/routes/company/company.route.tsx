@@ -1,28 +1,18 @@
-import { data, Link, redirect, useRouteLoaderData } from 'react-router';
-import {
-  Bell,
-  CalendarDays,
-  ChevronRight,
-  Clock,
-  FileText,
-  MapPin,
-  Megaphone,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react';
+import { Bell, CalendarDays, Clock, FileText, MapPin, Megaphone, Settings, type LucideIcon } from 'lucide-react';
+import { data, redirect, useRouteLoaderData } from 'react-router';
 import { CompanyUserController, CompanyUserInAppNotificationController, type AddressDto } from '~/api/generated';
-import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { serializeQueryParams } from '~/lib/query';
 import { hasBranch } from '~/lib/routing/has-branch';
 import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
-import type { loader as rootLoader } from '~/routes/root.layout';
 import { CompanyRow, OverviewRow } from '~/routes/company/_components/overview-rows';
 import { KeyDestinationCard } from '~/routes/company/booking/_components/key-destination-card';
 import { countTodayAndUpcomingAppointments } from '~/routes/company/booking/_utils/appointment-counts.server';
 import { UNREAD_COUNT_REQUEST } from '~/routes/company/notifications/_utils/query';
-import { CompanyPageTemplate, cn } from '~/ui';
+import type { loader as rootLoader } from '~/routes/root.layout';
+import { CompanyPageTemplate } from '~/ui';
 import type { Route } from './+types/company.route';
 
 async function countUnreadNotifications(request: Request): Promise<number | null> {

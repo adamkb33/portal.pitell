@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Mobile numbers are typed with spaces ("912 34 567"); compare and send them without. */
-export const normalizeMobile = (value: string | undefined) => (value ?? '').replace(/\s+/g, '');
+const normalizeMobile = (value: string | undefined) => (value ?? '').replace(/\s+/g, '');
 
 export const ContactFormSchema = z.object({
   givenName: z.string().trim().min(1, 'Skriv inn fornavn').max(100, 'Maks 100 tegn'),

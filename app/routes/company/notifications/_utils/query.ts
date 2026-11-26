@@ -4,7 +4,7 @@ import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
 /** Alle | Uleste lives in the URL (`?vis=uleste`), like every list filter. */
 export const SHOW_PARAM = 'vis';
 export const SHOW_UNREAD = 'uleste';
-export const NOTIFICATIONS_PAGE_SIZE = LIST_PAGE_SIZE;
+const NOTIFICATIONS_PAGE_SIZE = LIST_PAGE_SIZE;
 
 export type NotificationListFilters = {
   page: number;

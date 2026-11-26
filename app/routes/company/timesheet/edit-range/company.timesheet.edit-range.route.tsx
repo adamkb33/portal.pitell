@@ -6,7 +6,7 @@ import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { Button, CompanyPageTemplate, Input, Label, Notice, Panel, Textarea } from '~/ui';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { StartEndTimeSelector } from '~/ui/pickers/start-end-time-selector';
 import {
   formatDateInputToZonedISOString,
   normalizeNote,

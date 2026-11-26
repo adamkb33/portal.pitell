@@ -130,4 +130,4 @@ export async function addSentMessage(db: Pool, customer: MarketingCustomer, rawT
   return Number(message.rows[0].id);
 }
 
-export const sha256 = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex');
+const sha256 = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex');

@@ -5,7 +5,7 @@ import { redirect } from 'react-router';
 import type { AuthenticationTokenDto } from '~/api/generated';
 import { readAccessToken } from '~/lib/auth.utils';
 
-export interface AuthenticatedUserPayload {
+interface AuthenticatedUserPayload {
   id: number;
   email?: string;
   companyId?: number;
@@ -13,7 +13,7 @@ export interface AuthenticatedUserPayload {
   companyProducts?: Array<'BOOKING' | 'EVENT' | 'OFFER' | 'MARKETING' | 'TIMESHEET'>;
 }
 
-export type UserSession = {
+type UserSession = {
   user: AuthenticatedUserPayload;
   accessToken: string;
 };
@@ -32,7 +32,7 @@ interface JwtClaimsPayload extends JwtPayload {
   companyId?: number;
 }
 
-export class AuthService {
+class AuthService {
   private readonly jwtSecret: string;
 
   constructor(jwtSecret: string = ENV.JWT_SECRET) {

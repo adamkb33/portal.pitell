@@ -19,7 +19,7 @@ const parsePositiveInt = (value: string | null): number | null => {
   return parsed;
 };
 
-export const parseServiceIdsParam = (value: string | null): number[] => {
+const parseServiceIdsParam = (value: string | null): number[] => {
   if (!value) return [];
   return value
     .split(',')
@@ -43,7 +43,7 @@ export const serializeQuantitiesParam = (quantities: Record<number, number>, ser
     .map((id) => `${id}:${quantities[id]}`)
     .join(',');
 
-export const serializeServiceIdsParam = (serviceIds: number[]): string => {
+const serializeServiceIdsParam = (serviceIds: number[]): string => {
   return serviceIds.filter((id) => Number.isInteger(id) && id > 0).join(',');
 };
 
@@ -60,7 +60,7 @@ export const parseCreateFlowQueryState = (searchParams: URLSearchParams): Create
   };
 };
 
-export const setQueryParam = (params: URLSearchParams, key: string, value: string | null | undefined) => {
+const setQueryParam = (params: URLSearchParams, key: string, value: string | null | undefined) => {
   if (!value) {
     params.delete(key);
     return;
@@ -94,20 +94,4 @@ export const withCreateFlowQueryState = (
   setQueryParam(next, 'antall', serializeQuantitiesParam(merged.quantities, merged.serviceIds) || null);
 
   return next;
-};
-
-export const parseListPageParam = (value: string | null, fallback: number): number => {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    return fallback;
-  }
-  return parsed;
-};
-
-export const parseListSizeParam = (value: string | null, fallback: number): number => {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return parsed;
 };

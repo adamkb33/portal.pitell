@@ -37,7 +37,7 @@ export const emailBlocksSchema = z
 
 const subject = mergeText(CAMPAIGN_LIMITS.subject, 'Skriv inn et emne.');
 
-export const emailPreviewSchema = z.object({ subject, blocks: emailBlocksSchema });
+const emailPreviewSchema = z.object({ subject, blocks: emailBlocksSchema });
 
 export const emailCampaignCreateSchema = z.object({
   subject,

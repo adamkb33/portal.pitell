@@ -7,7 +7,7 @@ This document defines the requirements for the authenticated mobile sidebar navi
 It is specific to:
 
 - `app/routes/root.layout.tsx`
-- `app/components/layout/navbar.tsx`
+- `app/ui/layout/navbar.tsx`
 - `app/routes/_components/sidebar.tsx`
 - `app/routes/_components/mobile-sidebar/mobile-sidebar.tsx`
 - `app/lib/route-tree.ts`

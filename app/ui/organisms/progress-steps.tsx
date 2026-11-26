@@ -1,7 +1,7 @@
 import { Text } from '../atoms/text';
 import { cn } from '../lib/cn';
 
-export interface ProgressStepItem {
+interface ProgressStepItem {
   id: string;
   label: string;
   status: 'complete' | 'current' | 'upcoming';

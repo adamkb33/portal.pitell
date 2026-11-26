@@ -1,21 +1,17 @@
-import { Form, data, redirect, useNavigation } from 'react-router';
+import { data, redirect, useNavigation } from 'react-router';
 import { PublicAppointmentSessionController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
-import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
-import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
-import {
-  OVERVIEW_RETURN_VALUE,
-  shouldReturnToOverview,
-  withOverviewReturnTo,
-} from '~/routes/booking/public/_utils/booking-return-to';
-import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
 import { BookingFooterNav } from '~/routes/booking/public/_components/booking-footer-nav';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
+import { shouldReturnToOverview, withOverviewReturnTo } from '~/routes/booking/public/_utils/booking-return-to';
+import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
+import { getBookingRouteMap } from '~/routes/booking/public/_utils/booking.route-map';
+import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
 import { BookingStepTemplate, Grid, Notice } from '~/ui';
-import { ProfileCard } from './_components/profile-card';
 import type { Route } from './+types/booking.public.appointment.session.employee.route';
+import { ProfileCard } from './_components/profile-card';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const routes = getBookingRouteMap();

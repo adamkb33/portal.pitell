@@ -1,13 +1,12 @@
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Form, useNavigation, useSubmit } from 'react-router';
-import { Check, ChevronsUpDown } from 'lucide-react';
 import { fileToBase64 } from '~/lib/file.utils';
-import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { ImagesField, type ImageField } from '~/routes/company/_components/images-field';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { Button, CompanyFormPageTemplate, FormField, Label, Popover, PopoverContent, PopoverTrigger, cn } from '~/ui';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 
-export type ServiceOption = {
+type ServiceOption = {
   id: number;
   name: string;
 };

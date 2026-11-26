@@ -36,40 +36,25 @@ describe('booking domain (blueprint) uses tokens and the shared system only', ()
     expect(violations(files, /\b(bg|text|border)-(gray|zinc|neutral|stone)-\d{2,3}\b/)).toEqual([]);
   });
 
-  it('imports no legacy components from ~/components/ui', () => {
-    expect(violations(files, /from ['"](~|@)\/components\/ui\//)).toEqual([]);
+  it('imports no legacy components from ~/ui/legacy', () => {
+    expect(violations(files, /from ['"](~|@)\/ui\/legacy\//)).toEqual([]);
   });
 });
 
 describe('whole app', () => {
-  const files = [
-    ...sourceFiles(join(APP, 'routes')),
-    ...sourceFiles(join(APP, 'components')),
-    ...sourceFiles(join(APP, 'ui')),
-  ];
+  const files = [...sourceFiles(join(APP, 'routes')), ...sourceFiles(join(APP, 'ui'))];
   const filesUsing = (pattern: RegExp) =>
     [...new Set(violations(files, pattern).map((hit) => hit.split(':')[0]))].sort();
 
   it('shows results as flash toasts, never sonner (no Toaster is mounted, so sonner toasts never show)', () => {
-    const knownViolations = ['components/pickers/contact-picker.tsx'];
-    const using = filesUsing(/from ['"]sonner['"]/).filter((file) => file !== 'components/ui/sonner.tsx');
+    const knownViolations: string[] = [];
+    const using = filesUsing(/from ['"]sonner['"]/);
     expect(using).toEqual(knownViolations);
   });
 
-  it('adds no new imports of the legacy ~/components/ui components', () => {
-    const knownViolations = [
-      'components/dialog/form-dialog.tsx',
-      'components/layout/sidebar-breadcrums.tsx',
-      'components/pickers/contact-picker.tsx',
-      'components/pickers/service-picker.tsx',
-      'ui/primitives/alert-dialog.tsx',
-      'ui/primitives/carousel.tsx',
-      'ui/primitives/dialog.tsx',
-      'ui/primitives/select.tsx',
-      'ui/primitives/sheet.tsx',
-      'ui/primitives/verification-code-input.tsx',
-    ];
-    const using = filesUsing(/from ['"](~|@)\/components\/ui\//).filter((file) => !file.startsWith('components/ui/'));
+  it('adds no new imports of the legacy ~/ui/legacy components', () => {
+    const knownViolations: string[] = [];
+    const using = filesUsing(/from ['"](~|@)\/ui\/legacy\//);
     expect(using).toEqual(knownViolations);
   });
 

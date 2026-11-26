@@ -12,7 +12,7 @@ export type CategoryTone = {
   ink: string;
 };
 
-export const CATEGORY_TONES: readonly CategoryTone[] = [
+const CATEGORY_TONES: readonly CategoryTone[] = [
   { dot: 'bg-category-teal', tint: 'bg-category-teal-tint', ink: 'text-category-teal-ink' },
   { dot: 'bg-category-purple', tint: 'bg-category-purple-tint', ink: 'text-category-purple-ink' },
   { dot: 'bg-category-pink', tint: 'bg-category-pink-tint', ink: 'text-category-pink-ink' },

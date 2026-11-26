@@ -17,7 +17,7 @@ export type AbsenceDraft = {
 };
 
 /** One period as the action takes it (local Oslo dates and times). */
-export type AbsenceRange = { fromDate: string; toDate: string; startTime: string; endTime: string };
+type AbsenceRange = { fromDate: string; toDate: string; startTime: string; endTime: string };
 
 export type AbsenceSummary =
   | { valid: true; text: string; range: AbsenceRange }

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/ui';
-import { getUserInitials, type NavbarUserProfile } from '~/components/layout/navbar-controls';
+import { getUserInitials, type NavbarUserProfile } from '~/ui/layout/navbar-controls';
 
 /** The account at the bottom of the sidebar and phone menu. */
 type AccountProps = {

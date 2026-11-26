@@ -6,8 +6,8 @@ import { useNavigation, useSubmit } from 'react-router';
 import { format } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
-import { DateField } from '~/components/pickers/date-field';
-import { TimePicker } from '~/components/pickers/time-picker';
+import { DateField } from '~/ui/pickers/date-field';
+import { TimePicker } from '~/ui/pickers/time-picker';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
@@ -60,9 +60,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   });
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, url }: Route.ActionArgs) {
   try {
-    const url = new URL(request.url);
     const redirectTo = resolveRedirectTo(url.searchParams.get('redirectTo'));
     const formData = await request.formData();
     const rangesRaw = String(formData.get('ranges') ?? '[]');

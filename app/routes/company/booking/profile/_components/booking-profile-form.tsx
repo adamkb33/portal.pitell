@@ -1,10 +1,10 @@
+import { Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Form, useActionData, useNavigation } from 'react-router';
-import { Upload } from 'lucide-react';
 import type { BookingProfileDto, DailyScheduleDto, GroupedServiceGroupDto } from '~/api/generated';
-import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
+import { Button, categoryTone, Checkbox, cn, CompanyFormPageTemplate, Label, PageNotice, Textarea } from '~/ui';
+import { StartEndTimeSelector } from '~/ui/pickers/start-end-time-selector';
 import { BOOKING_AREAS } from '../../_utils/booking-areas';
-import { Button, Checkbox, CompanyFormPageTemplate, Label, Textarea, categoryTone, cn, PageNotice } from '~/ui';
 
 type BookingProfileFormProps = {
   mode: 'create' | 'edit';
@@ -209,7 +209,6 @@ export function BookingProfileForm({
             </div>
             <div className="divide-y divide-border">
               {DAYS.map(([day, label]) => {
-                const schedule = bookingProfile?.dailySchedule.find((value) => value.dayOfWeek === day);
                 const active = activeDays.has(day);
                 const error = fieldErrors[day];
                 return (

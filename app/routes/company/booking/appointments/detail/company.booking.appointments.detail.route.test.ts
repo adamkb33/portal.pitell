@@ -26,6 +26,9 @@ vi.mock('~/lib/flash-message.server', () => ({
 
 import { action, handle, loader, parseAppointmentRouteId } from './company.booking.appointments.detail.route';
 
+// React Router passes the page address as `url` next to the raw request; these tests call the route directly.
+const withUrl = <A extends { request: Request }>(args: A) => ({ ...args, url: new URL(args.request.url) });
+
 function createRequest(url = 'https://portal.pitell.no/company/booking/appointments/123', init?: RequestInit) {
   return new Request(url, init);
 }
@@ -86,10 +89,12 @@ describe('company booking appointment detail route', () => {
     const appointment = createAppointment(123);
     mocks.getAppointmentById1.mockResolvedValueOnce({ data: { data: appointment } });
 
-    const result = await loader({
-      request: createRequest(),
-      params: { appointmentId: '123' },
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest(),
+        params: { appointmentId: '123' },
+      }) as never,
+    );
 
     expect(mocks.getAppointmentById1).toHaveBeenCalledWith({ path: { id: 123 } });
     expect(readDataResponse(result)).toEqual({
@@ -111,10 +116,12 @@ describe('company booking appointment detail route', () => {
   });
 
   it('returns a validation message for invalid route params without calling the API', async () => {
-    const result = await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments/abc'),
-      params: { appointmentId: 'abc' },
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments/abc'),
+        params: { appointmentId: 'abc' },
+      }) as never,
+    );
 
     expect(mocks.getAppointmentById1).not.toHaveBeenCalled();
     expect(readDataResponse(result)).toEqual({
@@ -127,10 +134,12 @@ describe('company booking appointment detail route', () => {
   it('maps not found responses to the expected page error', async () => {
     mocks.getAppointmentById1.mockRejectedValueOnce({ response: { status: 404 } });
 
-    const result = await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments/404'),
-      params: { appointmentId: '404' },
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments/404'),
+        params: { appointmentId: '404' },
+      }) as never,
+    );
 
     expect(readDataResponse(result)).toEqual({
       appointment: null,
@@ -142,10 +151,12 @@ describe('company booking appointment detail route', () => {
   it('maps the backend 400 for an unknown id to not found', async () => {
     mocks.getAppointmentById1.mockRejectedValueOnce({ response: { status: 400 } });
 
-    const result = await loader({
-      request: createRequest('https://portal.pitell.no/company/booking/appointments/999'),
-      params: { appointmentId: '999' },
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest('https://portal.pitell.no/company/booking/appointments/999'),
+        params: { appointmentId: '999' },
+      }) as never,
+    );
 
     expect(readDataResponse(result)).toEqual({
       appointment: null,
@@ -157,10 +168,12 @@ describe('company booking appointment detail route', () => {
   it('maps forbidden responses to the expected page error', async () => {
     mocks.getAppointmentById1.mockRejectedValueOnce({ response: { status: 403 } });
 
-    const result = await loader({
-      request: createRequest(),
-      params: { appointmentId: '123' },
-    } as never);
+    const result = await loader(
+      withUrl({
+        request: createRequest(),
+        params: { appointmentId: '123' },
+      }) as never,
+    );
 
     expect(readDataResponse(result)).toEqual({
       appointment: null,
@@ -174,10 +187,12 @@ describe('company booking appointment detail route', () => {
     mocks.getAppointmentById1.mockRejectedValueOnce(error);
 
     await expect(
-      loader({
-        request: createRequest(),
-        params: { appointmentId: '123' },
-      } as never),
+      loader(
+        withUrl({
+          request: createRequest(),
+          params: { appointmentId: '123' },
+        }) as never,
+      ),
     ).rejects.toBe(error);
   });
 

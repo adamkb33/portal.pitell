@@ -1,9 +1,9 @@
 import { Text } from '../atoms/text';
 import { cn } from '../lib/cn';
 
-export type KeyValueListLayout = 'stacked' | 'inline' | 'compact';
+type KeyValueListLayout = 'stacked' | 'inline' | 'compact';
 
-export interface KeyValueItem {
+interface KeyValueItem {
   label: string;
   value: React.ReactNode;
   icon?: React.ReactNode;

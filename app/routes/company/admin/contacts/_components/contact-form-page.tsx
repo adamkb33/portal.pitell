@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, useNavigation, useSubmit } from 'react-router';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 import { CompanyFormPageTemplate, FormField } from '~/ui';
 import { contactMissing, type ContactFormData, type FieldErrors } from '../_schemas/contact.form.schema';
 

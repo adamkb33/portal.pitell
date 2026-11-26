@@ -1,4 +1,3 @@
-import { endOfDay, startOfDay } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 export const DEFAULT_QUERY_TIMEZONE = 'Europe/Oslo';
@@ -32,7 +31,7 @@ export function serializeQueryParams(params: Record<string, QueryValue>) {
   return search.toString();
 }
 
-export function formatOffsetDateTimeInTimeZone(date: Date, timezone = DEFAULT_QUERY_TIMEZONE) {
+function formatOffsetDateTimeInTimeZone(date: Date, timezone = DEFAULT_QUERY_TIMEZONE) {
   return formatInTimeZone(date, timezone, OFFSET_DATE_TIME_PATTERN);
 }
 
@@ -60,11 +59,6 @@ export function formatLocalDateTimeInTimeZone(dateInput: string, timeInput: stri
   return formatOffsetDateTimeInTimeZone(utcDate, timezone);
 }
 
-export function formatStartOfDayInTimeZone(date: Date, timezone = DEFAULT_QUERY_TIMEZONE) {
-  const dateInput = formatDateInputInTimeZone(date, timezone);
-  return formatDateBoundaryInTimeZone(dateInput, 'start', timezone);
-}
-
 export function formatEndOfDayInTimeZone(date: Date, timezone = DEFAULT_QUERY_TIMEZONE) {
   const dateInput = formatDateInputInTimeZone(date, timezone);
   return formatDateBoundaryInTimeZone(dateInput, 'end', timezone);
@@ -84,12 +78,4 @@ export function toDateInputFromOffsetDateTime(value?: string | null, timezone = 
   } catch {
     return '';
   }
-}
-
-export function normalizeToTimeZoneDayRange(date: Date, timezone = DEFAULT_QUERY_TIMEZONE) {
-  const normalizedDate = new Date(date);
-  return {
-    start: formatStartOfDayInTimeZone(startOfDay(normalizedDate), timezone),
-    end: formatEndOfDayInTimeZone(endOfDay(normalizedDate), timezone),
-  };
 }

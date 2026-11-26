@@ -107,7 +107,7 @@ export const buildLoyaltyHref = (companyId: number) =>
 
 // Visits 1 to N-1 are paid, visit N is free, then the card starts over.
 // `visitsInCycle` is how many visits are done on the current card.
-export const getLoyaltyProgress = (card: LoyaltyCardDto) => ({
+const getLoyaltyProgress = (card: LoyaltyCardDto) => ({
   filled: card.visitsInCycle,
   paidVisitsLeft: card.visitsRequired - 1 - card.visitsInCycle,
 });

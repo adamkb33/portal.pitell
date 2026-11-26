@@ -4,7 +4,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { nb } from 'date-fns/locale';
 import type { Route } from './+types/company.booking.schedule-unavailability.detail.route';
 import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
-import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
+import { DeleteConfirmDialog } from '~/ui/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { formatDateBoundaryInTimeZone, formatDateInputInTimeZone } from '~/lib/query';
