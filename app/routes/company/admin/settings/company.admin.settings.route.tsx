@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { data, Form, useNavigation } from 'react-router';
 import type { Route } from './+types/company.admin.settings.route';
 import { AdminCompanyController, CompanyUserController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -17,7 +16,7 @@ const MISSING_NAME = 'Skriv inn selskapsnavn';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, () => CompanyUserController.getCompanySummary());
+    const response = await CompanyUserController.getCompanySummary();
     return data({ company: response.data?.data ?? null, error: null as string | null });
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke hente innstillinger');
@@ -35,7 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => AdminCompanyController.updateCompanyDisplayName({ body: { displayName } }));
+    await AdminCompanyController.updateCompanyDisplayName({ body: { displayName } });
     return redirectWithSuccess(request, ROUTES_MAP['company.admin'].href, 'Selskapsnavn lagret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke lagre selskapsnavnet. Prøv igjen.');

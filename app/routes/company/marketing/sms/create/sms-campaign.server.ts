@@ -1,6 +1,5 @@
 import { data, redirect } from 'react-router';
 import { CompanyUserMarketingCampaignController, CompanyUserSmsCampaignController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { getCampaignDetailHref } from '../../_utils/campaigns';
 import { channelHref } from '../../_utils/channels';
@@ -9,9 +8,7 @@ import { parseSmsCampaignForm } from './sms-campaign.schema';
 export async function loadSmsCampaignCreate(request: Request) {
   const unsubscribeBaseUrl = (process.env.pitell_PORTAL_BASE_URL || new URL(request.url).origin).replace(/\/$/, '');
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserMarketingCampaignController.audienceCount({ query: { channel: 'SMS' } }),
-    );
+    const response = await CompanyUserMarketingCampaignController.audienceCount({ query: { channel: 'SMS' } });
     return {
       recipients: (response.data?.data?.eligibleCount ?? 0) as number | null,
       unsubscribeBaseUrl,
@@ -30,9 +27,7 @@ export async function createSmsCampaign(request: Request) {
   if (form.get('intent') !== 'send' || !parsed.success)
     return data({ error: 'Sjekk feltene og prøv igjen.' }, { status: 400 });
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserSmsCampaignController.createSmsCampaign({ body: parsed.data }),
-    );
+    const response = await CompanyUserSmsCampaignController.createSmsCampaign({ body: parsed.data });
     const campaignId = response.data?.data?.id;
     return redirect(campaignId ? getCampaignDetailHref(campaignId) : channelHref('SMS', 'campaigns'));
   } catch (error) {

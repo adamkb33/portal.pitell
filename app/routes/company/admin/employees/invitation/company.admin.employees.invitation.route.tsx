@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { data, useNavigation, useSubmit } from 'react-router';
 import { Mail } from 'lucide-react';
 import { AdminCompanyController, AdminCompanyUserController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -21,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     // There is no call for one invitation; the company has a handful, so pick it from the list.
-    const response = await withAuth(request, () => AdminCompanyUserController.getInvitations());
+    const response = await AdminCompanyUserController.getInvitations();
     const invite = (response.data?.data ?? []).find((item) => item.id === id);
     if (!invite) {
       return redirectWithInfo(request, EMPLOYEES, 'Invitasjonen er ikke lenger aktiv.');
@@ -40,7 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => AdminCompanyController.cancelCompanyUserInvite({ path: { inviteTokenId: id } }));
+    await AdminCompanyController.cancelCompanyUserInvite({ path: { inviteTokenId: id } });
     return redirectWithSuccess(request, EMPLOYEES, 'Invitasjon trukket tilbake');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke trekke tilbake invitasjonen. Prøv igjen.');

@@ -2,7 +2,6 @@ import { data } from 'react-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Route } from './+types/company.booking.schedule.availabilities.edit.route';
 import { Booking } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
@@ -26,7 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () => Booking.getAvailability({ path: { id } }));
+    const response = await Booking.getAvailability({ path: { id } });
     const availability = response.data?.data;
     if (!availability) return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
     if (isPast(availability.endTime)) {
@@ -57,14 +56,14 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const current = (await withAuth(request, async () => Booking.getAvailability({ path: { id } }))).data?.data;
+    const current = (await Booking.getAvailability({ path: { id } })).data?.data;
     if (!current) return redirectWithError(request, LIST_HREF(), 'Fant ikke tidsrommet');
     if (isPast(current.endTime)) {
       return redirectWithError(request, LIST_HREF(), 'Tidligere bookbar tid kan ikke endres');
     }
 
     if (formData.get('intent') === 'delete') {
-      await withAuth(request, async () => Booking.deleteAvailability({ path: { id } }));
+      await Booking.deleteAvailability({ path: { id } });
       return redirectWithSuccess(request, LIST_HREF(), 'Bookbar tid slettet');
     }
 
@@ -76,15 +75,13 @@ export async function action({ request }: Route.ActionArgs) {
       return data(null, { status: 400, headers: { 'Set-Cookie': flash } });
     }
 
-    await withAuth(request, async () =>
-      Booking.updateAvailability({
-        path: { id },
-        body: {
-          startTime: formatLocalDateTimeInTimeZone(date, startTime, TIME_ZONE),
-          endTime: formatLocalDateTimeInTimeZone(date, endTime, TIME_ZONE),
-        },
-      }),
-    );
+    await Booking.updateAvailability({
+      path: { id },
+      body: {
+        startTime: formatLocalDateTimeInTimeZone(date, startTime, TIME_ZONE),
+        endTime: formatLocalDateTimeInTimeZone(date, endTime, TIME_ZONE),
+      },
+    });
     return redirectWithSuccess(request, LIST_HREF(), 'Bookbar tid lagret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke lagre bookbar tid');

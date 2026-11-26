@@ -4,7 +4,6 @@ import { Link, data, useLocation, useSearchParams } from 'react-router';
 import { ChevronLeft, ChevronRight, Contact, Search, SearchX, X } from 'lucide-react';
 import type { Route } from './+types/company.admin.contacts.route';
 import { CompanyUserContactController, type ContactDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { CreateActionHandle } from '~/lib/routing/create-action';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -28,11 +27,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     // A salon can have hundreds of customers: search and page on the server, A–Å by first name.
-    const response = await withAuth(request, () =>
-      CompanyUserContactController.getContacts1({
-        query: { page, size: PAGE_SIZE, sort: 'givenName,asc', search, missingContactInfo },
-      }),
-    );
+    const response = await CompanyUserContactController.getContacts1({
+      query: { page, size: PAGE_SIZE, sort: 'givenName,asc', search, missingContactInfo },
+    });
     const result = response.data?.data;
     return data({
       contacts: result?.content ?? [],

@@ -2,7 +2,6 @@ import { Link } from 'react-router';
 import { Clock, Scissors, UserRound } from 'lucide-react';
 import type { Route } from './+types/company.booking.profile.route';
 import { CompanyUserBookingProfileController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyPageTemplate, ListEmpty, ListRow, categoryTone, cn, PageNotice } from '~/ui';
@@ -10,7 +9,7 @@ import { BOOKING_AREAS } from '../_utils/booking-areas';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, () => CompanyUserBookingProfileController.getBookingProfile());
+    const response = await CompanyUserBookingProfileController.getBookingProfile();
     return { bookingProfile: response.data?.id ? response.data : null, error: null };
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke hente bookingprofil');

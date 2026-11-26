@@ -2,7 +2,6 @@ import type { FormPageHandle } from '~/lib/routing/create-action';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.edit.route';
 import { CompanyUserServiceGroupController, ServiceController, type ServiceGroupDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -25,12 +24,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     // Services too: deleting the group deletes them, so the confirm dialog says how many.
-    const [response, servicesResponse] = await withAuth(request, async () =>
-      Promise.all([
-        CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
-        ServiceController.getServices({ query: { page: 0, size: 1000 } }),
-      ]),
-    );
+    const [response, servicesResponse] = await Promise.all([
+      CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
+      ServiceController.getServices({ query: { page: 0, size: 1000 } }),
+    ]);
 
     const serviceGroup = (response.data?.data?.content ?? []).find((item: ServiceGroupDto) => item.id === id) ?? null;
     const serviceCount = (servicesResponse.data?.data?.content ?? []).filter(
@@ -80,14 +77,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await CompanyUserServiceGroupController.updateServiceGroup({
-        path: { id },
-        body: {
-          id,
-          name: values.name,
-        },
-      });
+    await CompanyUserServiceGroupController.updateServiceGroup({
+      path: { id },
+      body: {
+        id,
+        name: values.name,
+      },
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.service-groups'].href, 'Gruppe lagret');

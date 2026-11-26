@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { ChevronRight, Mail, Search, SearchX, Users, X } from 'lucide-react';
 import { AdminCompanyUserController, type CompanyUserDto, type InviteTokenDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { COMPANY_ROLE_LABELS } from '~/lib/constants';
 import type { CreateActionHandle } from '~/lib/routing/create-action';
@@ -18,12 +17,10 @@ export const handle = {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     // A salon has a handful of people, so load them all and search on the page.
-    const [usersResponse, invitesResponse] = await withAuth(request, () =>
-      Promise.all([
-        AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1000, includeDeleted: false } }),
-        AdminCompanyUserController.getInvitations(),
-      ]),
-    );
+    const [usersResponse, invitesResponse] = await Promise.all([
+      AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1000, includeDeleted: false } }),
+      AdminCompanyUserController.getInvitations(),
+    ]);
     return {
       users: usersResponse.data?.data?.content ?? [],
       invites: invitesResponse.data?.data ?? [],

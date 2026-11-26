@@ -2,7 +2,6 @@ import { Form, Link, data } from 'react-router';
 import { Briefcase, Plus, Trash2 } from 'lucide-react';
 import type { Route } from './+types/company.offer.catalog.route';
 import { Offer, type OfferCatalogItemDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import {
@@ -23,7 +22,7 @@ import { formatOfferCurrency } from '../_utils';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, () => Offer.getCatalogItems());
+    const response = await Offer.getCatalogItems();
     return data({
       items: response.data?.data ?? [],
       error: null as string | null,
@@ -39,43 +38,33 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = String(formData.get('intent') ?? '');
 
   try {
-    await withAuth(request, async () => {
-      if (intent === 'create') {
-        const name = String(formData.get('name') ?? '').trim();
-        const defaultUnitPrice = Number(formData.get('defaultUnitPrice'));
-        const defaultVatRateRaw = String(formData.get('defaultVatRate') ?? '').trim();
-        const defaultVatRate = defaultVatRateRaw ? Number(defaultVatRateRaw) : undefined;
-
-        if (!name) {
-          throw new Error('Navn er påkrevd.');
-        }
-
-        if (!Number.isFinite(defaultUnitPrice) || defaultUnitPrice < 0) {
-          throw new Error('Standardpris må være 0 eller høyere.');
-        }
-
-        await Offer.createCatalogItem({
-          body: {
-            name,
-            defaultUnitPrice,
-            defaultVatRate,
-          },
-        });
-        return;
+    if (intent === 'create') {
+      const name = String(formData.get('name') ?? '').trim();
+      const defaultUnitPrice = Number(formData.get('defaultUnitPrice'));
+      const defaultVatRateRaw = String(formData.get('defaultVatRate') ?? '').trim();
+      const defaultVatRate = defaultVatRateRaw ? Number(defaultVatRateRaw) : undefined;
+      if (!name) {
+        throw new Error('Navn er påkrevd.');
       }
-
-      if (intent === 'deactivate') {
-        const catalogItemId = Number(formData.get('catalogItemId'));
-        if (!Number.isFinite(catalogItemId)) {
-          throw new Error('Ugyldig katalogelement.');
-        }
-
-        await Offer.deactivateCatalogItem({ path: { catalogItemId } });
-        return;
+      if (!Number.isFinite(defaultUnitPrice) || defaultUnitPrice < 0) {
+        throw new Error('Standardpris må være 0 eller høyere.');
       }
-
+      await Offer.createCatalogItem({
+        body: {
+          name,
+          defaultUnitPrice,
+          defaultVatRate,
+        },
+      });
+    } else if (intent === 'deactivate') {
+      const catalogItemId = Number(formData.get('catalogItemId'));
+      if (!Number.isFinite(catalogItemId)) {
+        throw new Error('Ugyldig katalogelement.');
+      }
+      await Offer.deactivateCatalogItem({ path: { catalogItemId } });
+    } else {
       throw new Error('Ukjent handling.');
-    });
+    }
 
     return data({ ok: true, error: null as string | null });
   } catch (error) {

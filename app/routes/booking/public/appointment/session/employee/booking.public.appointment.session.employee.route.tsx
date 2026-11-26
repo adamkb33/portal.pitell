@@ -1,6 +1,5 @@
 import { Form, data, redirect, useNavigation } from 'react-router';
 import { PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { useBookingCompanyName } from '~/routes/booking/public/_utils/use-booking-company-name';
@@ -29,13 +28,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
 
     const { session } = guardResult;
-    const profilesResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionProfiles({
-        query: {
-          sessionId: session.sessionId,
-        },
-      }),
-    );
+    const profilesResponse = await PublicAppointmentSessionController.getAppointmentSessionProfiles({
+      query: {
+        sessionId: session.sessionId,
+      },
+    });
 
     const profiles = profilesResponse.data?.data || [];
 
@@ -43,14 +40,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       const onlyProfile = profiles[0];
 
       if (session.selectedProfileId !== onlyProfile.id) {
-        await withAuth(request, () =>
-          PublicAppointmentSessionController.selectAppointmentSessionProfile({
-            query: {
-              sessionId: session.sessionId,
-              selectedProfileId: onlyProfile.id,
-            },
-          }),
-        );
+        await PublicAppointmentSessionController.selectAppointmentSessionProfile({
+          query: {
+            sessionId: session.sessionId,
+            selectedProfileId: onlyProfile.id,
+          },
+        });
       }
 
       return redirect(returnToOverview ? withOverviewReturnTo(routes.selectServices) : routes.selectServices);
@@ -89,14 +84,12 @@ export async function action({ request }: Route.ActionArgs) {
     const selectedProfileId = formData.get('selectedProfileId') as string;
     const returnToOverview = shouldReturnToOverview(formData.get('returnTo'));
 
-    await withAuth(request, () =>
-      PublicAppointmentSessionController.selectAppointmentSessionProfile({
-        query: {
-          sessionId: session.sessionId,
-          selectedProfileId: Number(selectedProfileId),
-        },
-      }),
-    );
+    await PublicAppointmentSessionController.selectAppointmentSessionProfile({
+      query: {
+        sessionId: session.sessionId,
+        selectedProfileId: Number(selectedProfileId),
+      },
+    });
 
     return redirect(returnToOverview ? withOverviewReturnTo(routes.selectServices) : routes.selectServices);
   } catch (error) {

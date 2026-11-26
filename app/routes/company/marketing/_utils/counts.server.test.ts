@@ -5,9 +5,6 @@ const mocks = vi.hoisted(() => ({ recipients: vi.fn() }));
 vi.mock('~/api/generated', () => ({
   CompanyUserMarketingRecipientController: { recipients: mocks.recipients },
 }));
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: async (_request: Request, callback: () => unknown) => callback(),
-}));
 
 import { countRecipients } from './counts.server';
 

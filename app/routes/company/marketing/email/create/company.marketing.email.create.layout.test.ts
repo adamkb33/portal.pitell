@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   recipients: vi.fn(),
   preview: vi.fn(),
   create: vi.fn(),
-  withAuth: vi.fn(),
 }));
 
 vi.mock('~/api/generated', () => ({
@@ -15,7 +14,6 @@ vi.mock('~/api/generated', () => ({
     audienceCount: mocks.audienceCount,
   },
 }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.withAuth }));
 vi.mock('~/lib/api-error', () => ({
   resolveErrorPayload: (error: { message?: string }, fallback: string) => ({ message: error?.message || fallback }),
 }));
@@ -39,7 +37,6 @@ const unwrap = (result: unknown) => result as { data: Record<string, unknown>; i
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.audienceCount.mockImplementation(async ({ query }: { query: { channel: string } }) => ({
     data: { data: { eligibleCount: query.channel === 'EMAIL' ? 600 : 88 } },
   }));

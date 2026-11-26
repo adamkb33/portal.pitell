@@ -7,7 +7,6 @@ import {
   type SystemAdminCompanyDto,
   type SystemAdminReviewDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -113,11 +112,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, () =>
-      Base.listReviews({
-        query: { companyId, page, size, sort },
-      }),
-    );
+    const response = await Base.listReviews({
+      query: { companyId, page, size, sort },
+    });
 
     return data({
       companies,
@@ -162,12 +159,10 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     try {
-      await withAuth(request, () =>
-        Base.updateCompanyGooglePlaceId({
-          path: { companyId },
-          body: { googlePlaceId },
-        }),
-      );
+      await Base.updateCompanyGooglePlaceId({
+        path: { companyId },
+        body: { googlePlaceId },
+      });
 
       const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Google Place ID oppdatert.' });
       return data({ error: null }, { headers: { 'Set-Cookie': flashCookie } });
@@ -195,12 +190,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () =>
-      Base.syncCompanyReviews({
-        path: { companyId },
-        query: { fullRescrape },
-      }),
-    );
+    await Base.syncCompanyReviews({
+      path: { companyId },
+      query: { fullRescrape },
+    });
 
     const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Google reviews synkronisert.' });
     return data({ error: null }, { headers: { 'Set-Cookie': flashCookie } });

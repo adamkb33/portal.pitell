@@ -11,7 +11,6 @@ import {
   type OfferRecipientDto,
   type OfferTemplateDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import {
@@ -65,6 +64,23 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   try {
+    const loadedOfferResponse = await Offer.getOffer({ path: { offerId } });
+    const loadedOffer = loadedOfferResponse.data?.data;
+    const [
+      loadedLinesResponse,
+      loadedRecipientsResponse,
+      loadedMessagesResponse,
+      loadedTemplatesResponse,
+      loadedCatalogItemsResponse,
+      loadedContactsResponse,
+    ] = await Promise.all([
+      Offer.getOfferLines({ path: { offerId } }),
+      Offer.getRecipients({ path: { offerId } }),
+      Offer.getMessages({ path: { offerId } }),
+      Offer.getTemplates(),
+      Offer.getCatalogItems(),
+      loadedOffer ? Offer.getContacts({ path: { customerId: loadedOffer.customerId } }) : Promise.resolve(null),
+    ]);
     const [
       offerResponse,
       linesResponse,
@@ -73,36 +89,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       templatesResponse,
       catalogItemsResponse,
       contactsResponse,
-    ] = await withAuth(request, async () => {
-      const loadedOfferResponse = await Offer.getOffer({ path: { offerId } });
-      const loadedOffer = loadedOfferResponse.data?.data;
-
-      const [
-        loadedLinesResponse,
-        loadedRecipientsResponse,
-        loadedMessagesResponse,
-        loadedTemplatesResponse,
-        loadedCatalogItemsResponse,
-        loadedContactsResponse,
-      ] = await Promise.all([
-        Offer.getOfferLines({ path: { offerId } }),
-        Offer.getRecipients({ path: { offerId } }),
-        Offer.getMessages({ path: { offerId } }),
-        Offer.getTemplates(),
-        Offer.getCatalogItems(),
-        loadedOffer ? Offer.getContacts({ path: { customerId: loadedOffer.customerId } }) : Promise.resolve(null),
-      ]);
-
-      return [
-        loadedOfferResponse,
-        loadedLinesResponse,
-        loadedRecipientsResponse,
-        loadedMessagesResponse,
-        loadedTemplatesResponse,
-        loadedCatalogItemsResponse,
-        loadedContactsResponse,
-      ] as const;
-    });
+    ] = [
+      loadedOfferResponse,
+      loadedLinesResponse,
+      loadedRecipientsResponse,
+      loadedMessagesResponse,
+      loadedTemplatesResponse,
+      loadedCatalogItemsResponse,
+      loadedContactsResponse,
+    ] as const;
 
     return data({
       offer: offerResponse.data?.data ?? null,
@@ -143,95 +138,61 @@ export async function action({ request, params }: Route.ActionArgs) {
   const intent = String(formData.get('intent') ?? '');
 
   try {
-    await withAuth(request, async () => {
-      if (intent === OFFER_ACTION_INTENTS.send) {
-        await Offer.sendOffer({ path: { offerId } });
-        return;
+    if (intent === OFFER_ACTION_INTENTS.send) {
+      await Offer.sendOffer({ path: { offerId } });
+    } else if (intent === OFFER_ACTION_INTENTS.resend) {
+      await Offer.resendOffer({ path: { offerId } });
+    } else if (intent === OFFER_ACTION_INTENTS.cancel) {
+      await Offer.cancelOffer({ path: { offerId } });
+    } else if (intent === OFFER_ACTION_INTENTS.message) {
+      const body = String(formData.get('body') ?? '').trim();
+      if (!body) {
+        throw new Error('Skriv en melding før du sender.');
       }
-
-      if (intent === OFFER_ACTION_INTENTS.resend) {
-        await Offer.resendOffer({ path: { offerId } });
-        return;
+      await Offer.createMessage1({ path: { offerId }, body: { body } });
+    } else if (intent === OFFER_ACTION_INTENTS.replaceLines) {
+      const lines = parseOfferLineFormData(formData);
+      await Offer.replaceOfferLines({ path: { offerId }, body: { lines } });
+    } else if (intent === OFFER_ACTION_INTENTS.setRecipients) {
+      const contactIds = formData
+        .getAll('contactId')
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value));
+      await Offer.setRecipients({ path: { offerId }, body: { contactIds } });
+    } else if (intent === OFFER_ACTION_INTENTS.createContact) {
+      const customerId = Number(formData.get('customerId'));
+      const email = String(formData.get('email') ?? '').trim();
+      const name = String(formData.get('name') ?? '').trim();
+      const mobileNumber = String(formData.get('mobileNumber') ?? '').trim();
+      if (!Number.isFinite(customerId)) {
+        throw new Error('Ugyldig kunde.');
       }
-
-      if (intent === OFFER_ACTION_INTENTS.cancel) {
-        await Offer.cancelOffer({ path: { offerId } });
-        return;
+      if (!email) {
+        throw new Error('E-post er påkrevd.');
       }
-
-      if (intent === OFFER_ACTION_INTENTS.message) {
-        const body = String(formData.get('body') ?? '').trim();
-        if (!body) {
-          throw new Error('Skriv en melding før du sender.');
-        }
-
-        await Offer.createMessage1({ path: { offerId }, body: { body } });
-        return;
+      await Offer.createContact({
+        path: { customerId },
+        body: {
+          email,
+          name: name || undefined,
+          mobileNumber: mobileNumber || undefined,
+        },
+      });
+    } else if (intent === OFFER_ACTION_INTENTS.revokeRecipient) {
+      const recipientId = Number(formData.get('recipientId'));
+      if (!Number.isFinite(recipientId)) {
+        throw new Error('Ugyldig mottaker.');
       }
-
-      if (intent === OFFER_ACTION_INTENTS.replaceLines) {
-        const lines = parseOfferLineFormData(formData);
-        await Offer.replaceOfferLines({ path: { offerId }, body: { lines } });
-        return;
+      await Offer.revokeRecipient({ path: { offerId, recipientId } });
+    } else if (intent === OFFER_ACTION_INTENTS.enableRecipient) {
+      const recipientId = Number(formData.get('recipientId'));
+      if (!Number.isFinite(recipientId)) {
+        throw new Error('Ugyldig mottaker.');
       }
-
-      if (intent === OFFER_ACTION_INTENTS.setRecipients) {
-        const contactIds = formData
-          .getAll('contactId')
-          .map((value) => Number(value))
-          .filter((value) => Number.isFinite(value));
-
-        await Offer.setRecipients({ path: { offerId }, body: { contactIds } });
-        return;
-      }
-
-      if (intent === OFFER_ACTION_INTENTS.createContact) {
-        const customerId = Number(formData.get('customerId'));
-        const email = String(formData.get('email') ?? '').trim();
-        const name = String(formData.get('name') ?? '').trim();
-        const mobileNumber = String(formData.get('mobileNumber') ?? '').trim();
-
-        if (!Number.isFinite(customerId)) {
-          throw new Error('Ugyldig kunde.');
-        }
-
-        if (!email) {
-          throw new Error('E-post er påkrevd.');
-        }
-
-        await Offer.createContact({
-          path: { customerId },
-          body: {
-            email,
-            name: name || undefined,
-            mobileNumber: mobileNumber || undefined,
-          },
-        });
-        return;
-      }
-
-      if (intent === OFFER_ACTION_INTENTS.revokeRecipient) {
-        const recipientId = Number(formData.get('recipientId'));
-        if (!Number.isFinite(recipientId)) {
-          throw new Error('Ugyldig mottaker.');
-        }
-
-        await Offer.revokeRecipient({ path: { offerId, recipientId } });
-        return;
-      }
-
-      if (intent === OFFER_ACTION_INTENTS.enableRecipient) {
-        const recipientId = Number(formData.get('recipientId'));
-        if (!Number.isFinite(recipientId)) {
-          throw new Error('Ugyldig mottaker.');
-        }
-
-        await Offer.enableRecipient({ path: { offerId, recipientId } });
-        return;
-      }
-
+      await Offer.enableRecipient({ path: { offerId, recipientId } });
+    } else {
       throw new Error('Ukjent handling.');
-    });
+    }
 
     return data({ ok: true, error: null as string | null });
   } catch (error) {

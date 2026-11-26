@@ -3,7 +3,6 @@ import { data, Form, useNavigation } from 'react-router';
 import { Check, Gift } from 'lucide-react';
 import type { Route } from './+types/company.booking.admin.loyalty.route';
 import { Booking } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -26,7 +25,7 @@ const MAX_PREVIEW_STAMPS = 10;
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, () => Booking.getLoyaltyRule());
+    const response = await Booking.getLoyaltyRule();
     return data({ loyalty: response.data?.data ?? DEFAULT_LOYALTY, error: null as string | null });
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke hente lojalitetsprogram');
@@ -47,7 +46,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => Booking.saveLoyaltyRule({ body: { visitsRequired, enabled } }));
+    await Booking.saveLoyaltyRule({ body: { visitsRequired, enabled } });
     return redirectWithSuccess(
       request,
       ROUTES_MAP['company.booking.admin.loyalty'].href,

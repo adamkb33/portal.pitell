@@ -13,6 +13,7 @@ import { AuthSubmitBar } from '../_components/auth-submit-bar';
 import { resolveAuthPostRedirect } from '../_utils/auth-flow.server';
 import { finishSignIn } from '../_utils/finish-sign-in.server';
 import { readSignInFlow, writeSignInFlow } from '../_utils/sign-in-flow.cookie.server';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,16 +60,18 @@ export async function action({ request }: Route.ActionArgs) {
   if (missing) return stayWithError(`${missing}.`);
 
   try {
-    const response = await AuthController.signUp({
-      body: {
-        givenName: fields.givenName,
-        familyName: fields.familyName,
-        mobileNumber: fields.mobileNumber,
-        email: fields.email || undefined,
-        password: fields.password,
-        password2: fields.password,
-      },
-    });
+    const response = await withoutLogin(() =>
+      AuthController.signUp({
+        body: {
+          givenName: fields.givenName,
+          familyName: fields.familyName,
+          mobileNumber: fields.mobileNumber,
+          email: fields.email || undefined,
+          password: fields.password,
+          password2: fields.password,
+        },
+      }),
+    );
     const payload = response.data?.data ?? null;
     // The code step shows the number the SMS went to and sends them on to where they were going.
     const flowCookie = await writeSignInFlow({ identifier: fields.mobileNumber, returnTo });

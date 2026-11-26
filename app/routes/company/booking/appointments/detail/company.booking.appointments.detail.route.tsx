@@ -2,7 +2,6 @@ import { Link, data, useFetcher } from 'react-router';
 import { useState } from 'react';
 import type { Route } from './+types/company.booking.appointments.detail.route';
 import { CompanyUserAppointmentController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
@@ -51,11 +50,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const from = url.searchParams.get('from') === 'kalender' ? 'kalender' : null;
     const requestedReturnTo = url.searchParams.get('returnTo');
     const returnTo = requestedReturnTo?.startsWith('/company/booking/schedule') ? requestedReturnTo : null;
-    const response = await withAuth(request, () =>
-      CompanyUserAppointmentController.getAppointmentById1({
-        path: { id: appointmentId },
-      }),
-    );
+    const response = await CompanyUserAppointmentController.getAppointmentById1({
+      path: { id: appointmentId },
+    });
 
     const appointment = response.data?.data ?? null;
 
@@ -126,12 +123,10 @@ export async function action({ request, url }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () =>
-      CompanyUserAppointmentController.deleteAppointment({
-        path: { id: Number(id) },
-        body: { reason },
-      }),
-    );
+    await CompanyUserAppointmentController.deleteAppointment({
+      path: { id: Number(id) },
+      body: { reason },
+    });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.appointments'].href, 'Timebestilling slettet');
   } catch (error) {

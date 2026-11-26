@@ -2,7 +2,6 @@ import { Link } from 'react-router';
 import { useMemo, useState } from 'react';
 import { ChevronRight, ClipboardList, ImageIcon, Search, SearchX, X } from 'lucide-react';
 import { Button, CompanyPageTemplate, Input, categoryTone, cn, PageNotice } from '~/ui';
-import { withAuth } from '~/api/utils/with-auth';
 import { CompanyUserServiceGroupController, ServiceController, type ServiceDto } from '~/api/generated';
 import { redirectWithInfo } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -21,12 +20,10 @@ export const handle = {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     // A salon has a handful of services, so load them all and group and search on the page.
-    const [serviceGroupsResponse, servicesResponse] = await withAuth(request, async () =>
-      Promise.all([
-        CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
-        ServiceController.getServices({ query: { page: 0, size: 1000 } }),
-      ]),
-    );
+    const [serviceGroupsResponse, servicesResponse] = await Promise.all([
+      CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
+      ServiceController.getServices({ query: { page: 0, size: 1000 } }),
+    ]);
 
     const serviceGroups = serviceGroupsResponse.data?.data?.content || [];
 

@@ -2,7 +2,6 @@ import { data } from 'react-router';
 import type { Route } from './+types/booking.public.my-appointments.loyalty.route';
 import { ArrowLeft, CalendarPlus, CalendarX, Gift, PartyPopper, Repeat, Sparkles, type LucideIcon } from 'lucide-react';
 import { AppointmentsController, type LoyaltyCardDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -19,7 +18,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const companyId = Number(params.companyId);
 
   try {
-    const response = await withAuth(request, () => AppointmentsController.getMyLoyaltyCards());
+    const response = await AppointmentsController.getMyLoyaltyCards();
     const card = (response.data?.data ?? []).find((item) => item.companyId === companyId) ?? null;
     return data(
       { card, error: card ? null : ('Fant ikke lojalitetskortet.' as string | null) },

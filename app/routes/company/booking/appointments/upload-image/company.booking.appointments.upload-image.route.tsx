@@ -5,7 +5,6 @@ import { DEFAULT_QUERY_TIMEZONE } from '~/lib/query';
 import { nb } from 'date-fns/locale';
 import { Camera, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { CompanyUserAppointmentController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { fileToBase64 } from '~/lib/file.utils';
@@ -52,12 +51,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () =>
-      // Company endpoint: the backend checks the appointment belongs to the signed-in user's company.
-      CompanyUserAppointmentController.getAppointmentById1({
-        path: { id: appointmentId },
-      }),
-    );
+    const response = await CompanyUserAppointmentController.getAppointmentById1({
+      path: { id: appointmentId },
+    });
 
     return data({
       appointmentId,
@@ -95,14 +91,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     try {
-      await withAuth(request, async () =>
-        CompanyUserAppointmentController.deleteAppointmentImage({
-          path: {
-            id: appointmentId,
-            imageId,
-          },
-        }),
-      );
+      await CompanyUserAppointmentController.deleteAppointmentImage({
+        path: {
+          id: appointmentId,
+          imageId,
+        },
+      });
 
       return data({ success: true, message: 'Bildet ble fjernet.', intent: 'delete-image' });
     } catch (error) {
@@ -121,19 +115,17 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      CompanyUserAppointmentController.uploadAppointmentImage({
-        path: { id: appointmentId },
-        body: {
-          image: {
-            fileName,
-            contentType,
-            data: dataValue,
-            label,
-          },
+    await CompanyUserAppointmentController.uploadAppointmentImage({
+      path: { id: appointmentId },
+      body: {
+        image: {
+          fileName,
+          contentType,
+          data: dataValue,
+          label,
         },
-      }),
-    );
+      },
+    });
 
     return data({ success: true, message: 'Bildet ble lastet opp.', intent: 'upload' });
   } catch (error) {

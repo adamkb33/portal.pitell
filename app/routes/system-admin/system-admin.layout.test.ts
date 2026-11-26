@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   getUserSession: vi.fn(),
   getPermissions: vi.fn(),
   redirectWithError: vi.fn(),
-  withAuth: vi.fn(),
 }));
 
 vi.mock('~/lib/auth-service', () => ({
@@ -19,16 +18,11 @@ vi.mock('~/api/generated', () => ({
   },
 }));
 
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: mocks.withAuth,
-}));
-
 vi.mock('~/lib/flash-message.server', () => ({
   redirectWithError: mocks.redirectWithError,
 }));
 
 import { AuthController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { loader } from './system-admin.layout';
 
 const request = new Request('http://localhost/system-admin');
@@ -37,7 +31,6 @@ describe('system-admin layout guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getUserSession.mockResolvedValue({ accessToken: 'access-token' });
-    mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
     mocks.redirectWithError.mockResolvedValue(new Response(null, { status: 302, headers: { Location: '/company' } }));
   });
 
@@ -52,7 +45,6 @@ describe('system-admin layout guard', () => {
     });
 
     await expect(loader({ request } as never)).resolves.toBeNull();
-    expect(withAuth).toHaveBeenCalledWith(request, expect.any(Function), 'access-token');
     expect(AuthController.getPermissions).toHaveBeenCalledOnce();
   });
 

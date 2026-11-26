@@ -15,7 +15,6 @@ import {
   CompanyUserMarketingRecipientController,
   type MarketingRecipientDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { FormPageHandle } from '~/lib/routing/create-action';
 import type { loader as rootLoader } from '~/routes/root.layout';
@@ -46,16 +45,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const channel = 'EMAIL' as const;
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserMarketingCampaignController.audienceCount({ query: { channel } }),
-    );
+    const response = await CompanyUserMarketingCampaignController.audienceCount({ query: { channel } });
     const customers: MarketingRecipientDto[] = [];
     let page = 0;
     let totalPages = 1;
     do {
-      const recipients = await withAuth(request, () =>
-        CompanyUserMarketingRecipientController.recipients({ query: { channel, page, size: 100 } }),
-      );
+      const recipients = await CompanyUserMarketingRecipientController.recipients({
+        query: { channel, page, size: 100 },
+      });
       customers.push(...(recipients.data?.data ?? []));
       totalPages = recipients.data?.meta?.pagination?.totalPages ?? 1;
       page += 1;
@@ -87,9 +84,7 @@ export async function action({ request }: Route.ActionArgs) {
       return data<EmailCampaignActionResult>({ intent: 'preview', previewHtml: null }, { status: 400 });
     }
     try {
-      const response = await withAuth(request, () =>
-        CompanyUserEmailCampaignController.previewEmailCampaign({ body: parsed.data }),
-      );
+      const response = await CompanyUserEmailCampaignController.previewEmailCampaign({ body: parsed.data });
       return data<EmailCampaignActionResult>({
         intent: 'preview',
         previewHtml: response.data?.data?.html ?? null,
@@ -110,9 +105,7 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
     try {
-      const response = await withAuth(request, () =>
-        CompanyUserEmailCampaignController.createEmailCampaign({ body: parsed.data }),
-      );
+      const response = await CompanyUserEmailCampaignController.createEmailCampaign({ body: parsed.data });
       const campaignId = response.data?.data?.id;
       if (!campaignId) throw new Error('Kunne ikke bekrefte sendingen.');
       return data<EmailCampaignActionResult>({ intent: 'send', campaignId });

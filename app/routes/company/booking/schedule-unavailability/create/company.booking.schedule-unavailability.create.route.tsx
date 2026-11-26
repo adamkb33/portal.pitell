@@ -6,7 +6,6 @@ import { useNavigation, useSubmit } from 'react-router';
 import { format } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { DateField } from '~/components/pickers/date-field';
 import { TimePicker } from '~/components/pickers/time-picker';
 import { resolveErrorPayload } from '~/lib/api-error';
@@ -96,9 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
       };
     });
 
-    await withAuth(request, async () => {
-      await CompanyUserScheduleUnavailabilityController.companyUserCreateUnavailabilityRanges({ body: payload });
-    });
+    await CompanyUserScheduleUnavailabilityController.companyUserCreateUnavailabilityRanges({ body: payload });
 
     return redirectWithSuccess(request, redirectTo, 'Fravær lagret');
   } catch (error) {

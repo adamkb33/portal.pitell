@@ -1,6 +1,5 @@
 import { data, redirect } from 'react-router';
 import { AuthController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { getAccessTokenFromRequest } from '~/lib/auth.utils';
 import { setFlashMessage } from '~/lib/flash-message.server';
@@ -34,11 +33,9 @@ export async function saveCollectContact(request: Request, kind: CollectContactK
   if (missing) return stayWithError(`${missing}.`);
 
   try {
-    const response = await withAuth(request, () =>
-      AuthController.providerCompleteProfile({
-        body: kind === 'email' ? { email: value } : { mobileNumber: value },
-      }),
-    );
+    const response = await AuthController.providerCompleteProfile({
+      body: kind === 'email' ? { email: value } : { mobileNumber: value },
+    });
     const { nextStepHref, verificationCookieHeader } = await resolveAuthPostRedirect(response.data?.data ?? null);
     const headers = new Headers();
     if (verificationCookieHeader) headers.append('Set-Cookie', verificationCookieHeader);

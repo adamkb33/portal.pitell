@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   messages: vi.fn(),
   preview: vi.fn(),
   cancel: vi.fn(),
-  withAuth: vi.fn(),
 }));
 
 vi.mock('~/api/generated', () => ({
@@ -17,7 +16,6 @@ vi.mock('~/api/generated', () => ({
     cancel: mocks.cancel,
   },
 }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.withAuth }));
 vi.mock('~/lib/api-error', () => ({
   resolveErrorPayload: (error: { message?: string; status?: number }, fallback: string) => ({
     message: error?.message || fallback,
@@ -54,7 +52,6 @@ const post = (intent: string, campaignId = '7') => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.get1.mockResolvedValue({ data: { data: emailCampaign } });
   mocks.messages.mockResolvedValue({
     data: {

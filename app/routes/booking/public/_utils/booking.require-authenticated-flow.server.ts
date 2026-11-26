@@ -1,7 +1,6 @@
 import { redirect } from 'react-router';
 import type { AppointmentSessionDto } from '~/api/generated';
 import { PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { AppointmentSessionService } from '../_services/booking.appointment-session.service.server';
 import { getBookingRouteMap } from './booking.route-map';
 
@@ -41,11 +40,9 @@ export async function requireBookingReady(request: Request): Promise<GuardResult
   const { session } = guardResult;
 
   try {
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionRequirements({
-        path: { sessionId: session.sessionId },
-      }),
-    );
+    const response = await PublicAppointmentSessionController.getAppointmentSessionRequirements({
+      path: { sessionId: session.sessionId },
+    });
     const requirements = response.data?.data;
 
     if (!requirements || requirements.nextStep !== 'DONE') {

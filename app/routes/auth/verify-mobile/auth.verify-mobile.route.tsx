@@ -14,6 +14,7 @@ import { finishSignIn } from '../_utils/finish-sign-in.server';
 import { maskMobile } from '../_utils/mask-mobile';
 import { describeSignInCodeError } from '../_utils/sign-in-code-errors';
 import { clearSignInFlow, readSignInFlow } from '../_utils/sign-in-flow.cookie.server';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 /**
  * The mobile check after sign-up (and after a sign-in or Google profile that still has an unchecked number): the
@@ -26,7 +27,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const status = (await AuthController.verificationStatus({ query: { verificationSessionToken } })).data?.data;
+    const status = (
+      await withoutLogin(() => AuthController.verificationStatus({ query: { verificationSessionToken } }))
+    ).data?.data;
     if (status && status.nextStep !== 'VERIFY_MOBILE') {
       const nextStepHref = resolveAuthNextStepHref(status.nextStep);
       if (nextStepHref) return redirect(nextStepHref);
@@ -47,9 +50,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (formData.get('intent') === 'resend') {
     try {
-      const response = await AuthController.resendVerificationMobileOnly({
-        body: { verificationSessionToken, sendEmail: false, sendMobile: true },
-      });
+      const response = await withoutLogin(() =>
+        AuthController.resendVerificationMobileOnly({
+          body: { verificationSessionToken, sendEmail: false, sendMobile: true },
+        }),
+      );
       const nextToken = response.data?.data?.verificationToken;
       const headers = new Headers();
       if (nextToken?.value) {
@@ -73,7 +78,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const code = String(formData.get('code') ?? '').trim();
-    const payload = (await AuthController.verifyMobile({ body: { verificationSessionToken, code } })).data?.data;
+    const payload = (
+      await withoutLogin(() => AuthController.verifyMobile({ body: { verificationSessionToken, code } }))
+    ).data?.data;
 
     if (payload?.authTokens) {
       const flow = await readSignInFlow(request);

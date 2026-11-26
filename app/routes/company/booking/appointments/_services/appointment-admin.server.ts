@@ -1,5 +1,4 @@
 import { AuthController, CompanyUserAppointmentController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
@@ -8,7 +7,7 @@ import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.serv
 export async function isBookingAdmin(request: Request): Promise<boolean> {
   try {
     const session = await authService.getUserSession(request);
-    const response = await withAuth(request, () => AuthController.getPermissions());
+    const response = await AuthController.getPermissions();
     const permissions = response.data?.data;
     return Boolean(
       session.user.companyId &&
@@ -30,9 +29,7 @@ export async function setNoShowFromForm(request: Request, url: URL, formData: Fo
   }
 
   try {
-    await withAuth(request, () =>
-      CompanyUserAppointmentController.setAppointmentNoShow({ path: { id }, body: { noShow } }),
-    );
+    await CompanyUserAppointmentController.setAppointmentNoShow({ path: { id }, body: { noShow } });
     return redirectWithSuccess(request, url.href, noShow ? 'Markert som ikke møtt' : 'Ikke møtt er angret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke oppdatere timen');

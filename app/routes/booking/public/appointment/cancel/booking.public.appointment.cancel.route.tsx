@@ -1,7 +1,6 @@
 import { data } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.cancel.route';
 import { PublicAppointmentSessionController, type AppointmentDto, type CompanySummaryDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -48,9 +47,7 @@ function readCancelToken(cancelToken: string | null): { token: string } | { erro
 
 /** The backend verifies the token's signature and expiry; the id inside it is never trusted here. */
 async function loadAppointmentByToken(request: Request, token: string): Promise<AppointmentDto | null> {
-  const response = await withAuth(request, () =>
-    PublicAppointmentSessionController.getAppointmentByCancelToken({ query: { token } }),
-  );
+  const response = await PublicAppointmentSessionController.getAppointmentByCancelToken({ query: { token } });
   return response.data?.data ?? null;
 }
 
@@ -89,9 +86,7 @@ export async function action({ request, url }: Route.ActionArgs) {
     const appointment = await loadAppointmentByToken(request, read.token);
     if (!appointment) return redirectWithError(request, here, APPOINTMENT_GONE);
 
-    await withAuth(request, () =>
-      PublicAppointmentSessionController.cancelAppointment({ query: { token: read.token } }),
-    );
+    await PublicAppointmentSessionController.cancelAppointment({ query: { token: read.token } });
 
     // Back to the salon, so booking a new time is one tap away.
     const salonHref = buildNewBookingHref(appointment.groupedServiceGroups[0]?.companyId);

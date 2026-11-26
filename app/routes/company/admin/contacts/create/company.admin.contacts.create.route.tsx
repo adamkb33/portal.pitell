@@ -4,7 +4,6 @@ import type { Route } from './+types/company.admin.contacts.create.route';
 import { ContactFormSchema, contactMissing, type ContactFormData } from '../_schemas/contact.form.schema';
 import { ContactFormPage } from '../_components/contact-form-page';
 import { CompanyUserContactController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -41,15 +40,13 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await CompanyUserContactController.createContact1({
-        body: {
-          givenName: parsed.data.givenName,
-          familyName: parsed.data.familyName,
-          email: parsed.data.email || undefined,
-          mobileNumber: parsed.data.mobileNumber || undefined,
-        },
-      });
+    await CompanyUserContactController.createContact1({
+      body: {
+        givenName: parsed.data.givenName,
+        familyName: parsed.data.familyName,
+        email: parsed.data.email || undefined,
+        mobileNumber: parsed.data.mobileNumber || undefined,
+      },
     });
 
     // Back to the plain list, no search filled in (user's call 2026-11-14).

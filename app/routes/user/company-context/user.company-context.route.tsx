@@ -4,7 +4,6 @@ import { Building2, ChevronRight, MapPin } from 'lucide-react';
 import { authService } from '~/lib/auth-service';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { AuthController, type CompanySummaryDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import type { Route } from './+types/user.company-context.route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -17,32 +16,30 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const auth = await getAuthPayloadFromRequest(request);
 
-  return withAuth(request, async () => {
-    try {
-      const response = await AuthController.getCompanyContexts();
-      const companyContexts = response.data?.data ?? [];
+  try {
+    const response = await AuthController.getCompanyContexts();
+    const companyContexts = response.data?.data ?? [];
 
-      if (companyContexts.length === 1) {
-        const companyId = companyContexts[0].id;
+    if (companyContexts.length === 1) {
+      const companyId = companyContexts[0].id;
 
-        if (auth?.companyId === companyId) {
-          return redirect(returnTo ?? '/');
-        }
-
-        try {
-          return await signInToCompany(companyId, returnTo ?? ROUTES_MAP['company'].href);
-        } catch (error) {
-          logger.error('[company-context] automatic sign-in failed', { error });
-          return redirectWithError(request, '/', 'Kunne ikke logge inn i selskapet. Prøv igjen.');
-        }
+      if (auth?.companyId === companyId) {
+        return redirect(returnTo ?? '/');
       }
 
-      return data({ companyContexts, returnTo });
-    } catch (error: any) {
-      logger.error('[company-context] loader failed', { error });
-      return data({ companyContexts: [], returnTo });
+      try {
+        return await signInToCompany(companyId, returnTo ?? ROUTES_MAP['company'].href);
+      } catch (error) {
+        logger.error('[company-context] automatic sign-in failed', { error });
+        return redirectWithError(request, '/', 'Kunne ikke logge inn i selskapet. Prøv igjen.');
+      }
     }
-  });
+
+    return data({ companyContexts, returnTo });
+  } catch (error: any) {
+    logger.error('[company-context] loader failed', { error });
+    return data({ companyContexts: [], returnTo });
+  }
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -55,18 +52,16 @@ export async function action({ request }: Route.ActionArgs) {
     return redirectWithError(request, ROUTES_MAP['user.company-context'].href, 'Ikke valgt');
   }
 
-  return withAuth(request, async () => {
-    try {
-      return await signInToCompany(parseInt(companyId.toString()), returnTo ?? '/');
-    } catch (error: any) {
-      logger.error('[company-context] action failed', { error });
-      return redirectWithError(
-        request,
-        ROUTES_MAP['user.company-context'].href,
-        error?.response?.data?.message || 'Noe gikk galt. Prøv igjen.',
-      );
-    }
-  });
+  try {
+    return await signInToCompany(parseInt(companyId.toString()), returnTo ?? '/');
+  } catch (error: any) {
+    logger.error('[company-context] action failed', { error });
+    return redirectWithError(
+      request,
+      ROUTES_MAP['user.company-context'].href,
+      error?.response?.data?.message || 'Noe gikk galt. Prøv igjen.',
+    );
+  }
 }
 
 async function signInToCompany(companyId: number, destination: string) {

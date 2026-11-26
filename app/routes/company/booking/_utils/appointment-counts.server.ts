@@ -1,15 +1,12 @@
 import { CompanyUserAppointmentController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { formatCurrentDateTimeInTimeZone, formatDateBoundaryInTimeZone } from '~/lib/query';
 
 /** How many avtaler a date range holds: the appointment list's own total, so a card matches the page it opens. */
 async function countAppointments(request: Request, fromDateTime: string, toDateTime?: string): Promise<number | null> {
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserAppointmentController.getAppointments({
-        query: { page: 0, size: 1, fromDateTime, ...(toDateTime ? { toDateTime } : {}) },
-      }),
-    );
+    const response = await CompanyUserAppointmentController.getAppointments({
+      query: { page: 0, size: 1, fromDateTime, ...(toDateTime ? { toDateTime } : {}) },
+    });
     return response.data?.data?.totalElements ?? null;
   } catch {
     return null;

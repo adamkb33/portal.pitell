@@ -1,7 +1,6 @@
 import { createCookie } from 'react-router';
 import { logger } from '~/lib/logger';
 import { PublicAppointmentSessionController, type ApiMessage, type AppointmentSessionDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 
 const appointmentSessionCookie = createCookie('appointment_session', {
   httpOnly: true,
@@ -54,11 +53,9 @@ export class AppointmentSessionService {
     companyId: number,
     request: Request,
   ): Promise<{ session: AppointmentSessionDto; setCookieHeader: string }> {
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.createAppointmentSession({
-        query: { companyId },
-      }),
-    );
+    const response = await PublicAppointmentSessionController.createAppointmentSession({
+      query: { companyId },
+    });
 
     if (!response.data?.data) {
       throw new Error('Kunne ikke opprette session');
@@ -87,11 +84,9 @@ export class AppointmentSessionService {
         return { status: 'missing-cookie' };
       }
 
-      const response = await withAuth(request, () =>
-        PublicAppointmentSessionController.getAppointmentSession({
-          query: { sessionId },
-        }),
-      );
+      const response = await PublicAppointmentSessionController.getAppointmentSession({
+        query: { sessionId },
+      });
 
       if (response.error || isSessionNotFoundError(response)) {
         return isSessionNotFoundError(response)
@@ -140,11 +135,9 @@ export class AppointmentSessionService {
       throw new Error('Ugyldig bruker-id.');
     }
 
-    await withAuth(request, () =>
-      PublicAppointmentSessionController.setPendingAppointmentSessionUser({
-        path: { sessionId },
-      }),
-    );
+    await PublicAppointmentSessionController.setPendingAppointmentSessionUser({
+      path: { sessionId },
+    });
   }
 
   /**
@@ -157,11 +150,9 @@ export class AppointmentSessionService {
 
     if (sessionId && typeof sessionId === 'string') {
       try {
-        await withAuth(request, () =>
-          PublicAppointmentSessionController.deleteAppointmentSession({
-            query: { sessionId },
-          }),
-        );
+        await PublicAppointmentSessionController.deleteAppointmentSession({
+          query: { sessionId },
+        });
       } catch (error) {
         logger.error('[AppointmentSessionService.delete] failed', {
           message: error instanceof Error ? error.message : String(error),

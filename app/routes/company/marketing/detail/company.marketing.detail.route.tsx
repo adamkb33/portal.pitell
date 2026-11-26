@@ -8,7 +8,6 @@ import {
   type CampaignDetailDto,
   type MarketingMessageDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyPageTemplate, ConfirmDialog, ListFooter, Notice, cn, PageNotice } from '~/ui';
@@ -68,15 +67,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const page = parsePage(url.searchParams.get('page'));
 
   try {
-    const [campaignResponse, messagesResponse] = await withAuth(request, () =>
-      Promise.all([
-        CompanyUserMarketingCampaignController.get1({ path: { id: campaignId } }),
-        CompanyUserMarketingCampaignController.messages({
-          path: { id: campaignId },
-          query: { page, size: PAGE_SIZE, ...(status ? { status } : {}) },
-        }),
-      ]),
-    );
+    const [campaignResponse, messagesResponse] = await Promise.all([
+      CompanyUserMarketingCampaignController.get1({ path: { id: campaignId } }),
+      CompanyUserMarketingCampaignController.messages({
+        path: { id: campaignId },
+        query: { page, size: PAGE_SIZE, ...(status ? { status } : {}) },
+      }),
+    ]);
     const campaign = campaignResponse.data?.data;
     if (!campaign) return { ...emptyResult, notFound: true };
 
@@ -85,9 +82,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     if (campaign.channel === 'EMAIL' && campaign.subject && campaign.blocks?.length) {
       const { subject, blocks } = campaign;
       try {
-        const preview = await withAuth(request, () =>
-          CompanyUserEmailCampaignController.previewEmailCampaign({ body: { subject, blocks } }),
-        );
+        const preview = await CompanyUserEmailCampaignController.previewEmailCampaign({ body: { subject, blocks } });
         previewHtml = preview.data?.data?.html ?? null;
       } catch (error) {
         resolveErrorPayload(error, 'Kunne ikke vise innholdet');
@@ -122,7 +117,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => CompanyUserMarketingCampaignController.cancel({ path: { id: campaignId } }));
+    await CompanyUserMarketingCampaignController.cancel({ path: { id: campaignId } });
     return data({ error: null as string | null });
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke avbryte kampanjen.');

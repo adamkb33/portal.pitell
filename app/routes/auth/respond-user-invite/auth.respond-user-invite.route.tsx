@@ -6,6 +6,7 @@ import { authService } from '~/lib/auth-service';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
 import { Lock, Mail, Phone, User } from 'lucide-react';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 type InvitePayload = Pick<UserInviteTokenDto, 'userId' | 'email' | 'mobileNumber'>;
 
@@ -87,9 +88,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await AuthController.decodeUserInvite({
-      query: { token: inviteToken },
-    });
+    const response = await withoutLogin(() =>
+      AuthController.decodeUserInvite({
+        query: { token: inviteToken },
+      }),
+    );
 
     const invite = response.data?.data;
     if (!invite) {
@@ -137,9 +140,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   let invite: InvitePayload;
   try {
-    const decodeResponse = await AuthController.decodeUserInvite({
-      query: { token: inviteToken },
-    });
+    const decodeResponse = await withoutLogin(() =>
+      AuthController.decodeUserInvite({
+        query: { token: inviteToken },
+      }),
+    );
     const decodedInvite = decodeResponse.data?.data;
     if (!decodedInvite) {
       return data<ActionData>(
@@ -190,10 +195,12 @@ export async function action({ request }: Route.ActionArgs) {
   };
 
   try {
-    const response = await AuthController.respondToUserInvite({
-      path: { inviteToken },
-      body,
-    });
+    const response = await withoutLogin(() =>
+      AuthController.respondToUserInvite({
+        path: { inviteToken },
+        body,
+      }),
+    );
     const authTokens = response.data?.data;
 
     if (!authTokens) {

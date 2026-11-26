@@ -2,7 +2,6 @@ import type { FormPageHandle } from '~/lib/routing/create-action';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.create.route';
 import { CompanyUserServiceGroupController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -30,12 +29,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await CompanyUserServiceGroupController.createServiceGroup({
-        body: {
-          name: values.name,
-        },
-      });
+    await CompanyUserServiceGroupController.createServiceGroup({
+      body: {
+        name: values.name,
+      },
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.service-groups'].href, 'Gruppe lagret');

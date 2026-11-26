@@ -1,7 +1,6 @@
 import { data, Form, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.companies.products.delete.route';
 import { Base } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -53,14 +52,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      Base.deleteProductsFromCompany({
-        body: {
-          companyId,
-          products: [...products],
-        },
-      }),
-    );
+    await Base.deleteProductsFromCompany({
+      body: {
+        companyId,
+        products: [...products],
+      },
+    });
 
     const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Produkter fjernet.' });
     return data({ error: null, values: { companyId: '', products: [] } }, { headers: { 'Set-Cookie': flashCookie } });

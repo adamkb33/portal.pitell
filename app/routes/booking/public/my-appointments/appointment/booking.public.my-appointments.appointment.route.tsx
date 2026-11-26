@@ -2,7 +2,6 @@ import { data, redirect } from 'react-router';
 import type { Route } from './+types/booking.public.my-appointments.appointment.route';
 import { ArrowLeft, CalendarClock, CalendarPlus, Clock, MapPin } from 'lucide-react';
 import { PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -34,9 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!auth) throw redirect(ROUTES_MAP['auth.sign-in'].href);
 
   try {
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentById({ query: { appointmentId } }),
-    );
+    const response = await PublicAppointmentSessionController.getAppointmentById({ query: { appointmentId } });
     const appointment = response.data?.data;
 
     if (!appointment) {

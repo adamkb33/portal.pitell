@@ -3,6 +3,7 @@ import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ENV } from '~/api/config/env';
 import { redirect } from 'react-router';
 import type { AuthenticationTokenDto } from '~/api/generated';
+import { readAccessToken } from '~/lib/auth.utils';
 
 export interface AuthenticatedUserPayload {
   id: number;
@@ -85,9 +86,13 @@ export class AuthService {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  /** The request's valid access token (refreshed by the auth middleware if it had expired), or undefined. */
+  readAccessToken(request: Request): Promise<string | undefined> {
+    return readAccessToken(request);
+  }
+
   async getUserSession(request: Request): Promise<UserSession> {
-    const cookieHeader = request.headers.get('Cookie');
-    const accessToken = await accessTokenCookie.parse(cookieHeader);
+    const accessToken = await readAccessToken(request);
 
     if (!accessToken) {
       throw new AuthenticationError('No access token', 'missing');
@@ -99,8 +104,7 @@ export class AuthService {
   }
 
   async getAuth(request: Request): Promise<AuthenticatedUserPayload | null> {
-    const cookieHeader = request.headers.get('Cookie');
-    const accessToken = await accessTokenCookie.parse(cookieHeader);
+    const accessToken = await readAccessToken(request);
     if (!accessToken) {
       return null;
     }
@@ -122,7 +126,7 @@ export class AuthService {
   async getTokensFromRequest(request: Request) {
     const cookieHeader = request.headers.get('Cookie');
     return {
-      accessToken: await accessTokenCookie.parse(cookieHeader),
+      accessToken: await readAccessToken(request),
       refreshToken: await refreshTokenCookie.parse(cookieHeader),
     };
   }

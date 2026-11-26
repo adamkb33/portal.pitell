@@ -1,5 +1,4 @@
 import { ServiceController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
@@ -18,7 +17,7 @@ export async function servicesActions({ request }: Route.ActionArgs) {
 
       const imageActions = extractImageActionsFromFormData(formData);
 
-      await withAuth(request, async () => {
+      {
         const response = await ServiceController.createService({
           body: {
             name,
@@ -28,11 +27,10 @@ export async function servicesActions({ request }: Route.ActionArgs) {
             imageActions,
           },
         });
-
         if (!response.data?.data) {
           throw new Error('Failed to create service');
         }
-      });
+      }
 
       return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste opprettet');
     }
@@ -46,18 +44,16 @@ export async function servicesActions({ request }: Route.ActionArgs) {
 
       const imageActions = extractImageActionsFromFormData(formData);
 
-      await withAuth(request, async () => {
-        await ServiceController.updateService({
-          path: { id },
-          body: {
-            id,
-            name,
-            serviceGroupId,
-            price,
-            duration,
-            imageActions,
-          },
-        });
+      await ServiceController.updateService({
+        path: { id },
+        body: {
+          id,
+          name,
+          serviceGroupId,
+          price,
+          duration,
+          imageActions,
+        },
       });
 
       return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste oppdatert');
@@ -66,9 +62,7 @@ export async function servicesActions({ request }: Route.ActionArgs) {
     if (intent === 'delete') {
       const id = Number(formData.get('id'));
 
-      await withAuth(request, async () => {
-        await ServiceController.deleteService({ path: { id } });
-      });
+      await ServiceController.deleteService({ path: { id } });
 
       return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste slettet');
     }

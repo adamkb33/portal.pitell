@@ -3,7 +3,6 @@ import { Link, data } from 'react-router';
 import { Check, Lock, Mail, Smartphone } from 'lucide-react';
 import { AuthController } from '~/api/generated';
 import type { UserDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { authService } from '~/lib/auth-service';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { CompanyPageTemplate, ListStrip, cn } from '~/ui';
@@ -21,11 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     accountStatus: 'FULL',
   };
 
-  const userContextResponse = await withAuth(
-    request,
-    async () => AuthController.getUserContext(),
-    session.accessToken,
-  ).catch(() => null);
+  const userContextResponse = await AuthController.getUserContext().catch(() => null);
   const user = userContextResponse?.data?.data?.user ?? fallbackUser;
 
   return data({ user });

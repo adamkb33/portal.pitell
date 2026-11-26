@@ -3,16 +3,13 @@ import { CompanyUserServiceGroupController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import type { Route } from './+types/company.booking.admin.service-groups.delete.api-route';
-import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: Route.ActionArgs) {
   try {
     const formData = await request.formData();
     const id = Number(formData.get('id'));
 
-    await withAuth(request, async () => {
-      return CompanyUserServiceGroupController.deleteServiceGroup({ path: { id } });
-    });
+    await CompanyUserServiceGroupController.deleteServiceGroup({ path: { id } });
 
     return redirectWithSuccess(
       request,

@@ -2,7 +2,6 @@ import { data, Form, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.diagnostics.booking.public-appointment-cancellation-by-token.route';
 import { Diagnostic } from '~/api/generated';
 import type { SystemAdminCompanyDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyPageTemplate, Input, Label, Panel, Text, PageNotice } from '~/ui';
@@ -63,11 +62,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, () =>
-      Diagnostic.publicAppointmentCancellationByToken({
-        query,
-      }),
-    );
+    const response = await Diagnostic.publicAppointmentCancellationByToken({
+      query,
+    });
     return data({
       companies,
       tableData: response.data?.data ?? null,

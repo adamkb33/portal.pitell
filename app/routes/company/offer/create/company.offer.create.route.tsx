@@ -4,7 +4,6 @@ import { Form, data, redirect } from 'react-router';
 import { FileText, Mail, PackagePlus, Plus, Trash2, UserRound } from 'lucide-react';
 import type { Route } from './+types/company.offer.create.route';
 import { Offer, type OfferCatalogItemDto, type OfferTemplateDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { Button, CompanyFormPageTemplate, Input, Notice, Panel, ProgressSteps, PageNotice } from '~/ui';
@@ -32,9 +31,10 @@ export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const [templatesResponse, catalogItemsResponse] = await withAuth(request, () =>
-      Promise.all([Offer.getTemplates(), Offer.getCatalogItems()]),
-    );
+    const [templatesResponse, catalogItemsResponse] = await Promise.all([
+      Offer.getTemplates(),
+      Offer.getCatalogItems(),
+    ]);
 
     return data({
       templates: templatesResponse.data?.data ?? [],
@@ -77,78 +77,68 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const createdOffer = await withAuth(request, async () => {
-      const templateResponse = await Offer.getTemplate({ path: { templateId: values.templateId } });
-      const template = templateResponse.data?.data;
-      if (!template) {
-        throw new Error('Tilbudsmalen finnes ikke.');
-      }
-
-      const templateData = parseTemplateData(formData, template);
-      if (templateData instanceof Error) {
-        throw templateData;
-      }
-
-      const customerResponse = await Offer.resolveCustomer({
-        body: {
-          orgNumber: values.orgNumber,
-        },
+    const templateResponse = await Offer.getTemplate({ path: { templateId: values.templateId } });
+    const template = templateResponse.data?.data;
+    if (!template) {
+      throw new Error('Tilbudsmalen finnes ikke.');
+    }
+    const templateData = parseTemplateData(formData, template);
+    if (templateData instanceof Error) {
+      throw templateData;
+    }
+    const customerResponse = await Offer.resolveCustomer({
+      body: {
+        orgNumber: values.orgNumber,
+      },
+    });
+    const customer = customerResponse.data?.data;
+    if (!customer) {
+      throw new Error('Kunne ikke opprette eller finne kunde.');
+    }
+    const offerResponse = await Offer.createOffer({
+      body: {
+        customerId: customer.id,
+        templateId: values.templateId,
+        validUntil: values.validUntil || undefined,
+        data: templateData,
+      },
+    });
+    const offer = offerResponse.data?.data;
+    if (!offer) {
+      throw new Error('Kunne ikke opprette tilbud.');
+    }
+    if (lineResult.length > 0) {
+      await Offer.replaceOfferLines({
+        path: { offerId: offer.id },
+        body: { lines: lineResult },
       });
-      const customer = customerResponse.data?.data;
+    }
+    if (recipients.length > 0) {
+      const createdContacts = await Promise.all(
+        recipients.map((recipient) =>
+          Offer.createContact({
+            path: { customerId: customer.id },
+            body: {
+              name: recipient.name || undefined,
+              email: recipient.email,
+              mobileNumber: recipient.mobileNumber || undefined,
+            },
+          }),
+        ),
+      );
 
-      if (!customer) {
-        throw new Error('Kunne ikke opprette eller finne kunde.');
-      }
+      const contactIds = createdContacts
+        .map((response) => response.data?.data?.id)
+        .filter((contactId): contactId is number => typeof contactId === 'number');
 
-      const offerResponse = await Offer.createOffer({
-        body: {
-          customerId: customer.id,
-          templateId: values.templateId,
-          validUntil: values.validUntil || undefined,
-          data: templateData,
-        },
-      });
-
-      const offer = offerResponse.data?.data;
-      if (!offer) {
-        throw new Error('Kunne ikke opprette tilbud.');
-      }
-
-      if (lineResult.length > 0) {
-        await Offer.replaceOfferLines({
+      if (contactIds.length > 0) {
+        await Offer.setRecipients({
           path: { offerId: offer.id },
-          body: { lines: lineResult },
+          body: { contactIds },
         });
       }
-
-      if (recipients.length > 0) {
-        const createdContacts = await Promise.all(
-          recipients.map((recipient) =>
-            Offer.createContact({
-              path: { customerId: customer.id },
-              body: {
-                name: recipient.name || undefined,
-                email: recipient.email,
-                mobileNumber: recipient.mobileNumber || undefined,
-              },
-            }),
-          ),
-        );
-
-        const contactIds = createdContacts
-          .map((response) => response.data?.data?.id)
-          .filter((contactId): contactId is number => typeof contactId === 'number');
-
-        if (contactIds.length > 0) {
-          await Offer.setRecipients({
-            path: { offerId: offer.id },
-            body: { contactIds },
-          });
-        }
-      }
-
-      return offer;
-    });
+    }
+    const createdOffer = offer;
 
     return redirect(getCompanyOfferDetailHref(createdOffer.id));
   } catch (error) {

@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   getMe: vi.fn(),
   getPermissions: vi.fn(),
   refresh: vi.fn(),
-  withAuth: vi.fn(),
   parseBookingContext: vi.fn(),
   loggerInfo: vi.fn(),
   loggerError: vi.fn(),
@@ -34,10 +33,6 @@ vi.mock('~/api/generated', () => ({
   },
 }));
 
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: mocks.withAuth,
-}));
-
 vi.mock('~/lib/booking-context.server', () => ({
   parseBookingContext: mocks.parseBookingContext,
 }));
@@ -56,7 +51,6 @@ describe('root loader response data', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.verifyAndDecodeToken.mockReturnValue({ id: 1 });
-    mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
     mocks.parseBookingContext.mockResolvedValue({ companyId: null, theme: 'pitell' });
   });
 

@@ -1,11 +1,9 @@
 import { data } from 'react-router';
 import { createNavigation } from '~/lib/routing/route-tree';
 import { authService } from '~/lib/auth-service';
-import { logger } from '~/lib/logger';
 import type { FlashMessage } from '~/lib/flash-message.server';
 import { AuthController } from '~/api/generated';
 import type { UserContextDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { parseBookingContext } from '~/lib/booking-context.server';
 
 function mergeResponseHeaders(...headersInit: Array<HeadersInit | undefined>): Headers {
@@ -38,37 +36,6 @@ function mergeResponseHeaders(...headersInit: Array<HeadersInit | undefined>): H
   return merged;
 }
 
-export const refreshAndBuildResponse = async (
-  request: Request,
-  refreshToken: string,
-  flashMessage: FlashMessage | null,
-  additionalHeaders?: HeadersInit,
-) => {
-  try {
-    const { accessToken } = await authService.getTokensFromRequest(request);
-    const companyId = authService.getCompanyIdFromToken(accessToken ?? '');
-
-    const response = await AuthController.refresh({
-      query: { companyId },
-      body: { refreshToken },
-    });
-
-    const tokens = response.data?.data;
-
-    if (!tokens) {
-      throw new Error('Failed to refresh auth tokens');
-    }
-
-    const { headers } = await authService.processTokenRefresh(tokens);
-    const body = await buildResponseData(request, tokens.accessToken, flashMessage);
-
-    return data(body, { headers: mergeResponseHeaders(headers, additionalHeaders) });
-  } catch (err) {
-    logger.error('Token refresh failed', { error: err instanceof Error ? err.message : String(err) });
-    return await defaultResponse(flashMessage, request, additionalHeaders);
-  }
-};
-
 export const buildResponseData = async (request: Request, accessToken: string, flashMessage: FlashMessage | null) => {
   const authPayload = authService.verifyAndDecodeToken(accessToken);
   let userContext: UserContextDto | undefined = undefined;
@@ -76,30 +43,24 @@ export const buildResponseData = async (request: Request, accessToken: string, f
   let companySummary = undefined;
 
   if (authPayload) {
-    await withAuth(
-      request,
-      async () => {
-        try {
-          const meResponse = await AuthController.getMe();
-          userContext = meResponse.data?.data?.userContext ?? undefined;
-          systemRoles = meResponse.data?.data?.permissions?.systemRoles ?? [];
-        } catch {
-          // The failed call is logged by the API client; the page just shows without a user context.
-          userContext = undefined;
-          systemRoles = [];
-        }
+    try {
+      const meResponse = await AuthController.getMe();
+      userContext = meResponse.data?.data?.userContext ?? undefined;
+      systemRoles = meResponse.data?.data?.permissions?.systemRoles ?? [];
+    } catch {
+      // The failed call is logged by the API client; the page just shows without a user context.
+      userContext = undefined;
+      systemRoles = [];
+    }
 
-        if (systemRoles.length === 0) {
-          try {
-            const permissionsResponse = await AuthController.getPermissions();
-            systemRoles = permissionsResponse.data?.data?.systemRoles ?? [];
-          } catch {
-            // Logged by the API client; no roles.
-          }
-        }
-      },
-      accessToken,
-    );
+    if (systemRoles.length === 0) {
+      try {
+        const permissionsResponse = await AuthController.getPermissions();
+        systemRoles = permissionsResponse.data?.data?.systemRoles ?? [];
+      } catch {
+        // Logged by the API client; no roles.
+      }
+    }
   }
 
   const resolvedUserContext = userContext as UserContextDto | undefined;

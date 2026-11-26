@@ -3,7 +3,6 @@ import { createCookie, Form, Link, redirect, useNavigation } from 'react-router'
 import { CalendarClock, ChevronRight, Clock, Loader2, Phone, User } from 'lucide-react';
 import { BookingLink } from '~/routes/booking/public/_components/booking-link';
 import { PublicAppointmentSessionController, type AppointmentSessionDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
@@ -84,13 +83,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       return redirect(successHref(confirmed.companyId, confirmed.appointmentId));
     }
 
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionOverview({
-        query: {
-          sessionId: session.sessionId,
-        },
-      }),
-    );
+    const response = await PublicAppointmentSessionController.getAppointmentSessionOverview({
+      query: {
+        sessionId: session.sessionId,
+      },
+    });
 
     if (!response.data?.data) {
       const message = response.data?.message || 'Kunne ikke hente oversikt';
@@ -111,9 +108,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** True unless the salon has only one employee to book. If the list can't be loaded, keep "Endre" (the safe side). */
 async function hasSeveralEmployees(request: Request, session: { sessionId: string }): Promise<boolean> {
   try {
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionProfiles({ query: { sessionId: session.sessionId } }),
-    );
+    const response = await PublicAppointmentSessionController.getAppointmentSessionProfiles({
+      query: { sessionId: session.sessionId },
+    });
     const profiles = response.data?.data;
     return !profiles || profiles.length !== 1;
   } catch {
@@ -132,16 +129,14 @@ export async function action({ request }: Route.ActionArgs) {
 
     const { session } = guardResult;
     const formData = await request.formData();
-    const submitResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.submitAppointmentSession({
-        query: {
-          sessionId: session.sessionId,
-          acceptedTerms: formData.get('acceptedTerms') === 'on',
-          marketingConsentEmail: formData.get('marketingConsentEmail') === 'on',
-          marketingConsentSms: formData.get('marketingConsentSms') === 'on',
-        },
-      }),
-    );
+    const submitResponse = await PublicAppointmentSessionController.submitAppointmentSession({
+      query: {
+        sessionId: session.sessionId,
+        acceptedTerms: formData.get('acceptedTerms') === 'on',
+        marketingConsentEmail: formData.get('marketingConsentEmail') === 'on',
+        marketingConsentSms: formData.get('marketingConsentSms') === 'on',
+      },
+    });
 
     const appointmentId = submitResponse.data?.data?.appointmentId;
     if (!appointmentId) {

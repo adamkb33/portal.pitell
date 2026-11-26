@@ -2,7 +2,6 @@ import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.serv
 import type { Route } from './+types/company.admin.contacts.create.api-route';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { CompanyUserContactController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: Route.ActionArgs) {
   try {
@@ -13,15 +12,13 @@ export async function action({ request }: Route.ActionArgs) {
     const email = formData.get('email') ? String(formData.get('email')) : undefined;
     const mobileNumber = formData.get('mobileNumber') ? String(formData.get('mobileNumber')) : undefined;
 
-    await withAuth(request, async () => {
-      await CompanyUserContactController.createContact1({
-        body: {
-          givenName,
-          familyName,
-          email,
-          mobileNumber,
-        },
-      });
+    await CompanyUserContactController.createContact1({
+      body: {
+        givenName,
+        familyName,
+        email,
+        mobileNumber,
+      },
     });
 
     const referer = request.headers.get('Referer');

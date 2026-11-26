@@ -10,6 +10,7 @@ import { AuthSubmitBar } from '../_components/auth-submit-bar';
 import { finishSignIn } from '../_utils/finish-sign-in.server';
 import { clearSignInFlow, readSignInFlow } from '../_utils/sign-in-flow.cookie.server';
 import type { Route } from './+types/auth.sign-in-new-password.route';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -27,11 +28,14 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: `Passordet må ha minst ${MIN_PASSWORD_LENGTH} tegn.` }, { status: 400 });
   }
 
+  const resetPasswordToken = flow.resetPasswordToken;
   try {
     const tokens = (
-      await AuthController.resetPassword({
-        body: { resetPasswordToken: flow.resetPasswordToken, password, password2: password },
-      })
+      await withoutLogin(() =>
+        AuthController.resetPassword({
+          body: { resetPasswordToken, password, password2: password },
+        }),
+      )
     ).data?.data;
     if (!tokens) throw new Error('Missing tokens after setting password');
     const { href, headers } = await finishSignIn(tokens, flow.returnTo);

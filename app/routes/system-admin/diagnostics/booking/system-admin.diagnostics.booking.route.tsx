@@ -1,7 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.diagnostics.booking.route';
 import { Diagnostic } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import {
@@ -25,14 +24,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const to = url.searchParams.get('to') || undefined;
 
   try {
-    const response = await withAuth(request, () =>
-      Diagnostic.flows({
-        query: {
-          from,
-          to,
-        },
-      }),
-    );
+    const response = await Diagnostic.flows({
+      query: {
+        from,
+        to,
+      },
+    });
     return data({ flowsData: response.data?.data ?? null, error: null as string | null });
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke hente booking-diagnostikk.');

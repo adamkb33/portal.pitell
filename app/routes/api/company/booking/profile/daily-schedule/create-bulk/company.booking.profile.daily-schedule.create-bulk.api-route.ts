@@ -3,7 +3,6 @@ import { DailyScheduleController } from '~/api/generated';
 import { logger } from '~/lib/logger';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { withAuth } from '~/api/utils/with-auth';
 import type { Route } from './+types/company.booking.profile.daily-schedule.create-bulk.api-route';
 
 export async function action({ request }: Route.ActionArgs) {
@@ -23,21 +22,19 @@ export async function action({ request }: Route.ActionArgs) {
       endTime: endTimeWithSeconds,
     }));
 
-    await withAuth(request, async () => {
-      await DailyScheduleController.createOrUpdateDailySchedules({
-        body: bulkSchedules.map((schedule) => ({
-          dayOfWeek: schedule.dayOfWeek as unknown as
-            | 'MONDAY'
-            | 'TUESDAY'
-            | 'WEDNESDAY'
-            | 'THURSDAY'
-            | 'FRIDAY'
-            | 'SATURDAY'
-            | 'SUNDAY',
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-        })),
-      });
+    await DailyScheduleController.createOrUpdateDailySchedules({
+      body: bulkSchedules.map((schedule) => ({
+        dayOfWeek: schedule.dayOfWeek as unknown as
+          | 'MONDAY'
+          | 'TUESDAY'
+          | 'WEDNESDAY'
+          | 'THURSDAY'
+          | 'FRIDAY'
+          | 'SATURDAY'
+          | 'SUNDAY',
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+      })),
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Standard arbeidstider lagret');

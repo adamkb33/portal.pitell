@@ -1,7 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.companies.create.route';
 import { Base } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -22,7 +21,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () => Base.createCompany({ body: { orgNumber, googlePlaceId } }));
+    const response = await Base.createCompany({ body: { orgNumber, googlePlaceId } });
     const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Selskap opprettet.' });
     return data(
       { error: null, values: { orgNumber: '', googlePlaceId: '' }, company: response.data?.data ?? null },

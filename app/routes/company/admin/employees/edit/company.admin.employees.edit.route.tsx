@@ -5,7 +5,6 @@ import { data, Form, useNavigation, useSubmit } from 'react-router';
 import type { Route } from './+types/company.admin.employees.edit.route';
 import { CompanyRole } from '~/api/clients/types';
 import { AdminCompanyController, AdminCompanyUserController, type CompanyUserDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -35,9 +34,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, () =>
-      AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1000, includeDeleted: false } }),
-    );
+    const response = await AdminCompanyUserController.getCompanyUsers({
+      query: { page: 0, size: 1000, includeDeleted: false },
+    });
     const user = (response.data?.data?.content ?? []).find((item: CompanyUserDto) => item.userId === userId) ?? null;
 
     if (!user) {
@@ -61,7 +60,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (formData.get('intent') === 'delete') {
     try {
-      await withAuth(request, () => AdminCompanyUserController.deleteCompanyUser({ path: { userId } }));
+      await AdminCompanyUserController.deleteCompanyUser({ path: { userId } });
       return redirectWithSuccess(request, EMPLOYEES, 'Ansatt fjernet');
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke fjerne den ansatte. Prøv igjen.');
@@ -84,7 +83,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => AdminCompanyController.editCompanyUser({ query: { userId }, body: { roles } }));
+    await AdminCompanyController.editCompanyUser({ query: { userId }, body: { roles } });
     return redirectWithSuccess(request, EMPLOYEES, 'Ansatt lagret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke lagre. Prøv igjen.');

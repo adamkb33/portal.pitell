@@ -10,6 +10,7 @@ import { AuthController, PublicCompanyController, PublicUserController } from '~
 import { resolveErrorPayload } from '~/lib/api-error';
 import { AuthPageTemplate, Button, FormField } from '~/ui';
 import { Lock, User } from 'lucide-react';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 const USER_ROLE_LABELS: Record<'SYSTEM_ADMIN' | 'USER' | 'COMPANY_USER', string> = {
   SYSTEM_ADMIN: 'Systemadministrator',
@@ -42,9 +43,11 @@ export async function loader({ request, url }: Route.LoaderArgs) {
   const accessToken = await accessTokenCookie.parse(request.headers.get('Cookie'));
 
   try {
-    const inviteResponse = await AuthController.decodeInvite({
-      query: { token: inviteToken },
-    });
+    const inviteResponse = await withoutLogin(() =>
+      AuthController.decodeInvite({
+        query: { token: inviteToken },
+      }),
+    );
     const invite = inviteResponse.data?.data;
 
     if (!invite) {
@@ -68,9 +71,11 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     let companySummary: CompanySummaryDto | null = null;
 
     try {
-      const userResponse = await PublicUserController.getUserByEmail({
-        query: { email: invite.email },
-      });
+      const userResponse = await withoutLogin(() =>
+        PublicUserController.getUserByEmail({
+          query: { email: invite.email },
+        }),
+      );
       const user = userResponse.data?.data;
       if (user) {
         existingUser = true;
@@ -84,10 +89,13 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     }
 
     if (invite.companyId) {
+      const companyId = invite.companyId;
       try {
-        const companyResponse = await PublicCompanyController.publicGetCompanyById({
-          path: { companyId: invite.companyId },
-        });
+        const companyResponse = await withoutLogin(() =>
+          PublicCompanyController.publicGetCompanyById({
+            path: { companyId },
+          }),
+        );
         companySummary = companyResponse.data?.data ?? null;
       } catch {
         companySummary = null;
@@ -141,23 +149,25 @@ export async function action({ request }: Route.ActionArgs) {
   const confirmPasswordValue = typeof confirmPassword === 'string' ? confirmPassword : undefined;
 
   try {
-    const response = await AuthController.respondToInvite({
-      path: {
-        inviteToken,
-      },
-      body: {
-        action: respondAction === 'DECLINE' ? 'DECLINE' : 'ACCEPT',
-        accept:
-          respondAction === 'DECLINE'
-            ? undefined
-            : {
-                givenName: givenNameValue,
-                familyName: familyNameValue,
-                password: passwordValue,
-                password2: confirmPasswordValue,
-              },
-      },
-    });
+    const response = await withoutLogin(() =>
+      AuthController.respondToInvite({
+        path: {
+          inviteToken,
+        },
+        body: {
+          action: respondAction === 'DECLINE' ? 'DECLINE' : 'ACCEPT',
+          accept:
+            respondAction === 'DECLINE'
+              ? undefined
+              : {
+                  givenName: givenNameValue,
+                  familyName: familyNameValue,
+                  password: passwordValue,
+                  password2: confirmPasswordValue,
+                },
+        },
+      }),
+    );
     const tokens = response.data?.data;
 
     if (respondAction === 'DECLINE') {

@@ -13,7 +13,6 @@ vi.mock('~/api/generated', () => ({
   PublicAppointmentSessionController: { getAppointmentById: mocks.getAppointmentById },
   AppointmentsController: { cancelMyAppointment: mocks.cancelMyAppointment },
 }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: (_request: Request, call: () => unknown) => call() }));
 vi.mock('~/lib/auth-service', () => ({ authService: { getAuth: mocks.getAuth } }));
 vi.mock('~/lib/api-error', () => ({
   resolveErrorPayload: (error: { response?: { status?: number } }, fallback: string) => ({

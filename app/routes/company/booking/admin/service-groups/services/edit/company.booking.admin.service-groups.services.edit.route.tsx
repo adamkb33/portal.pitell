@@ -3,7 +3,6 @@ import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.services.edit.route';
 import { CompanyUserServiceGroupController, ServiceController, type ServiceDto } from '~/api/generated';
 import type { Delete, Upload } from '~/api/generated/types.gen';
-import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithError, redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
@@ -25,22 +24,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const [serviceGroupsResponse, servicesResponse] = await withAuth(request, async () =>
-      Promise.all([
-        CompanyUserServiceGroupController.getServiceGroups({
-          query: {
-            page: 0,
-            size: 1000,
-          },
-        }),
-        ServiceController.getServices({
-          query: {
-            page: 0,
-            size: 1000,
-          },
-        }),
-      ]),
-    );
+    const [serviceGroupsResponse, servicesResponse] = await Promise.all([
+      CompanyUserServiceGroupController.getServiceGroups({
+        query: {
+          page: 0,
+          size: 1000,
+        },
+      }),
+      ServiceController.getServices({
+        query: {
+          page: 0,
+          size: 1000,
+        },
+      }),
+    ]);
 
     const serviceGroups = serviceGroupsResponse.data?.data?.content ?? [];
     const service = (servicesResponse.data?.data?.content ?? []).find((item: ServiceDto) => item.id === id) ?? null;
@@ -137,7 +134,7 @@ export async function action({ request }: Route.ActionArgs) {
       return redirectWithError(request, servicesHref, 'Fant ikke tjenesten du prøvde å slette.');
     }
     try {
-      await withAuth(request, () => ServiceController.deleteService({ path: { id } }));
+      await ServiceController.deleteService({ path: { id } });
       return redirectWithSuccess(request, servicesHref, 'Tjeneste slettet');
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke slette tjeneste');
@@ -167,14 +164,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await ServiceController.updateService({
-        path: { id },
-        body: {
-          ...values,
-          imageActions: extractImageActionsFromFormData(formData),
-        },
-      });
+    await ServiceController.updateService({
+      path: { id },
+      body: {
+        ...values,
+        imageActions: extractImageActionsFromFormData(formData),
+      },
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste lagret');

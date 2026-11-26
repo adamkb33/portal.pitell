@@ -3,7 +3,6 @@ import type { Route } from './+types/company.booking.admin.service-groups.update
 import { CompanyUserServiceGroupController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: Route.ActionArgs) {
   try {
@@ -11,16 +10,14 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(formData.get('id'));
     const name = formData.get('name') as string;
 
-    await withAuth(request, async () => {
-      return CompanyUserServiceGroupController.updateServiceGroup({
-        path: {
-          id,
-        },
-        body: {
-          id,
-          name,
-        },
-      });
+    await CompanyUserServiceGroupController.updateServiceGroup({
+      path: {
+        id,
+      },
+      body: {
+        id,
+        name,
+      },
     });
 
     return redirectWithSuccess(

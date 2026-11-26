@@ -11,7 +11,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { CompanyUserController, CompanyUserInAppNotificationController, type AddressDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { getAuthPayloadFromRequest } from '~/lib/auth.utils';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -28,12 +27,10 @@ import type { Route } from './+types/company.route';
 
 async function countUnreadNotifications(request: Request): Promise<number | null> {
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserInAppNotificationController.getInAppNotifications({
-        query: { request: UNREAD_COUNT_REQUEST },
-        paramsSerializer: (params) => serializeQueryParams(params.request),
-      }),
-    );
+    const response = await CompanyUserInAppNotificationController.getInAppNotifications({
+      query: { request: UNREAD_COUNT_REQUEST },
+      paramsSerializer: (params) => serializeQueryParams(params.request),
+    });
     return response.data?.data?.totalElements ?? null;
   } catch {
     return null;
@@ -48,7 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     const [summaryResponse, counts, unreadCount] = await Promise.all([
-      withAuth(request, () => CompanyUserController.getCompanySummary()),
+      CompanyUserController.getCompanySummary(),
       countTodayAndUpcomingAppointments(request),
       countUnreadNotifications(request),
     ]);

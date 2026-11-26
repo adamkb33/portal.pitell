@@ -2,6 +2,7 @@ import { data } from 'react-router';
 import type { Route } from './+types/public.booking.session.attach-user.api-route';
 import { PublicAppointmentSessionController } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -9,9 +10,11 @@ export async function action({ request }: Route.ActionArgs) {
   const userId = Number(formData.get('userId') || 0);
 
   try {
-    const response = await PublicAppointmentSessionController.setPendingAppointmentSessionUser({
-      path: { sessionId },
-    });
+    const response = await withoutLogin(() =>
+      PublicAppointmentSessionController.setPendingAppointmentSessionUser({
+        path: { sessionId },
+      }),
+    );
 
     return data(response.data);
   } catch (error) {

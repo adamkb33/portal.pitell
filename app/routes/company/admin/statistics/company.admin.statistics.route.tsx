@@ -7,7 +7,6 @@ import {
   type RecentInvite,
   type RecentUser,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { formatOslo } from '~/lib/oslo-time';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -16,7 +15,7 @@ import { Badge, CompanyPageTemplate, ListStrip, PageNotice, categoryTone, cn } f
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, () => AdminCompanyController.getDashboardMetrics());
+    const response = await AdminCompanyController.getDashboardMetrics();
     return data({ metrics: response.data?.data ?? null, now: new Date().toISOString() });
   } catch (error) {
     resolveErrorPayload(error, 'Kunne ikke hente statistikk');

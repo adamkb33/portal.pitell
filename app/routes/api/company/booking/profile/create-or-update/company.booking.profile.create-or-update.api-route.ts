@@ -3,7 +3,6 @@ import { logger } from '~/lib/logger';
 import { CompanyUserBookingProfileController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -52,10 +51,8 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     }
 
-    await withAuth(request, async () => {
-      await CompanyUserBookingProfileController.createOrUpdateProfile({
-        body: payload,
-      });
+    await CompanyUserBookingProfileController.createOrUpdateProfile({
+      body: payload,
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Bookingprofil lagret');

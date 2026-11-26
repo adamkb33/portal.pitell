@@ -1,5 +1,4 @@
 import { CompanyUserMarketingRecipientController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import type { CampaignChannel } from './campaigns';
 
 /**
@@ -8,11 +7,9 @@ import type { CampaignChannel } from './campaigns';
  */
 export async function countRecipients(request: Request, channel: CampaignChannel | null): Promise<number | null> {
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserMarketingRecipientController.recipients({
-        query: { page: 0, size: 1, ...(channel ? { channel } : {}) },
-      }),
-    );
+    const response = await CompanyUserMarketingRecipientController.recipients({
+      query: { page: 0, size: 1, ...(channel ? { channel } : {}) },
+    });
     return response.data?.meta?.pagination?.totalElements ?? null;
   } catch {
     return null;

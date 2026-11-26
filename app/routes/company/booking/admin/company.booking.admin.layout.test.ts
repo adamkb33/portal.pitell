@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   getPermissions: vi.fn(),
   getLoyaltyRule: vi.fn(),
   getAppointments: vi.fn(),
-  withAuth: vi.fn(),
   redirectWithError: vi.fn(),
 }));
 
@@ -15,7 +14,6 @@ vi.mock('~/api/generated', () => ({
   Booking: { getLoyaltyRule: mocks.getLoyaltyRule },
   CompanyUserAppointmentController: { getAppointments: mocks.getAppointments },
 }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.withAuth }));
 vi.mock('~/lib/flash-message.server', () => ({ redirectWithError: mocks.redirectWithError }));
 
 import { requireBookingAdmin } from '~/lib/company-admin.server';
@@ -44,7 +42,6 @@ beforeEach(() => {
   mocks.getAppointments.mockImplementation(async ({ query }: { query: { toDateTime?: string } }) => ({
     data: { data: { totalElements: query.toDateTime ? counts.todayCount : counts.upcomingCount } },
   }));
-  mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.redirectWithError.mockResolvedValue(
     new Response(null, { status: 302, headers: { Location: '/company/booking' } }),
   );
@@ -60,7 +57,6 @@ describe('booking admin access', () => {
       loyalty: { visitsRequired: 5, enabled: true },
       ...counts,
     });
-    expect(mocks.withAuth).toHaveBeenCalledWith(request, expect.any(Function), 'access-token');
     expect(loader()).toBeNull();
     expect(shouldRevalidate()).toBe(true);
   });

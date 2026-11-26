@@ -8,6 +8,7 @@ import { CodeStepForm, type CodeActionData } from '../_components/code-step-form
 import { describeSignInCodeError } from '../_utils/sign-in-code-errors';
 import { readSignInFlow, writeSignInFlow } from '../_utils/sign-in-flow.cookie.server';
 import type { Route } from './+types/auth.sign-in-code.route';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 function secondsUntil(iso: string): number {
   return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 1000));
@@ -30,7 +31,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (formData.get('intent') === 'resend') {
     try {
-      const sent = (await AuthController.sendSignInCode({ body: { emailOrMobile: flow.identifier } })).data?.data;
+      const sent = (
+        await withoutLogin(() => AuthController.sendSignInCode({ body: { emailOrMobile: flow.identifier } }))
+      ).data?.data;
       if (!sent) throw new Error('Missing sign-in code response');
       const cookie = await writeSignInFlow({
         ...flow,
@@ -52,8 +55,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const code = String(formData.get('code') ?? '').trim();
+  const codeId = flow.code.codeId;
   try {
-    const verified = (await AuthController.verifySignInCode({ body: { codeId: flow.code.codeId, code } })).data?.data;
+    const verified = (await withoutLogin(() => AuthController.verifySignInCode({ body: { codeId, code } }))).data?.data;
     if (!verified) throw new Error('Missing verify response');
     const cookie = await writeSignInFlow({
       identifier: flow.identifier,

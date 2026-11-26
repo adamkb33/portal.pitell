@@ -2,7 +2,6 @@ import * as React from 'react';
 import { data, Link, useNavigation, useSubmit } from 'react-router';
 import type { Route } from './+types/company.timesheet.register.route';
 import { CompanyUserTimesheetEntryController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { StartEndTimeSelector } from '~/components/pickers/start-end-time-selector';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -66,32 +65,28 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     if (rangeEntries.length) {
-      await withAuth(request, () =>
-        CompanyUserTimesheetEntryController.createRangeEntries({
-          body: {
-            note,
-            days: rangeEntries.map((entry) => ({
-              date: formatDateInputToZonedISOString(entry.date),
-              fromTime: entry.fromTime!,
-              toTime: entry.toTime!,
-            })),
-          },
-        }),
-      );
+      await CompanyUserTimesheetEntryController.createRangeEntries({
+        body: {
+          note,
+          days: rangeEntries.map((entry) => ({
+            date: formatDateInputToZonedISOString(entry.date),
+            fromTime: entry.fromTime!,
+            toTime: entry.toTime!,
+          })),
+        },
+      });
     }
 
     if (hoursEntries.length) {
-      await withAuth(request, () =>
-        CompanyUserTimesheetEntryController.createHoursEntries({
-          body: {
-            note,
-            days: hoursEntries.map((entry) => ({
-              date: formatDateInputToZonedISOString(entry.date),
-              hours: Number(entry.hours),
-            })),
-          },
-        }),
-      );
+      await CompanyUserTimesheetEntryController.createHoursEntries({
+        body: {
+          note,
+          days: hoursEntries.map((entry) => ({
+            date: formatDateInputToZonedISOString(entry.date),
+            hours: Number(entry.hours),
+          })),
+        },
+      });
     }
 
     return redirectWithSuccess(request, ROUTES_MAP['company.timesheet'].href, 'Registrering lagret');

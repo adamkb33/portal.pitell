@@ -4,7 +4,6 @@ import { logger } from '~/lib/logger';
 import { DailyScheduleController } from '~/api/generated';
 import { redirectWithSuccess, redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
-import { withAuth } from '~/api/utils/with-auth';
 
 type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
@@ -23,10 +22,8 @@ export async function action({ request }: ActionFunctionArgs) {
       endTime: endTime.includes(':') && endTime.split(':').length === 2 ? `${endTime}:00` : endTime,
     };
 
-    await withAuth(request, async () => {
-      await DailyScheduleController.createOrUpdateDailySchedules({
-        body: [scheduleWithSeconds],
-      });
+    await DailyScheduleController.createOrUpdateDailySchedules({
+      body: [scheduleWithSeconds],
     });
 
     return redirectWithSuccess(

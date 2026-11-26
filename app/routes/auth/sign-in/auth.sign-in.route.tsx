@@ -18,6 +18,7 @@ import { AuthSubmitBar } from '../_components/auth-submit-bar';
 import { finishSignIn } from '../_utils/finish-sign-in.server';
 import { clearSignInFlow, readSignInFlow, writeSignInFlow } from '../_utils/sign-in-flow.cookie.server';
 import { sendCodeAndContinue } from '../_utils/send-sign-in-code.server';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 function redactIdentifier(value: string) {
   const normalized = value.trim();
@@ -66,7 +67,8 @@ async function lookupAction(request: Request, emailOrMobile: string, returnTo: s
   if (!identifier) return redirectWithError(request, signInHref, 'Skriv inn mobilnummer eller e-post.');
 
   try {
-    const method = (await AuthController.signInLookup({ body: { emailOrMobile: identifier } })).data?.data?.method;
+    const method = (await withoutLogin(() => AuthController.signInLookup({ body: { emailOrMobile: identifier } }))).data
+      ?.data?.method;
 
     if (method === 'PASSWORD') {
       return redirect(ROUTES_MAP['auth.sign-in-password'].href, {
@@ -108,9 +110,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const response = await AuthController.signIn({
-      body: isGoogleLogin ? { provider: 'GOOGLE', idToken } : { provider: 'LOCAL', emailOrMobile, password },
-    });
+    const response = await withoutLogin(() =>
+      AuthController.signIn({
+        body: isGoogleLogin ? { provider: 'GOOGLE', idToken } : { provider: 'LOCAL', emailOrMobile, password },
+      }),
+    );
     const payload = response.data?.data;
 
     // One line per sign-in: who (masked), how, and what comes next (DONE or a verification step and its code delivery).

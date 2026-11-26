@@ -4,7 +4,6 @@ import {
   type CampaignSummaryDto,
   type MarketingRecipientDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { LIST_PAGE_SIZE } from '~/lib/list-page-size';
 import { parsePage, type CampaignChannel } from './campaigns';
@@ -30,9 +29,9 @@ export async function loadChannelCampaigns(request: Request, channel: CampaignCh
   const page = parsePage(new URL(request.url).searchParams.get('page'));
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserMarketingCampaignController.list({ query: { page, size: LIST_PAGE_SIZE, channel } }),
-    );
+    const response = await CompanyUserMarketingCampaignController.list({
+      query: { page, size: LIST_PAGE_SIZE, channel },
+    });
     return {
       campaigns: response.data?.data ?? [],
       pagination: readPagination(response.data?.meta?.pagination, page),
@@ -51,9 +50,9 @@ export async function loadChannelRecipients(request: Request, channel: CampaignC
   const page = parsePage(new URL(request.url).searchParams.get('page'));
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserMarketingRecipientController.recipients({ query: { page, size: LIST_PAGE_SIZE, channel } }),
-    );
+    const response = await CompanyUserMarketingRecipientController.recipients({
+      query: { page, size: LIST_PAGE_SIZE, channel },
+    });
     return {
       recipients: response.data?.data ?? [],
       pagination: readPagination(response.data?.meta?.pagination, page),

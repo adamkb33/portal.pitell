@@ -3,7 +3,6 @@ import { logger } from '~/lib/logger';
 import { data, Link, useNavigation } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.route';
 import { AppointmentsController, type CompanySummaryDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { parseBookingContext, resolveBookingTheme } from '~/lib/booking-context.server';
@@ -141,7 +140,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const context = await parseBookingContext(request);
     const urlTheme = url.searchParams.has('theme') ? resolveBookingTheme(url.searchParams.get('theme')) : null;
     const theme = urlTheme ?? context.theme;
-    const response = await withAuth(request, () => AppointmentsController.getBookingReadyCompanies());
+    const response = await AppointmentsController.getBookingReadyCompanies();
     const companies = response.data?.data ?? [];
 
     logger.debug('[companies-map] booking-ready companies', {

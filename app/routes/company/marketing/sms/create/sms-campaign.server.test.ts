@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ count: vi.fn(), create: vi.fn(), auth: vi.fn() }));
+const mocks = vi.hoisted(() => ({ count: vi.fn(), create: vi.fn() }));
 vi.mock('~/api/generated', () => ({
   CompanyUserMarketingCampaignController: { audienceCount: mocks.count },
   CompanyUserSmsCampaignController: { createSmsCampaign: mocks.create },
 }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.auth }));
 vi.mock('~/lib/api-error', () => ({ resolveErrorPayload: (error: Error) => ({ message: error.message }) }));
 import { createSmsCampaign, loadSmsCampaignCreate } from './sms-campaign.server';
 const url = 'http://localhost/company/marketing/sms/create';
@@ -15,7 +14,6 @@ const post = (fields: Record<string, string>) => {
 };
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.auth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.count.mockResolvedValue({ data: { data: { eligibleCount: 88 } } });
   mocks.create.mockResolvedValue({ data: { data: { id: 42 } } });
 });

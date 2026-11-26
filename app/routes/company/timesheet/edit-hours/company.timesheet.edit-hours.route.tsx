@@ -1,7 +1,6 @@
 import { data, Form, Link, useLoaderData, useNavigation } from 'react-router';
 import type { Route } from './+types/company.timesheet.edit-hours.route';
 import { CompanyUserTimesheetEntryController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -21,11 +20,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserTimesheetEntryController.getEntryById({
-        path: { id },
-      }),
-    );
+    const response = await CompanyUserTimesheetEntryController.getEntryById({
+      path: { id },
+    });
 
     const entry = response.data?.data;
     if (!entry) {
@@ -67,16 +64,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () =>
-      CompanyUserTimesheetEntryController.updateHoursEntry({
-        path: { id },
-        body: {
-          date: formatDateInputToZonedISOString(date),
-          hours,
-          note,
-        },
-      }),
-    );
+    await CompanyUserTimesheetEntryController.updateHoursEntry({
+      path: { id },
+      body: {
+        date: formatDateInputToZonedISOString(date),
+        hours,
+        note,
+      },
+    });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.timesheet'].href, 'Timelisten ble oppdatert');
   } catch (error) {

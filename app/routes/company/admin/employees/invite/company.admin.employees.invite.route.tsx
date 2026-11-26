@@ -4,7 +4,6 @@ import { data, Form, useNavigation, useSearchParams } from 'react-router';
 import type { Route } from './+types/company.admin.employees.invite.route';
 import { CompanyRole } from '~/api/clients/types';
 import { AdminCompanyController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -41,7 +40,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, () => AdminCompanyController.inviteCompanyUser({ body: { email, roles } }));
+    await AdminCompanyController.inviteCompanyUser({ body: { email, roles } });
     return redirectWithSuccess(request, ROUTES_MAP['company.admin.employees'].href, 'Invitasjon sendt');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke sende invitasjonen. Prøv igjen.');

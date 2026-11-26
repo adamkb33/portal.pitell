@@ -3,7 +3,6 @@ import { data } from 'react-router';
 import type { Route } from './+types/company.booking.admin.service-groups.services.create.route';
 import { CompanyUserServiceGroupController, ServiceController } from '~/api/generated';
 import type { Delete, Upload } from '~/api/generated/types.gen';
-import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithInfo, redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
@@ -14,14 +13,12 @@ export const handle: FormPageHandle = { formPage: true };
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const response = await withAuth(request, async () =>
-      CompanyUserServiceGroupController.getServiceGroups({
-        query: {
-          page: 0,
-          size: 1000,
-        },
-      }),
-    );
+    const response = await CompanyUserServiceGroupController.getServiceGroups({
+      query: {
+        page: 0,
+        size: 1000,
+      },
+    });
 
     const serviceGroups = response.data?.data?.content ?? [];
 
@@ -120,13 +117,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await ServiceController.createService({
-        body: {
-          ...values,
-          imageActions: extractImageActionsFromFormData(formData),
-        },
-      });
+    await ServiceController.createService({
+      body: {
+        ...values,
+        imageActions: extractImageActionsFromFormData(formData),
+      },
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.admin.services'].href, 'Tjeneste lagret');

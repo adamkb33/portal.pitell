@@ -13,7 +13,6 @@ import {
 import { formatEstimatedPrice } from '~/routes/booking/public/_utils/booking-price';
 import { AppointmentListRow } from '../appointments/_components/appointment.list-row';
 import { getAppointmentTotals, isAppointmentInProgress } from '../appointments/_utils/appointments.utils';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { logger } from '~/lib/logger';
 import { DEFAULT_QUERY_TIMEZONE, formatDateBoundaryInTimeZone, formatDateInputInTimeZone } from '~/lib/query';
@@ -84,18 +83,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   });
 
   try {
-    const response = await withAuth(request, async () =>
-      Booking.getScheduleOverview({ query: { fromDateTime, toDateTime } }),
-    );
+    const response = await Booking.getScheduleOverview({ query: { fromDateTime, toDateTime } });
 
     const overview = response.data?.data ?? createEmptyOverview();
 
     // Customer names and services are not in the overview. Without them the cards fall back to "Avtale".
-    const details = await withAuth(request, async () =>
-      CompanyUserAppointmentController.getAppointments({
-        query: { page: 0, size: 100, fromDateTime, toDateTime, direction: 'ASC' },
-      }),
-    )
+    const details = await CompanyUserAppointmentController.getAppointments({
+      query: { page: 0, size: 100, fromDateTime, toDateTime, direction: 'ASC' },
+    })
       .then((res) => res.data?.data?.content ?? [])
       .catch(() => [] as AppointmentDto[]);
 

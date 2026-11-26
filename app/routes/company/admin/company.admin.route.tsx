@@ -1,7 +1,6 @@
 import { data } from 'react-router';
 import { BarChart3, Contact, Users } from 'lucide-react';
 import { AdminCompanyController, AdminCompanyUserController, CompanyUserController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { CompanyRow, OverviewRow } from '~/routes/company/_components/overview-rows';
 import { KeyDestinationCard } from '~/routes/company/booking/_components/key-destination-card';
@@ -11,16 +10,14 @@ import type { Route } from './+types/company.admin.route';
 export async function loader({ request }: Route.LoaderArgs) {
   // Each part may fail on its own: the cards still open their pages with "–" instead of a number.
   const [metrics, employeeCount, company] = await Promise.all([
-    withAuth(request, () => AdminCompanyController.getDashboardMetrics())
+    AdminCompanyController.getDashboardMetrics()
       .then((response) => response.data?.data ?? null)
       .catch(() => null),
     // Counted the way the Ansatte list counts, so the card and the list always agree.
-    withAuth(request, () =>
-      AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1, includeDeleted: false } }),
-    )
+    AdminCompanyUserController.getCompanyUsers({ query: { page: 0, size: 1, includeDeleted: false } })
       .then((response) => response.data?.data?.totalElements ?? null)
       .catch(() => null),
-    withAuth(request, () => CompanyUserController.getCompanySummary())
+    CompanyUserController.getCompanySummary()
       .then((response) => response.data?.data ?? null)
       .catch(() => null),
   ]);

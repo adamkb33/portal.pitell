@@ -13,10 +13,6 @@ vi.mock('~/routes/booking/public/_utils/booking.require-authenticated-flow.serve
   requireBookingReady: mocks.requireBookingReady,
 }));
 
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: (_request: Request, callback: () => unknown) => callback(),
-}));
-
 vi.mock('~/api/generated', () => ({
   PublicAppointmentSessionController: {
     submitAppointmentSession: mocks.submitAppointmentSession,

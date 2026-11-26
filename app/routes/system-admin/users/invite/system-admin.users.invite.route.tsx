@@ -1,7 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.users.invite.route';
 import { Base } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -18,15 +17,13 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      Base.inviteUser({
-        body: {
-          email,
-          userRoles: ['SYSTEM_ADMIN'],
-          companyRoles: [],
-        },
-      }),
-    );
+    await Base.inviteUser({
+      body: {
+        email,
+        userRoles: ['SYSTEM_ADMIN'],
+        companyRoles: [],
+      },
+    });
 
     const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Brukerinvitasjon sendt.' });
     return data({ error: null, values: { email: '' } }, { headers: { 'Set-Cookie': flashCookie } });

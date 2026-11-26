@@ -2,7 +2,6 @@ import { data, Link, useNavigation, useSearchParams } from 'react-router';
 import type { Route } from './+types/booking.public.my-appointments.route';
 import { CalendarClock, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Gift, MapPin } from 'lucide-react';
 import { AppointmentsController, type LoyaltyCardDto, type MyAppointmentDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { osloDaysFromToday } from '~/lib/oslo-time';
@@ -128,16 +127,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const historyPage = showAllHistory ? getSafePage(url.searchParams.get('side')) : 0;
 
   try {
-    const [nearestResult, upcomingResult, completedResult, loyaltyResult] = await withAuth(request, async () => {
-      return Promise.allSettled([
-        AppointmentsController.getMyNearestAppointment(),
-        AppointmentsController.getMyUpcomingAppointments({ query: { page: 0, size: LATER_PREVIEW_SIZE + 1 } }),
-        AppointmentsController.getMyCompletedAppointments({
-          query: { page: historyPage, size: showAllHistory ? HISTORY_PAGE_SIZE : PAST_PREVIEW_SIZE },
-        }),
-        AppointmentsController.getMyLoyaltyCards(),
-      ]);
-    });
+    const [nearestResult, upcomingResult, completedResult, loyaltyResult] = await Promise.allSettled([
+      AppointmentsController.getMyNearestAppointment(),
+      AppointmentsController.getMyUpcomingAppointments({ query: { page: 0, size: LATER_PREVIEW_SIZE + 1 } }),
+      AppointmentsController.getMyCompletedAppointments({
+        query: { page: historyPage, size: showAllHistory ? HISTORY_PAGE_SIZE : PAST_PREVIEW_SIZE },
+      }),
+      AppointmentsController.getMyLoyaltyCards(),
+    ]);
 
     const nearestAppointment = nearestResult.status === 'fulfilled' ? (nearestResult.value.data?.data ?? null) : null;
     const upcomingPayload = upcomingResult.status === 'fulfilled' ? upcomingResult.value.data?.data : undefined;

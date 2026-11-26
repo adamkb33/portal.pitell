@@ -2,7 +2,6 @@ import { data } from 'react-router';
 import { format } from 'date-fns';
 import type { Route } from './+types/company.booking.schedule.availabilities.create.route';
 import { Booking } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { formatLocalDateTimeInTimeZone } from '~/lib/query';
@@ -39,16 +38,14 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      Booking.createAvailabilities({
-        body: [
-          {
-            from: formatLocalDateTimeInTimeZone(date, startTime, TIME_ZONE),
-            to: formatLocalDateTimeInTimeZone(date, endTime, TIME_ZONE),
-          },
-        ],
-      }),
-    );
+    await Booking.createAvailabilities({
+      body: [
+        {
+          from: formatLocalDateTimeInTimeZone(date, startTime, TIME_ZONE),
+          to: formatLocalDateTimeInTimeZone(date, endTime, TIME_ZONE),
+        },
+      ],
+    });
     return redirectWithSuccess(
       request,
       ROUTES_MAP['company.booking.schedule.availabilities'].href,

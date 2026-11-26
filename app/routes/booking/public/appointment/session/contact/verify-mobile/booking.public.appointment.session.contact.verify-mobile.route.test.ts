@@ -16,10 +16,6 @@ vi.mock('~/api/generated', () => ({
   },
 }));
 
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: async (_request: Request, callback: () => unknown) => callback(),
-}));
-
 vi.mock('~/lib/auth-service', () => ({
   authService: { setAuthCookies: vi.fn() },
 }));

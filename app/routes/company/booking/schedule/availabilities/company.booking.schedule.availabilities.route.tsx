@@ -4,7 +4,6 @@ import { CalendarPlus } from 'lucide-react';
 import { data } from 'react-router';
 import type { Route } from './+types/company.booking.schedule.availabilities.route';
 import { Booking, type ScheduleAvailabilityDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { formatDateBoundaryInTimeZone } from '~/lib/query';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -26,16 +25,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { start, end } = periodWindow(period, toZonedTime(new Date(), TIME_ZONE));
 
   try {
-    const response = await withAuth(request, async () =>
-      Booking.getAvailabilities({
-        query: {
-          page: 0,
-          size: 200,
-          fromDateTime: formatDateBoundaryInTimeZone(format(start, 'yyyy-MM-dd'), 'start', TIME_ZONE),
-          toDateTime: formatDateBoundaryInTimeZone(format(end, 'yyyy-MM-dd'), 'end', TIME_ZONE),
-        },
-      }),
-    );
+    const response = await Booking.getAvailabilities({
+      query: {
+        page: 0,
+        size: 200,
+        fromDateTime: formatDateBoundaryInTimeZone(format(start, 'yyyy-MM-dd'), 'start', TIME_ZONE),
+        toDateTime: formatDateBoundaryInTimeZone(format(end, 'yyyy-MM-dd'), 'end', TIME_ZONE),
+      },
+    });
 
     const now = Date.now();
     const items = (response.data?.data?.content ?? [])

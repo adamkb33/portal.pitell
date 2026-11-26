@@ -1,7 +1,6 @@
 import { ClipboardList } from 'lucide-react';
 import type { Route } from './+types/company.booking.statistics.services.route';
 import { CompanyUserServiceGroupController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ListEmpty, ListRow, categoryTone, cn } from '~/ui';
 import { StatCard, StatisticsPage, statisticsDetailHandle } from '../_components/statistics-parts';
 import { loadMonthMetrics } from '../_utils/load-month-metrics.server';
@@ -18,9 +17,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** The groups in the order of the Tjenester page, so every group keeps its color there and here. */
 async function loadServiceGroupOrder(request: Request): Promise<number[]> {
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
-    );
+    const response = await CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } });
     return (response.data?.data?.content ?? []).flatMap((group) => (group.id == null ? [] : [group.id]));
   } catch {
     return [];

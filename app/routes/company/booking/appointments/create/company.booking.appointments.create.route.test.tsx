@@ -14,10 +14,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: vi.fn(async (_request: Request, callback: () => Promise<unknown>) => callback()),
-}));
-
 vi.mock('~/api/generated', () => ({
   CompanyUserController: {
     resolveOrCreateAppointmentCustomer: mocks.resolveOrCreateAppointmentCustomer,

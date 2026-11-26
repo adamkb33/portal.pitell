@@ -9,6 +9,7 @@ import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { parseVerificationExpiry } from '~/routes/booking/public/appointment/session/contact/_services/verification-token.service.server';
 import { resolveAuthNextStepHref } from '../_utils/auth-flow';
 import { finishSignIn } from '../_utils/finish-sign-in.server';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 const CONFIRMED = 'E-post bekreftet';
 
@@ -21,7 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!token) return redirect(ROUTES_MAP['auth.sign-in'].href);
 
   try {
-    const payload = (await AuthController.verifyEmail({ query: { token } })).data?.data;
+    const payload = (await withoutLogin(() => AuthController.verifyEmail({ query: { token } }))).data?.data;
 
     if (payload?.nextStep === 'VERIFY_MOBILE' && payload.verificationToken?.value) {
       const headers = new Headers();

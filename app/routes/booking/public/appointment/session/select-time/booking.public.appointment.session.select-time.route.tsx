@@ -1,6 +1,5 @@
 import { data } from 'react-router';
 import { PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { requireBookingSession } from '~/routes/booking/public/_utils/booking.require-authenticated-flow.server';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -43,13 +42,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const schedulesResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionSchedules({
-        query: {
-          sessionId: session.sessionId,
-        },
-      }),
-    );
+    const schedulesResponse = await PublicAppointmentSessionController.getAppointmentSessionSchedules({
+      query: {
+        sessionId: session.sessionId,
+      },
+    });
     const schedules = schedulesResponse.data?.data || [];
 
     return data({
@@ -82,14 +79,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const saveResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.submitAppointmentSessionStartTime({
-        query: {
-          sessionId: session.sessionId,
-          selectedStartTime: startTime,
-        },
-      }),
-    );
+    const saveResponse = await PublicAppointmentSessionController.submitAppointmentSessionStartTime({
+      query: {
+        sessionId: session.sessionId,
+        selectedStartTime: startTime,
+      },
+    });
 
     if (!saveResponse.data?.data?.selectedStartTime) {
       return redirectWithError(request, routes.selectTime, 'Kunne ikke lagre valgt tidspunkt');

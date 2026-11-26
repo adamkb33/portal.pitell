@@ -4,6 +4,7 @@ import type { Route } from './+types/marketing.public.route';
 import { PublicUnsubscribeController, type UnsubscribeInfoDto } from '~/api/generated';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { Button, cn } from '~/ui';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 // The unsubscribe link from a marketing email or SMS. No login: the token in the link is the only key.
 // Opening the page never changes anything (mail scanners open links on their own); only the button's POST unsubscribes.
@@ -12,10 +13,6 @@ type Channel = UnsubscribeInfoDto['channel'];
 type UnsubscribeView =
   | { state: 'ask' | 'already' | 'done'; companyName: string; channel: Channel }
   | { state: 'invalid' | 'error' };
-
-// The generated client is shared by every request on the server and keeps the last signed-in user's token,
-// so public calls clear it explicitly.
-const withoutLogin = { headers: { Authorization: null } };
 
 function failure(error: unknown) {
   const { status } = resolveErrorPayload(error, 'Kunne ikke behandle avmeldingen');
@@ -29,7 +26,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!token) return data<UnsubscribeView>({ state: 'invalid' }, { status: 404 });
 
   try {
-    const response = await PublicUnsubscribeController.get({ path: { token }, ...withoutLogin });
+    const response = await withoutLogin(() => PublicUnsubscribeController.get({ path: { token } }));
     const info = response.data?.data;
     if (!info) return data<UnsubscribeView>({ state: 'invalid' }, { status: 404 });
     return data<UnsubscribeView>({
@@ -47,7 +44,7 @@ export async function action({ params }: Route.ActionArgs) {
   if (!token) return data<UnsubscribeView>({ state: 'invalid' }, { status: 404 });
 
   try {
-    const response = await PublicUnsubscribeController.unsubscribe({ path: { token }, ...withoutLogin });
+    const response = await withoutLogin(() => PublicUnsubscribeController.unsubscribe({ path: { token } }));
     const info = response.data?.data;
     if (!info) return data<UnsubscribeView>({ state: 'invalid' }, { status: 404 });
     return data<UnsubscribeView>({ state: 'done', companyName: info.companyName, channel: info.channel });

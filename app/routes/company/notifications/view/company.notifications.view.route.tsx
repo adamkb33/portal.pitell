@@ -11,7 +11,6 @@ import {
   type AppointmentDto,
   type InAppNotificationDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { TitleHandle } from '~/lib/routing/up-link';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -56,9 +55,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserInAppNotificationController.getInAppNotificationById({ path: { id } }),
-    );
+    const response = await CompanyUserInAppNotificationController.getInAppNotificationById({ path: { id } });
     let notification = response.data?.data ?? null;
     if (!notification) {
       return data<LoaderData>(
@@ -69,9 +66,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     // Opening a notification reads it.
     if (!notification.readAt) {
-      const marked = await withAuth(request, () =>
-        CompanyUserInAppNotificationController.markInAppNotificationAsRead({ path: { id } }),
-      );
+      const marked = await CompanyUserInAppNotificationController.markInAppNotificationAsRead({ path: { id } });
       notification = marked.data?.data ?? notification;
     }
 
@@ -87,9 +82,7 @@ async function loadAppointment(request: Request, notification: InAppNotification
   const appointmentId = notificationAppointmentId(notification);
   if (appointmentId == null) return null;
   try {
-    const response = await withAuth(request, () =>
-      CompanyUserAppointmentController.getAppointmentById1({ path: { id: appointmentId } }),
-    );
+    const response = await CompanyUserAppointmentController.getAppointmentById1({ path: { id: appointmentId } });
     return response.data?.data ?? null;
   } catch {
     return null;

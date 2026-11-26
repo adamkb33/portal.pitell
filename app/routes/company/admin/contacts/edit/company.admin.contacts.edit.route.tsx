@@ -5,7 +5,6 @@ import type { Route } from './+types/company.admin.contacts.edit.route';
 import { ContactFormSchema, contactMissing, type ContactFormData } from '../_schemas/contact.form.schema';
 import { ContactFormPage } from '../_components/contact-form-page';
 import { CompanyUserContactController, type ContactDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { CompanyPageTemplate, PageNotice } from '~/ui';
@@ -40,14 +39,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () =>
-      CompanyUserContactController.getContacts1({
-        query: {
-          page: 0,
-          size: 1000,
-        },
-      }),
-    );
+    const response = await CompanyUserContactController.getContacts1({
+      query: {
+        page: 0,
+        size: 1000,
+      },
+    });
 
     const contact = (response.data?.data?.content ?? []).find((item: ContactDto) => item.id === contactId) ?? null;
 
@@ -97,7 +94,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (formData.get('intent') === 'delete') {
     try {
-      await withAuth(request, () => CompanyUserContactController.deleteContact1({ path: { id } }));
+      await CompanyUserContactController.deleteContact1({ path: { id } });
       return redirectWithSuccess(request, returnTo, 'Kontakt slettet');
     } catch (error) {
       const { message } = resolveErrorPayload(error, 'Kunne ikke slette kontakten. Prøv igjen.');
@@ -123,16 +120,14 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () => {
-      await CompanyUserContactController.updateContact1({
-        path: { id },
-        body: {
-          givenName: parsed.data.givenName,
-          familyName: parsed.data.familyName,
-          email: parsed.data.email || undefined,
-          mobileNumber: parsed.data.mobileNumber || undefined,
-        },
-      });
+    await CompanyUserContactController.updateContact1({
+      path: { id },
+      body: {
+        givenName: parsed.data.givenName,
+        familyName: parsed.data.familyName,
+        email: parsed.data.email || undefined,
+        mobileNumber: parsed.data.mobileNumber || undefined,
+      },
     });
 
     return redirectWithSuccess(request, returnTo, 'Kontakt lagret');

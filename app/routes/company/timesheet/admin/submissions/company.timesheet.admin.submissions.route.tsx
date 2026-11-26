@@ -3,7 +3,6 @@ import { data, useSubmit } from 'react-router';
 import { ClipboardList, UserCheck, UserX } from 'lucide-react';
 import type { Route } from './+types/company.timesheet.admin.submissions.route';
 import { AdminTimeSheetEntryController, type AdminEmployeeTimesheetEntriesDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
 import { Accordion, CompanyEmptyState, CompanyPageTemplate, KpiCard, PageNotice } from '~/ui';
@@ -23,12 +22,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { requestPayload, statuses, page, size } = parseTimesheetListRequest(url);
 
   try {
-    const response = await withAuth(request, () =>
-      AdminTimeSheetEntryController.getEmployeeTimesheetEntries({
-        query: { request: requestPayload },
-        paramsSerializer: (params) => serializeTimesheetQuery(params.request),
-      }),
-    );
+    const response = await AdminTimeSheetEntryController.getEmployeeTimesheetEntries({
+      query: { request: requestPayload },
+      paramsSerializer: (params) => serializeTimesheetQuery(params.request),
+    });
 
     return data({
       groups: response.data?.data ?? [],
@@ -86,19 +83,17 @@ export async function action({ request, url }: Route.ActionArgs) {
   const { requestPayload } = parseTimesheetListRequest(url);
 
   try {
-    const listResponse = await withAuth(request, () =>
-      AdminTimeSheetEntryController.getEmployeeTimesheetEntries({
-        query: {
-          request: {
-            ...requestPayload,
-            statuses: ['SUBMITTED'],
-            page: 0,
-            size: 1000,
-          },
+    const listResponse = await AdminTimeSheetEntryController.getEmployeeTimesheetEntries({
+      query: {
+        request: {
+          ...requestPayload,
+          statuses: ['SUBMITTED'],
+          page: 0,
+          size: 1000,
         },
-        paramsSerializer: (params) => serializeTimesheetQuery(params.request),
-      }),
-    );
+      },
+      paramsSerializer: (params) => serializeTimesheetQuery(params.request),
+    });
 
     const submittedIds = new Set(
       (listResponse.data?.data ?? [])
@@ -116,11 +111,9 @@ export async function action({ request, url }: Route.ActionArgs) {
     }
 
     if (intent === 'accept-selected-users') {
-      await withAuth(request, () =>
-        AdminTimeSheetEntryController.acceptEntries({
-          body: { entryIds },
-        }),
-      );
+      await AdminTimeSheetEntryController.acceptEntries({
+        body: { entryIds },
+      });
 
       return redirectWithSuccess(
         request,
@@ -129,14 +122,12 @@ export async function action({ request, url }: Route.ActionArgs) {
       );
     }
 
-    await withAuth(request, () =>
-      AdminTimeSheetEntryController.declineEntries({
-        body: {
-          entryIds,
-          reason: declineReason,
-        },
-      }),
-    );
+    await AdminTimeSheetEntryController.declineEntries({
+      body: {
+        entryIds,
+        reason: declineReason,
+      },
+    });
 
     return redirectWithSuccess(
       request,

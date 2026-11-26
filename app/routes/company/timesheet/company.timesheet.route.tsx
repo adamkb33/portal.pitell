@@ -5,7 +5,6 @@ import { CalendarDays, Clock3, PenLine } from 'lucide-react';
 import type { Route } from './+types/company.timesheet.route';
 import type { TimesheetDayEntryDto } from '~/api/generated';
 import { CompanyUserTimesheetEntryController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { CalendarView, type CalendarEntry } from '~/components/calendar/CalendarView';
 import { ROUTES_MAP, RoutePlaceMent } from '~/lib/routing/route-tree';
@@ -26,12 +25,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     const url = new URL(request.url);
     const { requestPayload } = parseTimesheetListRequest(url);
 
-    const response = await withAuth(request, () =>
-      CompanyUserTimesheetEntryController.getEntries({
-        query: { request: requestPayload },
-        paramsSerializer: (params) => serializeTimesheetQuery(params.request),
-      }),
-    );
+    const response = await CompanyUserTimesheetEntryController.getEntries({
+      query: { request: requestPayload },
+      paramsSerializer: (params) => serializeTimesheetQuery(params.request),
+    });
 
     return {
       entries: (response.data?.data?.content ?? []).map((entry) => ({

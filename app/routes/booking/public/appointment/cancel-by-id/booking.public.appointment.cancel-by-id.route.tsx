@@ -2,7 +2,6 @@ import { data } from 'react-router';
 import type { Route } from './+types/booking.public.appointment.cancel-by-id.route';
 import { AppointmentsController, PublicAppointmentSessionController } from '~/api/generated';
 import type { AppointmentDto, CompanySummaryDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -46,9 +45,7 @@ async function loadOwnedAppointment(request: Request, appointmentId: number): Pr
   }
 
   try {
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentById({ query: { appointmentId } }),
-    );
+    const response = await PublicAppointmentSessionController.getAppointmentById({ query: { appointmentId } });
     const appointment = response.data?.data;
     return appointment && appointment.userId === auth.id ? appointment : null;
   } catch (error) {
@@ -95,7 +92,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return redirectWithError(request, MY_APPOINTMENTS_HREF, APPOINTMENT_GONE_MESSAGE);
     }
 
-    await withAuth(request, () => AppointmentsController.cancelMyAppointment({ path: { appointmentId } }));
+    await AppointmentsController.cancelMyAppointment({ path: { appointmentId } });
 
     return redirectWithSuccess(request, MY_APPOINTMENTS_HREF, CANCELLED_MESSAGE);
   } catch (error) {

@@ -1,6 +1,5 @@
 import { redirect, type MiddlewareFunction } from 'react-router';
 import { AuthController, type AuthPermissionFlagsDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { authService } from '~/lib/auth-service';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -26,7 +25,7 @@ function requireCompanyAdmin(
 
     let allowed = false;
     try {
-      const response = await withAuth(request, () => AuthController.getPermissions(), session.accessToken);
+      const response = await AuthController.getPermissions();
       const permissions = response.data?.data;
       allowed = Boolean(
         session.user.companyId &&

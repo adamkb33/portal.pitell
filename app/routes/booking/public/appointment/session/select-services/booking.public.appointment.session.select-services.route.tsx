@@ -3,7 +3,6 @@ import { Form, data, redirect, useNavigation } from 'react-router';
 import { Search, X } from 'lucide-react';
 import type { GroupedServiceDto } from '~/api/generated';
 import { PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError } from '~/lib/flash-message.server';
 import { BookingActionButton } from '~/routes/booking/public/_components/booking-action-button';
@@ -41,13 +40,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const { session } = guardResult;
 
-    const serviceGroupsResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionProfileServices({
-        query: {
-          sessionId: session.sessionId,
-        },
-      }),
-    );
+    const serviceGroupsResponse = await PublicAppointmentSessionController.getAppointmentSessionProfileServices({
+      query: {
+        sessionId: session.sessionId,
+      },
+    });
 
     return data({
       session,
@@ -87,16 +84,14 @@ export async function action({ request }: Route.ActionArgs) {
           item.quantity > 0,
       );
 
-    await withAuth(request, () =>
-      PublicAppointmentSessionController.selectAppointmentSessionProfileServices({
-        body: {
-          selectedServices,
-        },
-        query: {
-          sessionId: session.sessionId,
-        },
-      }),
-    );
+    await PublicAppointmentSessionController.selectAppointmentSessionProfileServices({
+      body: {
+        selectedServices,
+      },
+      query: {
+        sessionId: session.sessionId,
+      },
+    });
 
     return redirect(returnToOverview ? withOverviewReturnTo(routes.selectTime) : routes.selectTime);
   } catch (error) {

@@ -2,7 +2,6 @@ import { Link, Form } from 'react-router';
 import { FileText, Send, CheckCircle2, XCircle } from 'lucide-react';
 import type { Route } from './+types/company.offer.route';
 import { Offer, type OfferDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { OfferStatusBadge } from './_components';
@@ -39,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const status = parseOfferStatus(url.searchParams.get('status'));
 
   try {
-    const response = await withAuth(request, () => Offer.getOffers(status ? { query: { status } } : undefined));
+    const response = await Offer.getOffers(status ? { query: { status } } : undefined);
 
     return {
       offers: response.data?.data ?? [],

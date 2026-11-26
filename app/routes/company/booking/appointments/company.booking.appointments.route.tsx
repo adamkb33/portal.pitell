@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { CalendarX, History, SearchX } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday, parseISO } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { withAuth } from '~/api/utils/with-auth';
 import { CompanyUserAppointmentController, type AppointmentDto } from '~/api/generated';
 import type { Route } from './+types/company.booking.appointments.route';
 import { AppointmentTableHeaderSlot } from './_components/appointment.table-header-slot';
@@ -56,18 +55,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     const effectiveFromDateTime = hasDateFilters ? fromDateTime : now;
     const effectiveToDateTime = hasDateFilters ? toDateTime : null;
 
-    const appointmentsResponse = await withAuth(request, async () => {
-      return CompanyUserAppointmentController.getAppointments({
-        query: {
-          page,
-          size: PAGE_SIZE,
-          ...(sort && { sort }),
-          ...(search ? { search } : {}),
-          ...(effectiveFromDateTime && { fromDateTime: effectiveFromDateTime }),
-          ...(effectiveToDateTime && { toDateTime: effectiveToDateTime }),
-          direction: direction || 'ASC',
-        },
-      });
+    const appointmentsResponse = await CompanyUserAppointmentController.getAppointments({
+      query: {
+        page,
+        size: PAGE_SIZE,
+        ...(sort && { sort }),
+        ...(search ? { search } : {}),
+        ...(effectiveFromDateTime && { fromDateTime: effectiveFromDateTime }),
+        ...(effectiveToDateTime && { toDateTime: effectiveToDateTime }),
+        direction: direction || 'ASC',
+      },
     });
 
     const apiResponse = appointmentsResponse.data;

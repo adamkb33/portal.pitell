@@ -2,7 +2,6 @@ import type { Route } from './+types/booking.public.appointment.session.route';
 import { Loader2 } from 'lucide-react';
 import { redirect } from 'react-router';
 import { AppointmentsController, type AppointmentSessionDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import {
   parseBookingContext,
   resolveBookingTheme,
@@ -28,13 +27,11 @@ async function createBookingContextCookie(context: BookingContext, companyId: nu
 }
 
 async function validateCompanyBooking(companyId: number, request: Request) {
-  await withAuth(request, () =>
-    AppointmentsController.validateCompanyBooking({
-      path: {
-        companyId,
-      },
-    }),
-  );
+  await AppointmentsController.validateCompanyBooking({
+    path: {
+      companyId,
+    },
+  });
 }
 
 export async function loader(args: Route.LoaderArgs) {

@@ -3,7 +3,6 @@ import { CompanyUserScheduleUnavailabilityController, type ScheduleUnavailabilit
 import { format, toZonedTime } from 'date-fns-tz';
 import { data } from 'react-router';
 import { CalendarOff } from 'lucide-react';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { formatDateBoundaryInTimeZone } from '~/lib/query';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -26,14 +25,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { start, end } = periodWindow(period, toZonedTime(new Date(), TIME_ZONE));
 
   try {
-    const response = await withAuth(request, async () =>
-      CompanyUserScheduleUnavailabilityController.companyUserGetGroupedUnavailabilityRanges({
-        query: {
-          fromDateTime: formatDateBoundaryInTimeZone(format(start, 'yyyy-MM-dd'), 'start', TIME_ZONE),
-          toDateTime: formatDateBoundaryInTimeZone(format(end, 'yyyy-MM-dd'), 'end', TIME_ZONE),
-        },
-      }),
-    );
+    const response = await CompanyUserScheduleUnavailabilityController.companyUserGetGroupedUnavailabilityRanges({
+      query: {
+        fromDateTime: formatDateBoundaryInTimeZone(format(start, 'yyyy-MM-dd'), 'start', TIME_ZONE),
+        toDateTime: formatDateBoundaryInTimeZone(format(end, 'yyyy-MM-dd'), 'end', TIME_ZONE),
+      },
+    });
 
     const now = Date.now();
     const groups = (response.data?.data ?? [])

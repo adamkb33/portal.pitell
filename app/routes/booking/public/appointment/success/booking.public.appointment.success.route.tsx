@@ -12,7 +12,6 @@ import {
   type AppointmentDto,
   type LoyaltyCardDto,
 } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { AppointmentSessionService } from '~/routes/booking/public/_services/booking.appointment-session.service.server';
@@ -32,11 +31,9 @@ async function findProviderName(
   if (!session) return null;
 
   try {
-    const profilesResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionProfiles({
-        query: { sessionId: session.sessionId },
-      }),
-    );
+    const profilesResponse = await PublicAppointmentSessionController.getAppointmentSessionProfiles({
+      query: { sessionId: session.sessionId },
+    });
     const profile = profilesResponse.data?.data?.find((item) => item.id === appointment.profileId);
     return profile ? [profile.givenName, profile.familyName].filter(Boolean).join(' ') : null;
   } catch {
@@ -47,7 +44,7 @@ async function findProviderName(
 // Best effort: a guest without a sign-in, or a company without a loyalty program, just gets no card.
 async function findLoyaltyCard(request: Request, companyId: number): Promise<LoyaltyCardDto | null> {
   try {
-    const response = await withAuth(request, () => AppointmentsController.getMyLoyaltyCards());
+    const response = await AppointmentsController.getMyLoyaltyCards();
     return response.data?.data?.find((card) => card.companyId === companyId) ?? null;
   } catch {
     return null;
@@ -78,21 +75,17 @@ async function successLoader({ request }: Route.LoaderArgs) {
       throw Error('Selskap ikke gjenkjent');
     }
 
-    await withAuth(request, () =>
-      AppointmentsController.validateCompanyBooking({
-        path: {
-          companyId: parseInt(companyId),
-        },
-      }),
-    );
+    await AppointmentsController.validateCompanyBooking({
+      path: {
+        companyId: parseInt(companyId),
+      },
+    });
 
-    const companyResponse = await withAuth(request, () =>
-      PublicCompanyController.publicGetCompanyById({
-        path: {
-          companyId: parseInt(companyId),
-        },
-      }),
-    );
+    const companyResponse = await PublicCompanyController.publicGetCompanyById({
+      path: {
+        companyId: parseInt(companyId),
+      },
+    });
 
     if (!companyResponse.data?.data) {
       throw Error('Selskap ikke funnet');
@@ -101,14 +94,12 @@ async function successLoader({ request }: Route.LoaderArgs) {
     try {
       // The backend only returns the appointment to its owner: the signed-in user or this booking session's user.
       const session = await AppointmentSessionService.get(request).catch(() => null);
-      const appointmentResponse = await withAuth(request, () =>
-        PublicAppointmentSessionController.getAppointmentById({
-          query: {
-            appointmentId: parsedAppointmentId,
-            sessionId: session?.sessionId,
-          },
-        }),
-      );
+      const appointmentResponse = await PublicAppointmentSessionController.getAppointmentById({
+        query: {
+          appointmentId: parsedAppointmentId,
+          sessionId: session?.sessionId,
+        },
+      });
       const appointment = appointmentResponse.data?.data;
       if (!appointment) {
         return appointmentDetailsUnavailable(companyResponse.data.data);

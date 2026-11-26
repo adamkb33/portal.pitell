@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getAppointments: vi.fn(),
-  withAuth: vi.fn(),
   resolveErrorPayload: vi.fn(),
   formatCurrentDateTimeInTimeZone: vi.fn(),
 }));
@@ -11,10 +10,6 @@ vi.mock('~/api/generated', () => ({
   CompanyUserAppointmentController: {
     getAppointments: mocks.getAppointments,
   },
-}));
-
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: mocks.withAuth,
 }));
 
 vi.mock('~/lib/api-error', () => ({
@@ -47,7 +42,6 @@ describe('company booking appointments list route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.formatCurrentDateTimeInTimeZone.mockReturnValue('2026-07-08T12:00:00+02:00');
-    mocks.withAuth.mockImplementation((_request: Request, callback: () => unknown) => callback());
     mocks.resolveErrorPayload.mockImplementation((error: { response?: { status?: number } }, fallback: string) => ({
       message: fallback,
       status: error?.response?.status,

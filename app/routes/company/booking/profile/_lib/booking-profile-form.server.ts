@@ -1,7 +1,6 @@
 import { data } from 'react-router';
 import type { BookingProfileDto, CreateOrUpdateCompanyUserProfile, GroupedServiceGroupDto } from '~/api/generated';
 import { CompanyUserBookingProfileController, CompanyUserServiceGroupController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -14,12 +13,10 @@ export type BookingProfileFormLoaderData = {
 
 export async function loadBookingProfileFormData(request: Request): Promise<BookingProfileFormLoaderData> {
   try {
-    const [bookingProfileResponse, groupedServiceGroupsResponse] = await withAuth(request, async () => {
-      return Promise.all([
-        CompanyUserBookingProfileController.getBookingProfile(),
-        CompanyUserServiceGroupController.getGroupedServiceGroups(),
-      ]);
-    });
+    const [bookingProfileResponse, groupedServiceGroupsResponse] = await Promise.all([
+      CompanyUserBookingProfileController.getBookingProfile(),
+      CompanyUserServiceGroupController.getGroupedServiceGroups(),
+    ]);
 
     return {
       bookingProfile: bookingProfileResponse.data?.id ? bookingProfileResponse.data : null,
@@ -42,7 +39,7 @@ export async function submitBookingProfileForm(
 ) {
   try {
     const formData = await request.formData();
-    const current = await withAuth(request, () => CompanyUserBookingProfileController.getBookingProfile());
+    const current = await CompanyUserBookingProfileController.getBookingProfile();
     const profile = current.data?.id ? current.data : null;
     if (!profile && section !== 'profile') throw new Error('Opprett en bookingprofil først');
 
@@ -97,18 +94,16 @@ export async function submitBookingProfileForm(
       }
     }
 
-    await withAuth(request, () =>
-      CompanyUserBookingProfileController.createOrUpdateProfile({
-        body: payload,
-        // The generated discriminator uses class names; Jackson expects its uppercase wire names.
-        bodySerializer: () => ({
-          ...payload,
-          imageAction: payload.imageAction
-            ? { ...payload.imageAction, type: payload.imageAction.type.toUpperCase() }
-            : undefined,
-        }),
+    await CompanyUserBookingProfileController.createOrUpdateProfile({
+      body: payload,
+      // The generated discriminator uses class names; Jackson expects its uppercase wire names.
+      bodySerializer: () => ({
+        ...payload,
+        imageAction: payload.imageAction
+          ? { ...payload.imageAction, type: payload.imageAction.type.toUpperCase() }
+          : undefined,
       }),
-    );
+    });
     return redirectWithSuccess(request, ROUTES_MAP['company.booking.profile'].href, 'Bookingprofil lagret');
   } catch (error) {
     const { message, status } = resolveErrorPayload(error, 'Kunne ikke lagre bookingprofil');

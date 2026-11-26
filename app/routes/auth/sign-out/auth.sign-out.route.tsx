@@ -6,6 +6,7 @@ import { accessTokenCookie, refreshTokenCookie } from '~/routes/auth/_features/a
 import { toAuthPayload } from '~/routes/auth/_utils/token-payload';
 import { useEffect, useRef } from 'react';
 import { AuthController } from '~/api/generated';
+import { withoutLogin } from '~/lib/auth-middleware.server';
 
 export async function action({ request }: Route.ActionArgs) {
   const cookieHeader = request.headers.get('Cookie');
@@ -28,9 +29,11 @@ export async function action({ request }: Route.ActionArgs) {
       return redirect('/auth/sign-in', { headers });
     }
 
-    await AuthController.signOut({
-      body: { userId: authPayload.id },
-    });
+    await withoutLogin(() =>
+      AuthController.signOut({
+        body: { userId: authPayload.id },
+      }),
+    );
 
     return redirect('/', { headers });
   } catch (error) {

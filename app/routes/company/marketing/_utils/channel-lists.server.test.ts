@@ -10,9 +10,6 @@ vi.mock('~/api/generated', () => ({
   CompanyUserMarketingCampaignController: { list: mocks.list },
   CompanyUserMarketingRecipientController: { recipients: mocks.recipients },
 }));
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: async (_request: Request, callback: () => unknown) => callback(),
-}));
 vi.mock('~/lib/api-error', () => ({
   resolveErrorPayload: (_error: unknown, fallback: string) => ({ message: fallback }),
 }));

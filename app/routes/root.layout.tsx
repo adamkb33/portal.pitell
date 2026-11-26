@@ -12,7 +12,7 @@ import type { Route } from './+types/root.layout';
 import { authService, AuthenticationError } from '~/lib/auth-service';
 import { logger } from '~/lib/logger';
 import { runWithBackendStatus } from '~/lib/backend-status.server';
-import { defaultResponse, refreshAndBuildResponse, buildResponseData } from './_features/root.loader';
+import { defaultResponse, buildResponseData } from './_features/root.loader';
 import { getFlashMessage } from '../lib/flash-message.server';
 import { FlashMessageBanner } from './_components/flash-message-banner';
 import { Footer } from './_components/footer';
@@ -38,37 +38,16 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     const { message: flashMessage, headers: flashCookie } = await getFlashMessage(request);
-    const { accessToken, refreshToken } = await authService.getTokensFromRequest(request);
+    // The auth middleware has already refreshed an expired sign-in; no valid token means signed out.
+    const accessToken = await authService.readAccessToken(request);
     flashHeaders = flashCookie ? { 'Set-Cookie': flashCookie } : undefined;
 
-    if (!accessToken && !refreshToken) {
-      const response = await defaultResponse(flashMessage, request, flashHeaders);
-      return response;
+    if (!accessToken) {
+      return await defaultResponse(flashMessage, request, flashHeaders);
     }
 
-    if (!accessToken && refreshToken) {
-      const response = await refreshAndBuildResponse(request, refreshToken, flashMessage, flashHeaders);
-      return response;
-    }
-
-    if (accessToken) {
-      if (authService.isTokenExpired(accessToken)) {
-        if (refreshToken) {
-          const response = await refreshAndBuildResponse(request, refreshToken, flashMessage, flashHeaders);
-          return response;
-        }
-
-        const response = await defaultResponse(flashMessage, request, flashHeaders);
-        return response;
-      }
-
-      const body = await buildResponseData(request, accessToken, flashMessage);
-      const response = data(body, { headers: flashHeaders });
-      return response;
-    }
-
-    const response = await defaultResponse(flashMessage, request, flashHeaders);
-    return response;
+    const body = await buildResponseData(request, accessToken, flashMessage);
+    return data(body, { headers: flashHeaders });
   } catch (error) {
     if (error instanceof Response) {
       throw error;

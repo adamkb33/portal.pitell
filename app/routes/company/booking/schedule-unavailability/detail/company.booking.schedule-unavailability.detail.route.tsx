@@ -4,7 +4,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { nb } from 'date-fns/locale';
 import type { Route } from './+types/company.booking.schedule-unavailability.detail.route';
 import { CompanyUserScheduleUnavailabilityController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { DeleteConfirmDialog } from '~/components/dialog/delete-confirm-dialog';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
@@ -27,14 +26,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await withAuth(request, async () =>
-      CompanyUserScheduleUnavailabilityController.companyUserGetGroupedUnavailabilityRanges({
-        query: {
-          fromDateTime: formatDateBoundaryInTimeZone(formatDateInputInTimeZone(from, TIME_ZONE), 'start', TIME_ZONE),
-          toDateTime: formatDateBoundaryInTimeZone(formatDateInputInTimeZone(to, TIME_ZONE), 'end', TIME_ZONE),
-        },
-      }),
-    );
+    const response = await CompanyUserScheduleUnavailabilityController.companyUserGetGroupedUnavailabilityRanges({
+      query: {
+        fromDateTime: formatDateBoundaryInTimeZone(formatDateInputInTimeZone(from, TIME_ZONE), 'start', TIME_ZONE),
+        toDateTime: formatDateBoundaryInTimeZone(formatDateInputInTimeZone(to, TIME_ZONE), 'end', TIME_ZONE),
+      },
+    });
     const group = (response.data?.data ?? []).find((candidate) => candidate.id === id);
     if (!group) return redirectWithError(request, LIST_HREF(), 'Fant ikke fraværet');
 
@@ -56,9 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      CompanyUserScheduleUnavailabilityController.companyUserDeleteUnavailabilityRanges({ body: { ids } }),
-    );
+    await CompanyUserScheduleUnavailabilityController.companyUserDeleteUnavailabilityRanges({ body: { ids } });
     return redirectWithSuccess(request, LIST_HREF(), 'Fravær slettet');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke slette fravær');

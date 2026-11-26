@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getFlashMessage: vi.fn(),
-  getTokensFromRequest: vi.fn(),
-  isTokenExpired: vi.fn(),
+  readAccessToken: vi.fn(),
   defaultResponse: vi.fn(),
-  refreshAndBuildResponse: vi.fn(),
   buildResponseData: vi.fn(),
   loggerError: vi.fn(),
   loggerWarn: vi.fn(),
@@ -27,17 +25,13 @@ vi.mock('~/lib/auth-service', () => {
   }
 
   return {
-    authService: {
-      getTokensFromRequest: mocks.getTokensFromRequest,
-      isTokenExpired: mocks.isTokenExpired,
-    },
+    authService: { readAccessToken: mocks.readAccessToken },
     AuthenticationError,
   };
 });
 
 vi.mock('./_features/root.loader', () => ({
   defaultResponse: mocks.defaultResponse,
-  refreshAndBuildResponse: mocks.refreshAndBuildResponse,
   buildResponseData: mocks.buildResponseData,
 }));
 
@@ -58,78 +52,43 @@ function unwrapData<T = unknown>(result: unknown): T {
   return result as T;
 }
 
-describe('root.layout loader guards', () => {
+// Refreshing an expired sign-in happens in the auth middleware (auth-middleware.server.test.ts); the root loader
+// only sees the token it settled on.
+describe('root.layout loader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getFlashMessage.mockResolvedValue({ message: null, headers: 'flash=; Path=/; Max-Age=0' });
-    mocks.isTokenExpired.mockReturnValue(false);
     mocks.defaultResponse.mockResolvedValue({ kind: 'default' });
-    mocks.refreshAndBuildResponse.mockResolvedValue({ kind: 'refresh' });
-    mocks.buildResponseData.mockResolvedValue({ kind: 'access' });
+    mocks.buildResponseData.mockResolvedValue({ kind: 'signed-in' });
   });
 
-  it('uses default response when no access or refresh token exists', async () => {
+  it('shows the signed-out page when the request has no valid token', async () => {
     mocks.getFlashMessage.mockResolvedValueOnce({ message: 'hello', headers: 'flash=1; Path=/' });
-    mocks.getTokensFromRequest.mockResolvedValueOnce({ accessToken: null, refreshToken: null });
+    mocks.readAccessToken.mockResolvedValueOnce(undefined);
 
-    const result = await loader({
-      request: new Request('http://localhost/'),
-    } as never);
+    const result = await loader({ request: new Request('http://localhost/') } as never);
 
     expect(result).toEqual({ kind: 'default' });
-    expect(mocks.defaultResponse).toHaveBeenCalledWith('hello', expect.any(Request), expect.any(Object));
+    expect(mocks.defaultResponse).toHaveBeenCalledWith('hello', expect.any(Request), {
+      'Set-Cookie': 'flash=1; Path=/',
+    });
+    expect(mocks.buildResponseData).not.toHaveBeenCalled();
   });
 
-  it('uses refresh path when only refresh token exists', async () => {
-    mocks.getTokensFromRequest.mockResolvedValueOnce({ accessToken: null, refreshToken: 'refresh-token' });
+  it('builds the signed-in page from the token the auth middleware settled on', async () => {
+    mocks.readAccessToken.mockResolvedValueOnce('access-token');
 
-    const request = new Request('http://localhost/');
-    const result = await loader({ request } as never);
+    const result = await loader({ request: new Request('http://localhost/') } as never);
 
-    expect(result).toEqual({ kind: 'refresh' });
-    expect(mocks.refreshAndBuildResponse).toHaveBeenCalledWith(request, 'refresh-token', null, expect.any(Object));
+    expect(unwrapData(result)).toEqual({ kind: 'signed-in' });
+    expect(mocks.buildResponseData).toHaveBeenCalledWith(expect.any(Request), 'access-token', null);
+    expect(mocks.defaultResponse).not.toHaveBeenCalled();
   });
 
-  it('uses refresh path when access token is expired and refresh token exists', async () => {
-    mocks.getTokensFromRequest.mockResolvedValueOnce({ accessToken: 'expired-access', refreshToken: 'refresh-token' });
-    mocks.isTokenExpired.mockReturnValueOnce(true);
-
-    const request = new Request('http://localhost/');
-    const result = await loader({ request } as never);
-
-    expect(result).toEqual({ kind: 'refresh' });
-    expect(mocks.refreshAndBuildResponse).toHaveBeenCalledWith(request, 'refresh-token', null, expect.any(Object));
-  });
-
-  it('falls back to default response when access token is expired and refresh token is missing', async () => {
-    mocks.getTokensFromRequest.mockResolvedValueOnce({ accessToken: 'expired-access', refreshToken: null });
-    mocks.isTokenExpired.mockReturnValueOnce(true);
-
-    const result = await loader({
-      request: new Request('http://localhost/'),
-    } as never);
-
-    expect(result).toEqual({ kind: 'default' });
-    expect(mocks.defaultResponse).toHaveBeenCalledWith(null, expect.any(Request), expect.any(Object));
-  });
-
-  it('uses access-token branch when access token is valid', async () => {
-    mocks.getTokensFromRequest.mockResolvedValueOnce({ accessToken: 'valid-access', refreshToken: 'refresh-token' });
-    mocks.isTokenExpired.mockReturnValueOnce(false);
-
-    const request = new Request('http://localhost/');
-    const result = await loader({ request } as never);
-
-    expect(unwrapData(result)).toEqual({ kind: 'access' });
-    expect(mocks.buildResponseData).toHaveBeenCalledWith(request, 'valid-access', null);
-  });
-
-  it('returns default response when AuthenticationError is thrown', async () => {
+  it('continues signed out when the sign-in is no longer valid', async () => {
     mocks.getFlashMessage.mockRejectedValueOnce(new AuthenticationError('expired', 'expired'));
 
-    const result = await loader({
-      request: new Request('http://localhost/'),
-    } as never);
+    const result = await loader({ request: new Request('http://localhost/') } as never);
 
     expect(result).toEqual({ kind: 'default' });
     expect(mocks.defaultResponse).toHaveBeenCalledWith(null, expect.any(Request), undefined);
@@ -139,10 +98,6 @@ describe('root.layout loader guards', () => {
   it('rethrows unexpected errors', async () => {
     mocks.getFlashMessage.mockRejectedValueOnce(new Error('boom'));
 
-    await expect(
-      loader({
-        request: new Request('http://localhost/'),
-      } as never),
-    ).rejects.toThrow('boom');
+    await expect(loader({ request: new Request('http://localhost/') } as never)).rejects.toThrow('boom');
   });
 });

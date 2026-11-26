@@ -3,13 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getUserSession: vi.fn(),
   getPermissions: vi.fn(),
-  withAuth: vi.fn(),
   redirectWithError: vi.fn(),
 }));
 
 vi.mock('~/lib/auth-service', () => ({ authService: { getUserSession: mocks.getUserSession } }));
 vi.mock('~/api/generated', () => ({ AuthController: { getPermissions: mocks.getPermissions } }));
-vi.mock('~/api/utils/with-auth', () => ({ withAuth: mocks.withAuth }));
 vi.mock('~/lib/flash-message.server', () => ({ redirectWithError: mocks.redirectWithError }));
 
 import { requireMarketingAdmin } from '~/lib/company-admin.server';
@@ -28,7 +26,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getUserSession.mockResolvedValue({ user: { id: 1, companyId: 100 }, accessToken: 'access-token' });
   mocks.getPermissions.mockResolvedValue(permissions());
-  mocks.withAuth.mockImplementation(async (_request: Request, callback: () => unknown) => callback());
   mocks.redirectWithError.mockResolvedValue(new Response(null, { status: 302, headers: { Location: '/company' } }));
 });
 
@@ -36,7 +33,6 @@ describe('marketing access guard', () => {
   it('allows an admin of the active company that has marketing', async () => {
     await expect(check()).resolves.toMatchObject({ status: 200 });
     expect(next).toHaveBeenCalledOnce();
-    expect(mocks.withAuth).toHaveBeenCalledWith(request, expect.any(Function), 'access-token');
   });
 
   it('checks every marketing page before its loaders and actions run', () => {

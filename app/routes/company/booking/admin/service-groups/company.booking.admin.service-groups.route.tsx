@@ -5,7 +5,6 @@ import { ChevronRight, Layers } from 'lucide-react';
 import { CompanyPageTemplate, categoryTone, cn, PageNotice } from '~/ui';
 import type { Route } from './+types/company.booking.admin.service-groups.route';
 import { CompanyUserServiceGroupController, ServiceController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { resolveErrorPayload } from '~/lib/api-error';
 import type { CreateActionHandle } from '~/lib/routing/create-action';
@@ -17,12 +16,10 @@ export const handle = {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     // A salon has a handful of groups; load them all, with the services so each row can show its count.
-    const [groupsResponse, servicesResponse] = await withAuth(request, async () =>
-      Promise.all([
-        CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
-        ServiceController.getServices({ query: { page: 0, size: 1000 } }),
-      ]),
-    );
+    const [groupsResponse, servicesResponse] = await Promise.all([
+      CompanyUserServiceGroupController.getServiceGroups({ query: { page: 0, size: 1000 } }),
+      ServiceController.getServices({ query: { page: 0, size: 1000 } }),
+    ]);
 
     const serviceCountByGroupId: Record<number, number> = {};
     for (const service of servicesResponse.data?.data?.content ?? []) {

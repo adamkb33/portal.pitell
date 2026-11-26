@@ -3,7 +3,6 @@ import { data, Form, Link, useLocation, useNavigation } from 'react-router';
 import { BellOff, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Route } from './+types/company.notifications.route';
 import { CompanyUserInAppNotificationController, type InAppNotificationDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { serializeQueryParams } from '~/lib/query';
@@ -22,18 +21,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { filters, requestPayload } = parseNotificationListRequest(new URL(request.url));
 
   try {
-    const [listResponse, unreadResponse] = await withAuth(request, () =>
-      Promise.all([
-        CompanyUserInAppNotificationController.getInAppNotifications({
-          query: { request: requestPayload },
-          paramsSerializer: (params) => serializeQueryParams(params.request),
-        }),
-        CompanyUserInAppNotificationController.getInAppNotifications({
-          query: { request: UNREAD_COUNT_REQUEST },
-          paramsSerializer: (params) => serializeQueryParams(params.request),
-        }),
-      ]),
-    );
+    const [listResponse, unreadResponse] = await Promise.all([
+      CompanyUserInAppNotificationController.getInAppNotifications({
+        query: { request: requestPayload },
+        paramsSerializer: (params) => serializeQueryParams(params.request),
+      }),
+      CompanyUserInAppNotificationController.getInAppNotifications({
+        query: { request: UNREAD_COUNT_REQUEST },
+        paramsSerializer: (params) => serializeQueryParams(params.request),
+      }),
+    ]);
     const pageData = listResponse.data?.data;
 
     return data({
@@ -62,7 +59,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** "Merk alle som lest": reads every unread notification and stays on the page with a toast. */
 export async function action({ request }: Route.ActionArgs) {
   try {
-    await withAuth(request, () => CompanyUserInAppNotificationController.markAllInAppNotificationsAsRead());
+    await CompanyUserInAppNotificationController.markAllInAppNotificationsAsRead();
     return data(null, {
       headers: { 'Set-Cookie': await setFlashMessage(request, { type: 'success', text: 'Alle varsler er lest' }) },
     });

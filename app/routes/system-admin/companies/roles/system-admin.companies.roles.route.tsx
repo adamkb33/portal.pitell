@@ -1,7 +1,6 @@
 import { data, NavLink } from 'react-router';
 import type { Route } from './+types/system-admin.companies.roles.route';
 import { Base } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { setFlashMessage } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
@@ -49,14 +48,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      Base.addCompanyRole({
-        body: {
-          userId,
-          companyRoles: [{ companyId, roles: [role as 'ADMIN' | 'EMPLOYEE'] }],
-        },
-      }),
-    );
+    await Base.addCompanyRole({
+      body: {
+        userId,
+        companyRoles: [{ companyId, roles: [role as 'ADMIN' | 'EMPLOYEE'] }],
+      },
+    });
 
     const flashCookie = await setFlashMessage(request, { type: 'success', text: 'Rolle tildelt.' });
     return data(

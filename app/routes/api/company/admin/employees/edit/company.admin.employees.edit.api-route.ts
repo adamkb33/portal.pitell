@@ -4,7 +4,6 @@ import { logger } from '~/lib/logger';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import { redirectWithError, redirectWithSuccess } from '~/lib/flash-message.server';
 import { AdminCompanyController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -16,15 +15,13 @@ export async function action({ request }: ActionFunctionArgs) {
       return redirectWithError(request, ROUTES_MAP['company.admin.employees'].href, 'Manglende skjemadata');
     }
 
-    await withAuth(request, async () => {
-      await AdminCompanyController.editCompanyUser({
-        query: {
-          userId: parseInt(userId.toString()),
-        },
-        body: {
-          roles: rolesToUpdate.toString().split(',') as Array<'ADMIN' | 'EMPLOYEE'>,
-        },
-      });
+    await AdminCompanyController.editCompanyUser({
+      query: {
+        userId: parseInt(userId.toString()),
+      },
+      body: {
+        roles: rolesToUpdate.toString().split(',') as Array<'ADMIN' | 'EMPLOYEE'>,
+      },
     });
 
     return redirectWithSuccess(request, ROUTES_MAP['company.admin.employees'].href, 'Ansattinformasjon oppdatert');

@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getAppointmentById1: vi.fn(),
   deleteAppointment: vi.fn(),
-  withAuth: vi.fn(),
   resolveErrorPayload: vi.fn(),
   redirectWithError: vi.fn(),
   redirectWithSuccess: vi.fn(),
@@ -14,10 +13,6 @@ vi.mock('~/api/generated', () => ({
     getAppointmentById1: mocks.getAppointmentById1,
     deleteAppointment: mocks.deleteAppointment,
   },
-}));
-
-vi.mock('~/api/utils/with-auth', () => ({
-  withAuth: mocks.withAuth,
 }));
 
 vi.mock('~/lib/api-error', () => ({
@@ -61,7 +56,6 @@ function readDataResponse(response: unknown) {
 describe('company booking appointment detail route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.withAuth.mockImplementation((_request: Request, callback: () => unknown) => callback());
     mocks.resolveErrorPayload.mockImplementation((error: { response?: { status?: number } }, fallback: string) => ({
       message: fallback,
       status: error?.response?.status,

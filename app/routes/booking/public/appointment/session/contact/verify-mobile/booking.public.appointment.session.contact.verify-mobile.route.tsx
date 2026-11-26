@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Form, data, redirect, useActionData, useNavigation } from 'react-router';
 import { Check, CircleAlert, RotateCcw } from 'lucide-react';
 import { Booking, PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -40,11 +39,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
 
     const { session } = guardResult;
-    const requirementsResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionRequirements({
-        path: { sessionId: session.sessionId },
-      }),
-    );
+    const requirementsResponse = await PublicAppointmentSessionController.getAppointmentSessionRequirements({
+      path: { sessionId: session.sessionId },
+    });
     const requirements = requirementsResponse.data?.data;
 
     if (!requirements || requirements.nextStep === 'CONTACT_FORM') {
@@ -91,11 +88,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === 'change-mobile' || intent === 'cancel-replacement') {
     try {
-      await withAuth(request, () =>
-        Booking.cancelAppointmentSessionContactReplacement({
-          path: { sessionId: session.sessionId },
-        }),
-      );
+      await Booking.cancelAppointmentSessionContactReplacement({
+        path: { sessionId: session.sessionId },
+      });
       if (intent === 'cancel-replacement') return redirect(routes.overview);
 
       return redirect(isReplacingContact ? `${routes.contact}?edit=1` : `${routes.contact}?form=1`);
@@ -107,11 +102,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === 'resend') {
     try {
-      await withAuth(request, () =>
-        PublicAppointmentSessionController.resendAppointmentSessionMobileChallenge({
-          path: { sessionId: session.sessionId },
-        }),
-      );
+      await PublicAppointmentSessionController.resendAppointmentSessionMobileChallenge({
+        path: { sessionId: session.sessionId },
+      });
       return data<VerifyMobileActionData>({ ok: true, message: 'Ny kode sendt.' });
     } catch (error) {
       const payload = resolveErrorPayload(error, 'Kunne ikke sende ny kode. Prøv igjen.');
@@ -131,15 +124,13 @@ export async function action({ request }: Route.ActionArgs) {
       return data<VerifyMobileActionData>({ ok: false, error: 'Skriv inn SMS-koden på 6 siffer.' }, { status: 400 });
     }
 
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.verifyAppointmentSessionUserMobile({
-        path: { sessionId: session.sessionId },
-        body: {
-          challengeId,
-          code,
-        },
-      }),
-    );
+    const response = await PublicAppointmentSessionController.verifyAppointmentSessionUserMobile({
+      path: { sessionId: session.sessionId },
+      body: {
+        challengeId,
+        code,
+      },
+    });
     const payload = response.data?.data;
 
     if (!payload || payload.nextStep !== 'DONE') {

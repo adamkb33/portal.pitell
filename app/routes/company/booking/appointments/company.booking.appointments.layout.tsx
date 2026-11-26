@@ -1,15 +1,12 @@
 import { Outlet } from 'react-router';
 import type { Route } from './+types/company.booking.appointments.layout';
 import { CompanyUserBookingProfileController, type ApiMessage } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { redirectWithInfo } from '~/lib/flash-message.server';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    const profile = await withAuth(request, async () => {
-      return CompanyUserBookingProfileController.getBookingProfile();
-    });
+    const profile = await CompanyUserBookingProfileController.getBookingProfile();
 
     if (!profile?.data) {
       return redirectWithInfo(

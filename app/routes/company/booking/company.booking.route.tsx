@@ -1,7 +1,6 @@
 import { authService } from '~/lib/auth-service';
 import type { Route } from './+types/company.booking.route';
 import { AuthController, Booking } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { CalendarDays, ChevronRight, ListChecks } from 'lucide-react';
 import { Link, useRouteLoaderData } from 'react-router';
 import type { loader as rootLoader } from '~/routes/root.layout';
@@ -16,7 +15,7 @@ import { countTodayAndUpcomingAppointments } from './_utils/appointment-counts.s
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const session = await authService.getUserSession(request);
-    const response = await withAuth(request, () => AuthController.getPermissions());
+    const response = await AuthController.getPermissions();
     const permissions = response.data?.data;
     const canAdminister = Boolean(
       session.user.companyId &&
@@ -27,7 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     // Admins see the loyalty program's real state on its row; without it the row keeps its fixed line.
     const loyalty = canAdminister
-      ? await withAuth(request, () => Booking.getLoyaltyRule())
+      ? await Booking.getLoyaltyRule()
           .then((loyaltyResponse) => loyaltyResponse.data?.data ?? null)
           .catch(() => null)
       : null;

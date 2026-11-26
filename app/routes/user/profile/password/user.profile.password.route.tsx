@@ -1,6 +1,5 @@
 import { Form, data, useNavigation } from 'react-router';
 import { AuthController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { redirectWithSuccess, setFlashMessage } from '~/lib/flash-message.server';
@@ -37,9 +36,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await withAuth(request, async () =>
-      AuthController.changePassword({ body: { currentPassword, newPassword, newPassword2 } }),
-    );
+    await AuthController.changePassword({ body: { currentPassword, newPassword, newPassword2 } });
     return redirectWithSuccess(request, ROUTES_MAP['user.profile'].href, 'Passord endret');
   } catch (error) {
     const { message } = resolveErrorPayload(error, 'Kunne ikke endre passordet. Prøv igjen.');

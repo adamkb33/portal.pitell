@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Form, data, redirect, useNavigation } from 'react-router';
 import { Mail, Phone, Plus } from 'lucide-react';
 import { Booking, PublicAppointmentSessionController } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { authService } from '~/lib/auth-service';
 import { redirectWithError } from '~/lib/flash-message.server';
@@ -51,11 +50,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (manualContact) {
     if (isEditingContact) {
       try {
-        const response = await withAuth(request, () =>
-          PublicAppointmentSessionController.getAppointmentSessionOverview({
-            query: { sessionId: session.sessionId },
-          }),
-        );
+        const response = await PublicAppointmentSessionController.getAppointmentSessionOverview({
+          query: { sessionId: session.sessionId },
+        });
         const user = response.data?.data?.user;
         if (!user) {
           return redirectWithError(request, routes.overview, 'Kunne ikke hente kontaktinformasjonen');
@@ -87,19 +84,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const requirementsResponse = await withAuth(request, () =>
-      PublicAppointmentSessionController.getAppointmentSessionRequirements({
-        path: { sessionId: session.sessionId },
-      }),
-    );
+    const requirementsResponse = await PublicAppointmentSessionController.getAppointmentSessionRequirements({
+      path: { sessionId: session.sessionId },
+    });
     const requirements = requirementsResponse.data?.data ?? null;
 
     if (requirements?.nextStep === 'DONE' && session.userId) {
-      const response = await withAuth(request, () =>
-        PublicAppointmentSessionController.resumeAppointmentSession({
-          path: { sessionId: session.sessionId },
-        }),
-      );
+      const response = await PublicAppointmentSessionController.resumeAppointmentSession({
+        path: { sessionId: session.sessionId },
+      });
       const authTokens = response.data?.data?.authTokens;
       const headers = authTokens
         ? await authService.setAuthCookies(
@@ -115,11 +108,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (requirements?.canAttachAuthenticatedUser) {
       try {
-        const response = await withAuth(request, () =>
-          PublicAppointmentSessionController.setPendingAppointmentSessionUser({
-            path: { sessionId: session.sessionId },
-          }),
-        );
+        const response = await PublicAppointmentSessionController.setPendingAppointmentSessionUser({
+          path: { sessionId: session.sessionId },
+        });
         const nextStep = response.data?.data?.nextStep;
 
         if (nextStep === 'DONE') return redirect(routes.overview);
@@ -186,11 +177,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === 'cancel-edit') {
     try {
-      await withAuth(request, () =>
-        Booking.cancelAppointmentSessionContactReplacement({
-          path: { sessionId: session.sessionId },
-        }),
-      );
+      await Booking.cancelAppointmentSessionContactReplacement({
+        path: { sessionId: session.sessionId },
+      });
       return redirect(routes.overview, {
         headers: { 'Set-Cookie': await clearManualContactOverride() },
       });
@@ -216,18 +205,16 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const mobileVerificationToken = await mobileVerificationTokenCookie.parse(request.headers.get('Cookie'));
-    const response = await withAuth(request, () =>
-      PublicAppointmentSessionController.identifyAppointmentSessionUser({
-        path: { sessionId: session.sessionId },
-        body: {
-          givenName: parsed.data.givenName,
-          familyName: parsed.data.familyName,
-          mobileNumber: parsed.data.mobileNumber,
-          email: parsed.data.email,
-          mobileVerificationToken: typeof mobileVerificationToken === 'string' ? mobileVerificationToken : undefined,
-        },
-      }),
-    );
+    const response = await PublicAppointmentSessionController.identifyAppointmentSessionUser({
+      path: { sessionId: session.sessionId },
+      body: {
+        givenName: parsed.data.givenName,
+        familyName: parsed.data.familyName,
+        mobileNumber: parsed.data.mobileNumber,
+        email: parsed.data.email,
+        mobileVerificationToken: typeof mobileVerificationToken === 'string' ? mobileVerificationToken : undefined,
+      },
+    });
 
     const result = response.data?.data;
     if (result?.nextStep === 'DONE') {

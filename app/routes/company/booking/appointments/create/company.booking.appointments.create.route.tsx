@@ -11,7 +11,6 @@ import {
   CompanyUserScheduleController,
 } from '~/api/generated';
 import type { ScheduleDto, UserDto } from '~/api/generated';
-import { withAuth } from '~/api/utils/with-auth';
 import { resolveErrorPayload } from '~/lib/api-error';
 import { ROUTES_MAP } from '~/lib/routing/route-tree';
 import {
@@ -94,26 +93,22 @@ export async function loader({ request }: Route.LoaderArgs) {
       ? ({ page: 0, size: SEARCH_RESULTS, sort: 'familyName', direction: 'ASC', search: contactSearch } as const)
       : ({ page: 0, size: RECENT_CUSTOMERS, sort: 'createdAt', direction: 'DESC' } as const);
 
-    const apiResponses = await withAuth(request, async () => {
-      const contactsResponse = await CompanyUserAppointmentController.getAppointmentCustomers({
-        query: contactsQuery,
-      });
-
-      const bookingProfileResponse = await CompanyUserBookingProfileController.getBookingProfile();
-      const scheduleResponse =
-        state.serviceIds.length > 0
-          ? await CompanyUserScheduleController.getSchedule({
-              body: {
-                selectedServices: state.serviceIds.map((serviceId) => ({
-                  serviceId,
-                  quantity: state.quantities[serviceId] ?? 1,
-                })),
-              },
-            })
-          : null;
-
-      return { contactsResponse, bookingProfileResponse, scheduleResponse };
+    const contactsResponse = await CompanyUserAppointmentController.getAppointmentCustomers({
+      query: contactsQuery,
     });
+    const bookingProfileResponse = await CompanyUserBookingProfileController.getBookingProfile();
+    const scheduleResponse =
+      state.serviceIds.length > 0
+        ? await CompanyUserScheduleController.getSchedule({
+            body: {
+              selectedServices: state.serviceIds.map((serviceId) => ({
+                serviceId,
+                quantity: state.quantities[serviceId] ?? 1,
+              })),
+            },
+          })
+        : null;
+    const apiResponses = { contactsResponse, bookingProfileResponse, scheduleResponse };
 
     const contactsData = apiResponses.contactsResponse.data?.data;
     const customers = (contactsData?.content || []).map((user) => ({
@@ -192,15 +187,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (userId) {
     try {
-      const response = await withAuth(request, async () =>
-        CompanyUserAppointmentController.companyUserCreateAppointment({
-          body: {
-            userId,
-            services,
-            startTime,
-          },
-        }),
-      );
+      const response = await CompanyUserAppointmentController.companyUserCreateAppointment({
+        body: {
+          userId,
+          services,
+          startTime,
+        },
+      });
 
       return redirectWithSuccess(request, doneHref, response.data?.message?.value || 'Avtalen er opprettet.');
     } catch (error) {
@@ -223,11 +216,9 @@ export async function action({ request }: Route.ActionArgs) {
   };
 
   try {
-    const resolvedCustomer = await withAuth(request, async () =>
-      CompanyUserController.resolveOrCreateAppointmentCustomer({
-        body: resolverBody,
-      }),
-    );
+    const resolvedCustomer = await CompanyUserController.resolveOrCreateAppointmentCustomer({
+      body: resolverBody,
+    });
     const resolvedUserId = resolvedCustomer.data?.data?.userId;
     const resolverStatus = resolvedCustomer.data?.data?.status;
 
@@ -238,15 +229,13 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     try {
-      const response = await withAuth(request, async () =>
-        CompanyUserAppointmentController.companyUserCreateAppointment({
-          body: {
-            userId: resolvedUserId,
-            services,
-            startTime,
-          },
-        }),
-      );
+      const response = await CompanyUserAppointmentController.companyUserCreateAppointment({
+        body: {
+          userId: resolvedUserId,
+          services,
+          startTime,
+        },
+      });
 
       const baseMessage = response.data?.message?.value || 'Avtalen er opprettet.';
       const successMessage =
